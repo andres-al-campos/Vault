@@ -336,21 +336,27 @@ fn fetch_channel_blocking(raw: String, tab: String) -> Result<ChannelInfo, Strin
 }
 
 #[tauri::command]
-fn download_video(app: AppHandle, id: String, url: String, dir: String) -> Result<(), String> {
+fn download_video(app: AppHandle, id: String, url: String, dir: String, force: Option<bool>) -> Result<(), String> {
     let yt = ytdlp_path();
     let dir = PathBuf::from(&dir);
     std::fs::create_dir_all(&dir).map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
     // The archive lives inside this channel's folder, so it follows the videos.
+    // A forced re-download runs without it — the archive still says this video
+    // is present, and letting yt-dlp read it would skip the job — and the
+    // record is re-stamped by hand only once the download succeeds.
+    let force = force.unwrap_or(false);
     let archive = channel_archive_path(&dir);
     if let Some(parent) = archive.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
 
-    let mut child: Child = Command::new(&yt)
-        .arg("--newline")
-        .arg("--no-warnings")
-        .arg("--download-archive")
-        .arg(&archive)
+    let mut cmd: Command = Command::new(&yt);
+    cmd.arg("--newline")
+        .arg("--no-warnings");
+    if !force {
+        cmd.arg("--download-archive").arg(&archive);
+    }
+    cmd
         // Prefer AV1, then H.264, always with AAC audio, muxed into MP4.
         //
         // yt-dlp's default lands on VP9+Opus in WebM: same visual quality at
@@ -374,7 +380,8 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String) -> Resul
         // A channel's directory holds flat files: the folder is already the
         // channel, so there is no uploader subfolder here.
         .arg(format!("{}/%(title)s [%(id)s].%(ext)s", dir.display()))
-        .arg(&url)
+        .arg(&url);
+    let mut child: Child = cmd
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -406,6 +413,8 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String) -> Resul
     let handle = app.clone();
     let job = id.clone();
     let reason_out = reason.clone();
+    let forced = force;
+    let archive_out = archive.clone();
     std::thread::spawn(move || {
         for line in BufReader::new(stdout).lines().map_while(Result::ok) {
             if let Some(rest) = line.strip_prefix("VAULTPROG|") {
@@ -430,6 +439,11 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String) -> Resul
         let status = child.wait();
         let ok = status.map(|s| s.success()).unwrap_or(false);
         let _ = err_thread.join();
+        // A forced re-download runs without the archive, so yt-dlp wrote no
+        // record; stamp it here, only when the download actually landed.
+        if ok && forced {
+            append_to_archive(&archive_out, &job);
+        }
         let was_cancelled = {
             let st = handle.state::<AppState>();
             let removed = st.cancelled.lock().unwrap().remove(&job);
@@ -674,28 +688,26 @@ fn downloaded_ids() -> Vec<String> {
     archive_owners(&load_state()).into_iter().map(|(id, _, _)| id).collect()
 }
 
-/// Remove an id from its owning channel's archive, so yt-dlp will download it
-/// again on the next run. This is how "Download again" works for an entry whose
-/// file has disappeared: the archive still records it, and without this the
-/// download would be skipped as already-done.
-#[tauri::command]
-fn unarchive(id: String, channel_url: String) -> Result<(), String> {
-    let state = load_state();
-    let dir = state
-        .channels
-        .iter()
-        .find(|c| c.url == channel_url)
-        .and_then(|c| c.download_dir.clone())
-        .ok_or_else(|| format!("No download folder known for {channel_url}"))?;
-    let archive = channel_archive_path(std::path::Path::new(&dir));
-    if !archive.is_file() {
-        return Err(format!("No archive at {}", archive.display()));
+/// Record an id in an archive file, creating the file if needed. The line
+/// format matches what yt-dlp writes — `<extractor> <id>` — and the extractor
+/// is always `youtube` here: every URL the app hands yt-dlp is a YouTube one.
+/// Used after a forced re-download, which runs without --download-archive so
+/// yt-dlp cannot skip the video; the record lands here once it succeeds.
+fn append_to_archive(path: &std::path::Path, id: &str) {
+    if read_archive(path).iter().any(|have| have == id) {
+        return;
     }
-    if remove_from_archive(&archive, &id) {
-        Ok(())
-    } else {
-        Err(format!("{id} is not recorded in {}", archive.display()))
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
     }
+    let mut body = std::fs::read_to_string(path).unwrap_or_default();
+    if !body.is_empty() && !body.ends_with('\n') {
+        body.push('\n');
+    }
+    body.push_str("youtube ");
+    body.push_str(id);
+    body.push('\n');
+    let _ = std::fs::write(path, body);
 }
 
 /// Record a channel's identity inside its own folder, so the directory is
@@ -1112,7 +1124,6 @@ pub fn run() {
             downloaded_ids,
             list_archive,
             channel_vaults,
-            unarchive,
             load_state,
             save_state,
             default_download_dir_str,
