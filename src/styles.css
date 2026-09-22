@@ -175,11 +175,6 @@ body {
 .dirmeta .mini:hover { background: var(--hover); }
 .dirmeta .mini.accent { border-color: var(--accent); color: var(--accent); }
 .dirmeta svg { flex: none; }
-/* Marks the channel's own vault, which lives in a hidden .vault/ in this folder. */
-.dirmeta .vaultnote { flex: none; font-size: 11.5px; color: var(--accent-soft-fg);
-  background: var(--accent-soft); border: 1px solid var(--accent-soft-line);
-  border-radius: 6px; padding: 3px 7px; }
-.dirmeta .vaultnote.bad { color: var(--accent); background: transparent; border-color: var(--accent); }
 
 /* grid + cards */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }

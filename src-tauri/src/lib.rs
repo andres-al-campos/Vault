@@ -471,8 +471,22 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
     // hazard: a verbose failure fills the pipe buffer and blocks yt-dlp forever.
     let reason: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let reason_err = reason.clone();
+    // The raw `ERROR:` line, for failures classify_failure doesn't know. Without
+    // this an unmapped failure reports as just "Failed", which tells the user
+    // nothing — the line usually names the real cause ("The page needs to be
+    // reloaded", format problems, etc.).
+    let raw_reason: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let raw_err = raw_reason.clone();
     let err_thread = std::thread::spawn(move || {
         for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+            if line.trim_start().starts_with("ERROR:") {
+                let mut r = raw_err.lock().unwrap();
+                if r.is_none() {
+                    let mut text = line.trim().strip_prefix("ERROR:").unwrap_or(&line).trim().to_string();
+                    text.truncate(200);
+                    *r = Some(text);
+                }
+            }
             if let Some(r) = classify_failure(&line) {
                 let mut g = reason_err.lock().unwrap();
                 if g.is_none() {
@@ -485,6 +499,7 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
     let handle = app.clone();
     let job = id.clone();
     let reason_out = reason.clone();
+    let raw_out = raw_reason.clone();
     let forced = force;
     let archive_out = archive.clone();
     std::thread::spawn(move || {
@@ -500,11 +515,21 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
                 );
             } else if line.contains("already been recorded in the archive") {
                 let _ = handle.emit("download-skipped", serde_json::json!({ "id": job }));
-            } else if let Some(r) = classify_failure(&line) {
-                // Some failures print on stdout rather than stderr.
-                let mut g = reason_out.lock().unwrap();
-                if g.is_none() {
-                    *g = Some(r.to_string());
+            } else {
+                if line.trim_start().starts_with("ERROR:") {
+                    let mut r = raw_out.lock().unwrap();
+                    if r.is_none() {
+                        let mut text = line.trim().strip_prefix("ERROR:").unwrap_or(&line).trim().to_string();
+                        text.truncate(200);
+                        *r = Some(text);
+                    }
+                }
+                if let Some(r) = classify_failure(&line) {
+                    // Some failures print on stdout rather than stderr.
+                    let mut g = reason_out.lock().unwrap();
+                    if g.is_none() {
+                        *g = Some(r.to_string());
+                    }
                 }
             }
         }
@@ -526,6 +551,7 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
             st.pids.lock().unwrap().remove(&job);
         }
         let fail_reason = reason.lock().unwrap().clone();
+        let raw_fail = raw_reason.lock().unwrap().clone();
         let _ = handle.emit(
             "download-done",
             serde_json::json!({
@@ -533,7 +559,7 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
                 "ok": ok && !was_cancelled,
                 "cancelled": was_cancelled,
                 "reason": if ok || was_cancelled { serde_json::Value::Null }
-                          else { serde_json::json!(fail_reason.unwrap_or_else(|| "Failed".into())) },
+                          else { serde_json::json!(fail_reason.or(raw_fail).unwrap_or_else(|| "Failed".into())) },
             }),
         );
     });

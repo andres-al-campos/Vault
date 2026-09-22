@@ -65,7 +65,6 @@ const tabCache = new Map(); // channelUrl -> { shorts: [...], live: [...] }
 // outside tabCache. Rebuilt on demand (boot, after a download finishes, on
 // sync) rather than persisted — the archive files are the source of truth.
 let archive = null; // null = not loaded yet
-let vaults = [];    // per-channel archive state, for the header note
 
 let activeTab = localStorage.getItem("vault-tab") || "videos";
 let sort = localStorage.getItem("vault-sort") || "newest";
@@ -79,12 +78,6 @@ async function loadArchive() {
   } catch (e) {
     archive = [];
     console.error("Could not read the archive:", e);
-  }
-  try {
-    vaults = await invoke("channel_vaults");
-  } catch (e) {
-    vaults = [];
-    console.error("Could not read channel vaults:", e);
   }
   rebuildDownloaded();
   return archive;
@@ -222,20 +215,10 @@ function showActive() {
 
 function renderHeader(ch) {
   const initial = (ch.title || "?").trim().charAt(0).toUpperCase();
-  // The chip names the folder this channel's videos and vault live in. The
-  // vault is a hidden .vault/ inside it, mentioned here so the per-channel
-  // layout is legible from the UI rather than only from the filesystem.
-  const vault = vaults.find((v) => v.url === ch.url);
-  const vaultNote = vault && ch.download_dir
-    ? vault.reachable
-      ? `vault · ${vault.archived} archived`
-      : `vault unreachable`
-    : "";
   const dirChip = ch.download_dir
     ? `<div class="dirmeta">
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
          <span class="path">${esc(ch.download_dir)}</span>
-         ${vaultNote ? `<span class="vaultnote ${vault.reachable ? "" : "bad"}">${vaultNote}</span>` : ""}
          <button class="mini" id="open-dir">Open</button>
          <button class="mini" id="change-dir">Change</button>
        </div>`
