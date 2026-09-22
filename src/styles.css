@@ -237,15 +237,15 @@ body {
   outline: 2px solid var(--sel-ring); outline-offset: -1px; }
 .pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
 .pill.active .n { color: var(--accent); }
-/* Lines up with the tab and filter groups: same outer height as
-   .tabs (3px pad + 1px border around a 31.5px button). appearance:none
-   drops the native metrics that made the select sit a few px taller than
-   its neighbours, and the chevron is drawn by hand to replace the lost one. */
+/* Lines up with the tab and filter groups, both measured at 35px rendered
+   (3px pad + 1px border around a 29px button). appearance:none drops the
+   native metrics that made the select sit taller, and the chevron is drawn
+   by hand to replace the lost one. */
 .controls select {
   font: 600 12.5px inherit; color: var(--text);
   background: var(--panel) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;
   border: 1px solid var(--line); border-radius: 10px;
-  height: 39.5px; padding: 0 33px 0 12px; cursor: pointer; outline: 0;
+  height: 35px; padding: 0 33px 0 12px; cursor: pointer; outline: 0;
   appearance: none;
 }
 .controls select:focus-visible { outline: 2px solid var(--sel-ring); outline-offset: -1px; border-color: var(--line); }
