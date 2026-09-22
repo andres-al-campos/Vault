@@ -149,6 +149,19 @@ fn ytdlp_path() -> String {
     "yt-dlp".to_string()
 }
 
+/// Resolve ffmpeg alongside yt-dlp: the GUI app's PATH omits brew, and without
+/// ffmpeg yt-dlp downloads the video and audio streams separately and cannot
+/// merge them into one MP4.
+fn ffmpeg_path() -> Option<PathBuf> {
+    [
+        home().join(".local/bin/ffmpeg"),
+        PathBuf::from("/opt/homebrew/bin/ffmpeg"),
+        PathBuf::from("/usr/local/bin/ffmpeg"),
+    ]
+    .into_iter()
+    .find(|c| c.is_file())
+}
+
 /// Turn a bare handle or a pasted URL into something yt-dlp understands.
 fn normalize_input(raw: &str) -> String {
     let s = raw.trim();
@@ -350,6 +363,9 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String) -> Resul
         .arg("bv*+ba/b")
         .arg("-S")
         .arg("res,vcodec:av01,vcodec:h264,acodec:aac")
+        // yt-dlp's own PATH lookup misses brew's ffmpeg in the GUI environment,
+        // and without it the merge step is skipped: two separate files.
+        .args(ffmpeg_path().map(|f| vec!["--ffmpeg-location".to_string(), f.to_string_lossy().into_owned()]).unwrap_or_default())
         .arg("--merge-output-format")
         .arg("mp4")
         .arg("--progress-template")
