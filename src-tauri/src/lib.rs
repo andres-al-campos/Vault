@@ -565,6 +565,14 @@ fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
     for e in entries.flatten() {
         let name = e.file_name();
         let name = name.to_string_lossy();
+        // Skip hidden files. On exFAT macOS parks metadata in AppleDouble
+        // companions (`._Title [id].mp4`) beside the real download; they carry
+        // the same [id] tag, so without this skip one can win the lookup and
+        // get handed to the player — which then opens a metadata stub: listed,
+        // but zero duration and nothing to play.
+        if name.starts_with('.') {
+            continue;
+        }
         // Stems carry the tag; the extension follows. `[id].mp4` matches,
         // `[id]-extra.mp4` does not.
         if let Some(rest) = name.rsplit_once(&tag) {
@@ -981,6 +989,9 @@ mod tests {
         std::fs::write(dir.join("Some Title [abcdefghijk].mp4"), b"x").unwrap();
         std::fs::write(dir.join("Other [abcdefghijk]-extra.mp4"), b"x").unwrap();
         std::fs::write(dir.join("Unrelated [zzzzzzzzzzz].webm"), b"x").unwrap();
+        // exFAT AppleDouble companion: same tag as the real file, must never
+        // win — opening it in a player shows a 0:00 metadata stub.
+        std::fs::write(dir.join("._Some Title [abcdefghijk].mp4"), b"x").unwrap();
 
         let hit = find_file(&dir, "abcdefghijk").expect("should find the tagged file");
         assert_eq!(hit.file_name().unwrap().to_string_lossy(), "Some Title [abcdefghijk].mp4");
