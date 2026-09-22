@@ -487,7 +487,8 @@ struct ArchiveEntry {
     url: String,
     /// The channel this id belongs to, when it can be resolved locally.
     channel: Option<String>,
-    /// The channel's saved URL, so the UI can filter the archive to one channel.
+    /// The owning channel's saved URL — the channel whose folder recorded this
+    /// id — so the UI can scope the archive to one channel.
     channel_url: Option<String>,
     /// The folder the file landed in, when the id's channel is known but its
     /// file couldn't be found (e.g. an unmounted external drive).
@@ -520,22 +521,44 @@ fn read_archive(path: &std::path::Path) -> Vec<String> {
         .collect()
 }
 
-/// Every archived id across all remembered channels, deduped. Reads each
-/// channel's own archive inside its download folder. The folders are the source
+/// Every archived id across all remembered channels with its owning channel,
+/// deduped (first channel to record it wins). Ownership comes from the archive
+/// files themselves, not from the saved video lists: a video that has since
+/// dropped off its channel's list (deleted on YouTube, channel re-fetched) is
+/// still owned by the folder that holds its record. The folders are the source
 /// of truth: a channel whose folder is missing (unmounted drive, moved by hand)
 /// simply contributes nothing rather than erroring.
-fn all_archive_ids(state: &PersistedState) -> Vec<String> {
+fn archive_owners(state: &PersistedState) -> Vec<(String, String, Option<String>)> {
     let mut seen = HashSet::new();
-    let mut ids = Vec::new();
+    let mut out = Vec::new();
     for c in &state.channels {
         let Some(dir) = c.download_dir.as_deref() else { continue };
         for id in read_archive(&channel_archive_path(std::path::Path::new(dir))) {
             if seen.insert(id.clone()) {
-                ids.push(id);
+                out.push((id, c.url.clone(), c.download_dir.clone()));
             }
         }
     }
-    ids
+    out
+}
+
+/// Drop every line recording `id` from an archive file. Returns whether the
+/// file changed. A missing or unreadable file is a no-op — nothing to remove
+/// is not an error.
+fn remove_from_archive(path: &std::path::Path, id: &str) -> bool {
+    let Ok(text) = std::fs::read_to_string(path) else { return false };
+    let kept: Vec<&str> = text
+        .lines()
+        .filter(|l| l.split_whitespace().nth(1) != Some(id))
+        .collect();
+    if kept.len() == text.lines().count() {
+        return false;
+    }
+    let mut body = kept.join("\n");
+    if !body.is_empty() {
+        body.push('\n');
+    }
+    std::fs::write(path, body).is_ok()
 }
 
 /// Look up a file by the `[<id>]` tag yt-dlp puts in every name it writes.
@@ -569,40 +592,46 @@ fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
 #[tauri::command]
 fn list_archive() -> Vec<ArchiveEntry> {
     let state = load_state();
-    // id -> (channel title, channel url, download dir, video).
-    let mut known: HashMap<String, (String, String, Option<String>, Video)> = HashMap::new();
+    // id -> (channel title, video). Used only to enrich entries with metadata;
+    // ownership is decided by the archive files, not by these lists.
+    let mut known: HashMap<String, (String, Video)> = HashMap::new();
     for c in &state.channels {
         for v in &c.videos {
-            known.entry(v.id.clone()).or_insert_with(|| {
-                (c.title.clone(), c.url.clone(), c.download_dir.clone(), v.clone())
-            });
+            known.entry(v.id.clone()).or_insert_with(|| (c.title.clone(), v.clone()));
         }
     }
+    let titles: HashMap<&str, &str> = state
+        .channels
+        .iter()
+        .map(|c| (c.url.as_str(), c.title.as_str()))
+        .collect();
 
-    all_archive_ids(&state)
+    archive_owners(&state)
         .into_iter()
-        .map(|id| {
-            let hit = known.remove(&id);
-            let dir = hit.as_ref().and_then(|(_, _, d, _)| d.clone());
-            let path = dir
+        .map(|(id, owner_url, owner_dir)| {
+            let path = owner_dir
                 .as_ref()
                 .and_then(|d| find_file(std::path::Path::new(d), &id))
                 .map(|p| p.to_string_lossy().into_owned());
-            let (channel, channel_url, title, duration, view_count, url) = match hit {
-                Some((ch, chu, _, v)) => {
-                    (Some(ch), Some(chu), Some(v.title), v.duration, v.view_count, v.url)
-                }
-                None => (None, None, None, None, None, format!("https://www.youtube.com/watch?v={id}")),
+            let (list_channel, v) = match known.remove(&id) {
+                Some((ch, v)) => (Some(ch), Some(v)),
+                None => (None, None),
             };
+            let owner_title = titles.get(owner_url.as_str()).copied();
+            // The owning channel names the entry, even when the video has
+            // dropped off every saved list. The saved-list channel is only a
+            // fallback for states whose archive predates per-channel folders.
+            let channel = owner_title.or(list_channel.as_deref()).map(|s| s.to_string());
+            let url = v.as_ref().map(|v| v.url.clone()).unwrap_or_else(|| format!("https://www.youtube.com/watch?v={id}"));
             ArchiveEntry {
-                title: title.unwrap_or_else(|| id.clone()),
+                title: v.as_ref().map(|v| v.title.clone()).unwrap_or_else(|| id.clone()),
                 id,
-                duration,
-                view_count,
+                duration: v.as_ref().and_then(|v| v.duration),
+                view_count: v.as_ref().and_then(|v| v.view_count),
                 url,
                 channel,
-                channel_url,
-                dir,
+                channel_url: Some(owner_url),
+                dir: owner_dir,
                 path,
             }
         })
@@ -642,7 +671,31 @@ fn channel_vaults() -> Vec<ChannelVault> {
 /// "downloaded" on load without re-checking the filesystem.
 #[tauri::command]
 fn downloaded_ids() -> Vec<String> {
-    all_archive_ids(&load_state())
+    archive_owners(&load_state()).into_iter().map(|(id, _, _)| id).collect()
+}
+
+/// Remove an id from its owning channel's archive, so yt-dlp will download it
+/// again on the next run. This is how "Download again" works for an entry whose
+/// file has disappeared: the archive still records it, and without this the
+/// download would be skipped as already-done.
+#[tauri::command]
+fn unarchive(id: String, channel_url: String) -> Result<(), String> {
+    let state = load_state();
+    let dir = state
+        .channels
+        .iter()
+        .find(|c| c.url == channel_url)
+        .and_then(|c| c.download_dir.clone())
+        .ok_or_else(|| format!("No download folder known for {channel_url}"))?;
+    let archive = channel_archive_path(std::path::Path::new(&dir));
+    if !archive.is_file() {
+        return Err(format!("No archive at {}", archive.display()));
+    }
+    if remove_from_archive(&archive, &id) {
+        Ok(())
+    } else {
+        Err(format!("{id} is not recorded in {}", archive.display()))
+    }
 }
 
 /// Record a channel's identity inside its own folder, so the directory is
@@ -976,6 +1029,52 @@ mod tests {
     }
 
     #[test]
+    fn remove_from_archive_drops_only_the_matching_id() {
+        let dir = std::env::temp_dir().join(format!("vault-unarchive-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = dir.join("archive.txt");
+        std::fs::create_dir_all(&file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "youtube abcdefghijk\nyoutube zzzzzzzzzzz\nyoutube abcdefghijk\n").unwrap();
+
+        assert!(remove_from_archive(&file, "abcdefghijk"));
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "youtube zzzzzzzzzzz\n");
+        // Removing an id that isn't there changes nothing and reports it.
+        assert!(!remove_from_archive(&file, "abcdefghijk"));
+        assert!(!remove_from_archive(&file, "nosuchvide"));
+        // A missing archive file is a no-op, not an error.
+        assert!(!remove_from_archive(&file.join("gone"), "abcdefghijk"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn archive_ownership_follows_the_folders() {
+        // Ownership comes from the archive files, not the saved video lists:
+        // a video still archived in a folder belongs to that channel even when
+        // it has dropped off the channel's fetched list (deleted on YouTube).
+        let dir = std::env::temp_dir().join(format!("vault-owners-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = channel_archive_path(&dir);
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "youtube abcdefghijk\n").unwrap();
+
+        let mut s = PersistedState::default();
+        s.channels.push(SavedChannel {
+            url: "https://www.youtube.com/@foo".into(),
+            title: "Foo".into(),
+            download_dir: Some(dir.to_string_lossy().into_owned()),
+            ..Default::default()
+        });
+        let owners = archive_owners(&s);
+        assert_eq!(owners.len(), 1);
+        assert_eq!(owners[0].0, "abcdefghijk");
+        assert_eq!(owners[0].1, "https://www.youtube.com/@foo");
+        assert_eq!(owners[0].2.as_deref(), Some(dir.to_string_lossy().as_ref()));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn state_round_trips_through_json() {
         let mut s = PersistedState::default();
         s.active = Some("@kurzgesagt".into());
@@ -1013,6 +1112,7 @@ pub fn run() {
             downloaded_ids,
             list_archive,
             channel_vaults,
+            unarchive,
             load_state,
             save_state,
             default_download_dir_str,
