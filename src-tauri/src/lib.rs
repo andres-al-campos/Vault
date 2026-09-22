@@ -198,6 +198,11 @@ fn classify_failure(line: &str) -> Option<&'static str> {
     if has("private video") || has("this video is private") {
         return Some("Private");
     }
+    // The bot check names the fix in its own message, so the reason does too:
+    // cookies are the workaround when YouTube starts rate-limiting this IP.
+    if has("sign in to confirm you're not a bot") {
+        return Some("YouTube bot check — cookies needed");
+    }
     if has("sign in to confirm your age") || has("age-restricted") || has("age restricted") {
         return Some("Age-restricted");
     }
@@ -967,6 +972,10 @@ mod tests {
         assert_eq!(classify_failure("ERROR: unable to download webpage: HTTP Error 503"), Some("Network error"));
         assert_eq!(classify_failure("ERROR: Requested format is not available"), Some("No downloadable format"));
         assert_eq!(classify_failure("ERROR: Private video. Sign in if you've been granted access"), Some("Private"));
+        assert_eq!(
+            classify_failure("ERROR: [youtube] abc: Sign in to confirm you're not a bot. Use --cookies-from-browser"),
+            Some("YouTube bot check — cookies needed")
+        );
         // Progress lines must not be mistaken for failures.
         assert_eq!(classify_failure("[download]  42.0% of 10.00MiB at 2.00MiB/s"), None);
         assert_eq!(classify_failure("[youtube] Extracting URL"), None);
