@@ -123,6 +123,23 @@ body {
 .chansel-item .rm:hover { background: var(--hover-strong); color: var(--accent); }
 .chansel-empty { padding: 12px; font-size: 12.5px; color: var(--muted); }
 
+/* ---------- cookie source picker ---------- */
+.cookiesel { position: relative; flex: none; }
+.cookie-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; min-width: 250px; z-index: 40;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22); padding: 6px; display: none;
+}
+.cookie-menu.open { display: block; }
+.cookie-hd { font: 600 11.5px inherit; color: var(--muted); padding: 6px 10px 4px; }
+.cookie-item { display: block; width: 100%; text-align: left; border: 0; background: transparent;
+  color: var(--text); font: 600 13px inherit; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.cookie-item:hover { background: var(--hover); }
+.cookie-item.active { background: var(--chip); color: var(--accent); }
+.cookie-note { font-size: 11.5px; color: var(--muted); line-height: 1.45; padding: 6px 10px 4px;
+  border-top: 1px solid var(--line); margin-top: 4px; }
+#cookies.on { color: var(--accent); border-color: var(--accent); }
+
 .wrap { padding: 22px 22px 40px; }
 
 /* empty state */

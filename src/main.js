@@ -52,6 +52,11 @@ const jobs = new Map();   // id -> { title, thumb, url, dir, pct, status, stat, 
 let pending = [];         // queued { id, url, dir }
 let activeId = null;      // the job currently downloading (concurrency = 1)
 
+// yt-dlp reads cookies straight from the chosen browser's profile, so
+// members-only videos and the bot check are handled without ever handling
+// the cookie file itself.
+const BROWSERS = ["chrome", "safari", "firefox", "floorp","edge", "brave", "chromium"];
+
 // Shorts and the live tab are fetched on demand and kept in memory only —
 // the Videos tab is the one that persists.
 const tabCache = new Map(); // channelUrl -> { shorts: [...], live: [...] }
@@ -170,7 +175,7 @@ async function doFetch(raw, { quiet = false } = {}) {
   if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>Fetching…</h2><p>Reading the channel's video list.</p><div class="spin"></div>`);
   $("fetch").disabled = true;
   try {
-    const info = await invoke("fetch_channel", { url: raw, tab: "videos" });
+    const info = await invoke("fetch_channel", { url: raw, tab: "videos", cookies: state.cookies_browser ?? null });
     if (!info.videos || !info.videos.length) {
       if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>No videos found</h2><p>That returned nothing. Check the URL or @handle and try again.</p>`);
       return;
@@ -365,7 +370,7 @@ async function switchTab(tab) {
   } else if (tab !== "videos" && !tabVideos(ch, tab)) {
     controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Loading ${TAB_LABEL[tab]}…</span></div>`;
     try {
-      const info = await invoke("fetch_channel", { url: ch.url, tab });
+      const info = await invoke("fetch_channel", { url: ch.url, tab, cookies: state.cookies_browser ?? null });
       const entry = tabCache.get(ch.url) || {};
       entry[tabKey(tab)] = info.videos || [];
       tabCache.set(ch.url, entry);
@@ -432,9 +437,12 @@ function renderGrid() {
 function videoCard(v) {
   const done = downloaded.has(v.id);
   const member = isMembers(v);
+  // Members-only downloads need cookies; with a browser set they're a normal
+  // download, without one they're a guaranteed failure so they stay disabled.
+  const memberUnlockable = member && !!state.cookies_browser;
   const meta = [fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`, fmtDur(v.duration)]
     .filter(Boolean).join(" · ");
-  const label = member ? "Members only" : done ? "✓ In archive" : "↓ Download";
+  const label = member && !memberUnlockable ? "Members only" : done ? "✓ In archive" : "↓ Download";
   return `
     <div class="card">
       <div class="thumb">
@@ -447,7 +455,7 @@ function videoCard(v) {
         <div class="sub">${meta || "&nbsp;"}</div>
         <div class="card-foot">
           <button class="dl ${done && !member ? "on" : ""}" data-id="${v.id}"
-            ${member ? 'disabled title="This video is for channel members only — yt-dlp without your cookies cannot fetch it."' : ""}>
+            ${member && !memberUnlockable ? 'disabled title="This video is for channel members only — pick a browser in the cookie menu (top bar) to download it with your membership." ' : memberUnlockable ? 'title="Downloading with your membership cookies."' : ""}>
             ${label}
           </button>
         </div>
@@ -577,7 +585,9 @@ async function downloadAll() {
   if (!dir) return;
   let skipped = 0;
   for (const v of ch.videos) {
-    if (isMembers(v)) { skipped++; continue; } // members-only will always fail
+    // Members-only fails without cookies no matter what; with them it's an
+    // ordinary (membership-gated) download.
+    if (isMembers(v) && !state.cookies_browser) { skipped++; continue; }
     if (downloaded.has(v.id) || queuedOrRunning(v.id) || pending.some((p) => p.id === v.id)) continue;
     pending.push({ id: v.id, url: v.url, dir, title: v.title });
     addJob(v.id, v.title, v.url, dir, "queued", "Queued");
@@ -605,7 +615,7 @@ function pump() {
   const next = pending.shift();
   activeId = next.id;
   setJob(next.id, { status: "downloading", stat: "Starting…", pct: 0 });
-  invoke("download_video", { id: next.id, url: next.url, dir: next.dir, force: next.force || null })
+  invoke("download_video", { id: next.id, url: next.url, dir: next.dir, force: next.force || null, cookies: state.cookies_browser ?? null })
     .catch((e) => finish(next.id, false, `Error: ${e}`));
 }
 
@@ -782,6 +792,41 @@ $("sync").addEventListener("click", () => {
   if (ch) doFetch(ch.url, { quiet: true });
 });
 
+/* ---------------- cookie source picker ---------------- */
+// Popover on the cookie button. Choosing a browser persists it in the state
+// file and every later fetch/download hands it to yt-dlp. "None" turns the
+// feature off again.
+const cookieBtn = $("cookies");
+const cookieMenu = document.createElement("div");
+cookieMenu.className = "cookie-menu";
+cookieMenu.innerHTML = `
+  <div class="cookie-hd">Use cookies from</div>
+  <button class="cookie-item" data-browser="">No cookies — anonymous</button>
+  ${BROWSERS.map((b) => `<button class="cookie-item" data-browser="${b}">${b[0].toUpperCase() + b.slice(1)}</button>`).join("")}
+  <div class="cookie-note">Log into YouTube in that browser first. Members-only videos need the browser with your channel membership.</div>`;
+cookieBtn.parentElement.appendChild(cookieMenu);
+
+function renderCookieState() {
+  const on = !!state.cookies_browser;
+  cookieBtn.classList.toggle("on", on);
+  cookieMenu.querySelectorAll(".cookie-item").forEach((b) =>
+    b.classList.toggle("active", b.dataset.browser === (state.cookies_browser || "")));
+}
+cookieBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  renderCookieState();
+  cookieMenu.classList.toggle("open");
+});
+document.addEventListener("click", () => cookieMenu.classList.remove("open"));
+cookieMenu.addEventListener("click", async (e) => {
+  const item = e.target.closest(".cookie-item");
+  if (!item) return;
+  state.cookies_browser = item.dataset.browser || null;
+  await persist();
+  renderCookieState();
+  cookieMenu.classList.remove("open");
+});
+
 /* ---------------- tauri events ---------------- */
 listen("download-progress", (e) => {
   const { id, downloaded: got, total, speed, eta } = e.payload;
@@ -816,6 +861,7 @@ async function boot() {
   } catch (e) { console.error("Archive migration failed:", e); }
   await loadArchive();
   renderSelector();
+  renderCookieState();
   showActive();
   renderQueue();
 }

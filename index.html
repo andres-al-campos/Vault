@@ -26,7 +26,7 @@
             </svg>
             <input id="url" placeholder="Paste a channel URL, or type @handle" spellcheck="false" autocomplete="off" />
           </label>
-          <button class="btn btn-primary" id="fetch">Fetch channel</button>
+          <button class="btn btn-primary" id="fetch">Fetch</button>
           <button class="btn btn-icon" id="sync" title="Re-fetch this channel for new videos" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>
           </button>
@@ -34,7 +34,16 @@
           <button class="btn btn-icon" id="folder" title="Choose the download folder" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           </button>
-          <button class="btn btn-icon" id="theme" title="Toggle light / dark">&#9789;</button>
+          <div class="cookiesel">
+            <button class="btn btn-icon" id="cookies" title="Use cookies from a browser you're logged into YouTube with — needed for the bot check and members-only videos">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="14.5" r="1.1" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
+          </div>
+          <button class="btn btn-icon" id="theme" title="Toggle light / dark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          </button>
         </div>
 
         <div class="wrap">

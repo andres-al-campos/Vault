@@ -84,6 +84,13 @@ struct PersistedState {
     active: Option<String>,
     #[serde(default)]
     channels: Vec<SavedChannel>,
+    /// Browser whose logged-in cookies yt-dlp should use, when the user picked
+    /// one. Clears YouTube's IP bot check and unlocks members-only videos.
+    /// None = anonymous requests. Kept in the state file so it survives
+    /// relaunch; the frontend owns the value and passes it to every
+    /// fetch/download call.
+    #[serde(default)]
+    cookies_browser: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -149,6 +156,44 @@ fn ytdlp_path() -> String {
     "yt-dlp".to_string()
 }
 
+/// The `--cookies-from-browser` arguments for a browser spec from the UI.
+///
+/// yt-dlp's supported browser list has no `floorp` entry, but Floorp is a
+/// Firefox fork whose cookie store the firefox extractor reads when given the
+/// profile directory explicitly. A Floorp selection therefore resolves to
+/// `firefox:<profile dir>`; any other spec passes through untouched.
+fn cookies_args(spec: &str) -> Result<Vec<String>, String> {
+    if spec.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    if spec == "floorp" {
+        let profiles = home().join("Library/Application Support/floorp/Profiles");
+        let profile = floorp_profile(&profiles).ok_or_else(|| {
+            format!(
+                "No Floorp profile found in {} — is Floorp installed and has it been run at least once?",
+                profiles.display()
+            )
+        })?;
+        return Ok(vec![
+            "--cookies-from-browser".to_string(),
+            format!("firefox:{}", profile.display()),
+        ]);
+    }
+    Ok(vec!["--cookies-from-browser".to_string(), spec.to_string()])
+}
+
+/// Floorp's default profile: `default-release` when present — the profile
+/// Firefox forks write everyday cookies to — else the only profile in
+/// `Profiles/`.
+fn floorp_profile(profiles_dir: &std::path::Path) -> Option<PathBuf> {
+    let entries = std::fs::read_dir(profiles_dir).ok()?;
+    let dirs: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
+    let named = dirs
+        .iter()
+        .find(|d| d.file_name().map_or(false, |n| n.to_string_lossy().ends_with("default-release")));
+    named.cloned().or_else(|| if dirs.len() == 1 { dirs.into_iter().next() } else { None })
+}
+
 /// Resolve ffmpeg alongside yt-dlp: the GUI app's PATH omits brew, and without
 /// ffmpeg yt-dlp downloads the video and audio streams separately and cannot
 /// merge them into one MP4.
@@ -201,7 +246,12 @@ fn classify_failure(line: &str) -> Option<&'static str> {
     // The bot check names the fix in its own message, so the reason does too:
     // cookies are the workaround when YouTube starts rate-limiting this IP.
     if has("sign in to confirm you're not a bot") {
-        return Some("YouTube bot check — cookies needed");
+        return Some("YouTube bot check — set cookies");
+    }
+    // Wrong/keyring-locked browser or no logged-in session: yt-dlp names the
+    // browser and the operation in its message.
+    if has("could not copy") && (has("cookies") || has("keyring")) {
+        return Some("Couldn't read cookies — is that browser running? Try logging in, or pick another browser");
     }
     if has("sign in to confirm your age") || has("age-restricted") || has("age restricted") {
         return Some("Age-restricted");
@@ -238,13 +288,13 @@ fn classify_failure(line: &str) -> Option<&'static str> {
 }
 
 #[tauri::command]
-async fn fetch_channel(url: String, tab: String) -> Result<ChannelInfo, String> {
-    tauri::async_runtime::spawn_blocking(move || fetch_channel_blocking(url, tab))
+async fn fetch_channel(url: String, tab: String, cookies: Option<String>) -> Result<ChannelInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || fetch_channel_blocking(url, tab, cookies))
         .await
         .map_err(|e| e.to_string())?
 }
 
-fn fetch_channel_blocking(raw: String, tab: String) -> Result<ChannelInfo, String> {
+fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> Result<ChannelInfo, String> {
     let yt = ytdlp_path();
     let mut url = normalize_input(&raw);
     // `/videos` excludes both shorts and past livestreams, which is exactly the
@@ -253,8 +303,14 @@ fn fetch_channel_blocking(raw: String, tab: String) -> Result<ChannelInfo, Strin
         url = format!("{}/{}", url.trim_end_matches('/'), tab);
     }
 
+    // Cookies ride along on listing too: the bot check gates the playlist
+    // endpoints just as it gates video downloads.
+    let mut args = vec!["--flat-playlist".to_string(), "-J".to_string(), "--no-warnings".to_string()];
+    args.extend(cookies_args(cookies.as_deref().unwrap_or("")).map_err(|e| format!("Cookies: {e}"))?);
+    args.push(url);
+
     let out = Command::new(&yt)
-        .args(["--flat-playlist", "-J", "--no-warnings", &url])
+        .args(&args)
         .output()
         .map_err(|e| format!("Could not run yt-dlp ({yt}): {e}"))?;
 
@@ -341,7 +397,7 @@ fn fetch_channel_blocking(raw: String, tab: String) -> Result<ChannelInfo, Strin
 }
 
 #[tauri::command]
-fn download_video(app: AppHandle, id: String, url: String, dir: String, force: Option<bool>) -> Result<(), String> {
+fn download_video(app: AppHandle, id: String, url: String, dir: String, force: Option<bool>, cookies: Option<String>) -> Result<(), String> {
     let yt = ytdlp_path();
     let dir = PathBuf::from(&dir);
     std::fs::create_dir_all(&dir).map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
@@ -358,6 +414,17 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
     let mut cmd: Command = Command::new(&yt);
     cmd.arg("--newline")
         .arg("--no-warnings");
+    // Cookies ride along here too: they clear the IP bot check and they are
+    // the only way members-only videos download at all.
+    let cookie_flags = cookies
+        .as_deref()
+        .map(cookies_args)
+        .transpose()
+        .map_err(|e| format!("Cookies: {e}"))?
+        .unwrap_or_default();
+    for a in &cookie_flags {
+        cmd.arg(a);
+    }
     if !force {
         cmd.arg("--download-archive").arg(&archive);
     }
@@ -927,7 +994,7 @@ mod tests {
     #[test]
     #[ignore]
     fn fetch_real_channel_end_to_end() {
-        let info = fetch_channel_blocking("@kurzgesagt".to_string(), "videos".to_string())
+        let info = fetch_channel_blocking("@kurzgesagt".to_string(), "videos".to_string(), None)
             .expect("fetch should succeed against a live channel");
         println!("channel: {} | videos: {}", info.title, info.video_count);
         assert!(info.video_count > 50);
@@ -937,7 +1004,7 @@ mod tests {
     #[test]
     #[ignore]
     fn members_only_is_flagged_from_the_listing() {
-        let info = fetch_channel_blocking("@LinusTechTips".to_string(), "videos".to_string())
+        let info = fetch_channel_blocking("@LinusTechTips".to_string(), "videos".to_string(), None)
             .expect("fetch should succeed");
         let members: Vec<_> = info.videos.iter().filter(|v| v.is_members_only()).collect();
         println!("LTT: {} of {} flagged subscriber_only", members.len(), info.video_count);
@@ -974,7 +1041,7 @@ mod tests {
         assert_eq!(classify_failure("ERROR: Private video. Sign in if you've been granted access"), Some("Private"));
         assert_eq!(
             classify_failure("ERROR: [youtube] abc: Sign in to confirm you're not a bot. Use --cookies-from-browser"),
-            Some("YouTube bot check — cookies needed")
+            Some("YouTube bot check — set cookies")
         );
         // Progress lines must not be mistaken for failures.
         assert_eq!(classify_failure("[download]  42.0% of 10.00MiB at 2.00MiB/s"), None);
