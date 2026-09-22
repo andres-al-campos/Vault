@@ -47,7 +47,7 @@ const isMembers = (v) => v.availability === "subscriber_only";
 
 /* ---------------- state ---------------- */
 let state = { active: null, channels: [] };
-let downloaded = new Set();
+let downloaded = new Set(); // ids archived in the ACTIVE channel's vault
 const jobs = new Map();   // id -> { title, thumb, url, dir, pct, status, stat, reason }
 let pending = [];         // queued { id, url, dir }
 let activeId = null;      // the job currently downloading (concurrency = 1)
@@ -60,8 +60,7 @@ const tabCache = new Map(); // channelUrl -> { shorts: [...], live: [...] }
 // outside tabCache. Rebuilt on demand (boot, after a download finishes, on
 // sync) rather than persisted — the archive files are the source of truth.
 let archive = null; // null = not loaded yet
-let vaults = [];    // per-channel archive state, for the Archive tab's scoping
-let archiveScope = localStorage.getItem("vault-archive-scope") || "all"; // "all" | channel url
+let vaults = [];    // per-channel archive state, for the header note
 
 let activeTab = localStorage.getItem("vault-tab") || "videos";
 let sort = localStorage.getItem("vault-sort") || "newest";
@@ -82,16 +81,22 @@ async function loadArchive() {
     vaults = [];
     console.error("Could not read channel vaults:", e);
   }
-  downloaded = new Set(archive.map((e) => e.id));
+  rebuildDownloaded();
   return archive;
 }
 
-// The archive entries in scope. Scoping is per channel, since each channel
-// keeps its own vault file inside its own folder.
+// Per-channel archive state: an id counts as downloaded only for the channel
+// whose folder records it, so two channels that share a video don't mark each
+// other's copy. Rebuilt whenever the active channel or the archive changes.
+function rebuildDownloaded() {
+  downloaded = new Set(scopedArchive().map((e) => e.id));
+}
+
+// The archive entries owned by the active channel — the channel whose folder
+// recorded them. Ownership comes from the archive files, so a video that has
+// dropped off the channel's fetched list (deleted on YouTube) still shows.
 function scopedArchive() {
-  const all = archive || [];
-  if (archiveScope === "all") return all;
-  return all.filter((e) => e.channel_url === archiveScope);
+  return (archive || []).filter((e) => e.channel_url === state.active);
 }
 
 async function persist() {
@@ -201,6 +206,7 @@ function showActive() {
     $("sync").disabled = true;
     return;
   }
+  rebuildDownloaded();
   $("folder").disabled = false;
   $("sync").disabled = false;
   $("url").value = ch.url;
@@ -294,21 +300,13 @@ function renderControls() {
          <button class="pill ${filter === "members" ? "active" : ""}" data-filter="members">Members <span class="n">${members}</span></button>
        </div>`;
 
-  // The vault picker: which channel's archive this tab is showing. Only worth
-  // showing when more than one channel has a vault to look at.
-  const withVaults = vaults.filter((v) => v.archived > 0);
-  const scopeSel = isArchive() && withVaults.length > 1
-    ? `<select id="scope" title="Which channel's vault to show">
-         <option value="all"${archiveScope === "all" ? " selected" : ""}>All channels (${(archive || []).length})</option>
-         ${withVaults.map((v) => `<option value="${esc(v.url)}"${archiveScope === v.url ? " selected" : ""}>${esc(v.title)} (${v.archived})</option>`).join("")}
-       </select>`
-    : "";
+  // The Archive tab always shows the channel selected at the top — the channel
+  // selector is the one picker in the app, and per-channel is the whole point.
 
   controlsEl.innerHTML = `
     <div class="controls">
       <div class="tabs">${tabBtn("videos")}${tabBtn("shorts")}${tabBtn("streams")}${tabBtn("archive")}</div>
       ${filters}
-      ${scopeSel}
       <select id="sort">
         <option value="newest"${sort === "newest" ? " selected" : ""}>Newest</option>
         <option value="oldest"${sort === "oldest" ? " selected" : ""}>Oldest</option>
@@ -331,11 +329,6 @@ function renderControls() {
     sort = e.target.value;
     localStorage.setItem("vault-sort", sort);
     renderGrid();
-  });
-  $("scope")?.addEventListener("change", (e) => {
-    archiveScope = e.target.value;
-    localStorage.setItem("vault-archive-scope", archiveScope);
-    renderControls(); renderGrid();
   });
 }
 
@@ -369,12 +362,6 @@ async function switchTab(tab) {
     }
     controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Reading the archive…</span></div>`;
     await loadArchive();
-    // Default the scope to the channel you're looking at, so the tab means
-    // "this channel's vault" unless you widen it to all channels.
-    if (archiveScope === "all" && vaults.some((v) => v.url === ch.url)) {
-      archiveScope = ch.url;
-      localStorage.setItem("vault-archive-scope", archiveScope);
-    }
   } else if (tab !== "videos" && !tabVideos(ch, tab)) {
     controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Loading ${TAB_LABEL[tab]}…</span></div>`;
     try {
@@ -477,7 +464,7 @@ function archiveCard(e) {
   const thumbEl = `
     <div class="thumb ${onDisk ? "playable" : "inert"}"
          ${onDisk ? `data-open="${esc(e.path)}" title="Play ${esc(e.title)}"` : `title="${e.dir
-           ? `Not in ${esc(e.dir)} — the drive may be unmounted.`
+           ? `Not in ${esc(e.dir)} — re-download to restore it.`
            : "This channel's folder isn't known to Vault, so the file can't be located."}"`}>
       <img loading="lazy" src="${thumb(e.id)}" alt="">
       ${fmtDur(e.duration) ? `<span class="dur">${fmtDur(e.duration)}</span>` : ""}
@@ -485,7 +472,12 @@ function archiveCard(e) {
     </div>`;
   const foot = onDisk
     ? `<button class="dl on" data-open="${esc(e.path)}">▶ Play</button>`
-    : `<button class="dl" disabled>File not found</button>`;
+    // Re-download needs to know where to put the file, which only works when
+    // the owning channel's folder is known. The forced run ignores the archive
+    // (yt-dlp would skip an id it still records) and re-stamps it on success.
+    : e.dir
+      ? `<button class="dl" data-redl="${e.id}">↻ Download again</button>`
+      : `<button class="dl" disabled title="Vault doesn't know which folder held this file, so it can't be re-downloaded.">File not found</button>`;
   return `
     <div class="card">
       ${thumbEl}
@@ -500,6 +492,8 @@ function archiveCard(e) {
 gridEl.addEventListener("click", (e) => {
   const o = e.target.closest("[data-open]");
   if (o) { openInPlayer(o.dataset.open); return; }
+  const r = e.target.closest("[data-redl]");
+  if (r) { redownload(r.dataset.redl); return; }
   const b = e.target.closest(".dl");
   if (!b || b.disabled) return;
   const ch = activeChannel();
@@ -592,17 +586,31 @@ async function downloadAll() {
   pump();
 }
 
+// Re-fetch a file that the archive records but the disk doesn't. The job runs
+// in force mode: yt-dlp skips it otherwise, since the archive still lists the
+// id, and the backend re-stamps the archive only after the file lands. A
+// failure leaves the archive untouched, so the entry stays visible here.
+function redownload(id) {
+  const entry = (archive || []).find((e) => e.id === id);
+  if (!entry || !entry.dir) return;
+  if (queuedOrRunning(id) || pending.some((p) => p.id === id)) return;
+  const title = entry.title || id;
+  pending.push({ id, url: entry.url, dir: entry.dir, title, force: true });
+  addJob(id, title, entry.url, entry.dir, "queued", "Queued");
+  pump();
+}
+
 function pump() {
   if (activeId || pending.length === 0) return;
   const next = pending.shift();
   activeId = next.id;
   setJob(next.id, { status: "downloading", stat: "Starting…", pct: 0 });
-  invoke("download_video", { id: next.id, url: next.url, dir: next.dir })
+  invoke("download_video", { id: next.id, url: next.url, dir: next.dir, force: next.force || null })
     .catch((e) => finish(next.id, false, `Error: ${e}`));
 }
 
-function addJob(id, title, url, dir, status, stat) {
-  if (!jobs.has(id)) jobs.set(id, { title, thumb: thumb(id), url, dir, pct: 0, status, stat, reason: null });
+function addJob(id, title, url, dir, status, stat, force = false) {
+  if (!jobs.has(id)) jobs.set(id, { title, thumb: thumb(id), url, dir, pct: 0, status, stat, reason: null, force });
   renderQueue();
 }
 function setJob(id, patch) {
@@ -620,7 +628,14 @@ function finish(id, ok, stat) {
   j.pct = ok ? 100 : j.pct;
   j.stat = stat || (ok ? "Complete" : "Failed");
   j.reason = ok ? null : stat;
-  if (ok) downloaded.add(id);
+  // Marks the card immediately, but only when the file landed in the active
+  // channel's folder — the archive is per channel. A job that finished for a
+  // channel the user has already navigated away from is corrected by the
+  // archive reload below, which rebuilds the set from the files themselves.
+  if (ok) {
+    const ch = activeChannel();
+    if (ch && j.dir && ch.download_dir === j.dir) downloaded.add(id);
+  }
   if (activeId === id) activeId = null;
   updateJobElement(id);
   renderSummary();
@@ -648,9 +663,11 @@ function syncCard(id) {
   const b = gridEl.querySelector(`.dl[data-id="${CSS.escape(id)}"]`);
   if (!b || b.disabled) return;
   const j = jobs.get(id);
-  if (downloaded.has(id)) { b.classList.add("on"); b.textContent = "✓ In archive"; }
-  else if (j && j.status === "downloading") { b.classList.add("on"); b.textContent = `↓ ${Math.round(j.pct)}%`; }
+  // Progress outranks the badge: a re-download of an id that is still in the
+  // archive must show its percentage, not "✓ In archive".
+  if (j && j.status === "downloading") { b.classList.add("on"); b.textContent = `↓ ${Math.round(j.pct)}%`; }
   else if (j && j.status === "queued") { b.classList.add("on"); b.textContent = "• Queued"; }
+  else if (downloaded.has(id)) { b.classList.add("on"); b.textContent = "✓ In archive"; }
   else if (j && j.status === "error") { b.classList.remove("on"); b.textContent = "↻ Retry"; }
   else { b.classList.remove("on"); b.textContent = "↓ Download"; }
 }
@@ -742,7 +759,7 @@ function retryJob(id) {
   j.pct = 0;
   j.stat = "Queued";
   j.reason = null;
-  pending.push({ id, url: j.url, dir: j.dir, title: j.title });
+  pending.push({ id, url: j.url, dir: j.dir, title: j.title, force: j.force || null });
   updateJobElement(id);
   renderQueue();
   pump();

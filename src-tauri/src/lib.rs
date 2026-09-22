@@ -556,25 +556,6 @@ fn archive_owners(state: &PersistedState) -> Vec<(String, String, Option<String>
     out
 }
 
-/// Drop every line recording `id` from an archive file. Returns whether the
-/// file changed. A missing or unreadable file is a no-op — nothing to remove
-/// is not an error.
-fn remove_from_archive(path: &std::path::Path, id: &str) -> bool {
-    let Ok(text) = std::fs::read_to_string(path) else { return false };
-    let kept: Vec<&str> = text
-        .lines()
-        .filter(|l| l.split_whitespace().nth(1) != Some(id))
-        .collect();
-    if kept.len() == text.lines().count() {
-        return false;
-    }
-    let mut body = kept.join("\n");
-    if !body.is_empty() {
-        body.push('\n');
-    }
-    std::fs::write(path, body).is_ok()
-}
-
 /// Look up a file by the `[<id>]` tag yt-dlp puts in every name it writes.
 /// Only levels directly under `dir` are searched: the download template is
 /// flat, so a recursive walk would just be wasted time on a big library.
@@ -1041,25 +1022,6 @@ mod tests {
     }
 
     #[test]
-    fn remove_from_archive_drops_only_the_matching_id() {
-        let dir = std::env::temp_dir().join(format!("vault-unarchive-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        let file = dir.join("archive.txt");
-        std::fs::create_dir_all(&file.parent().unwrap()).unwrap();
-        std::fs::write(&file, "youtube abcdefghijk\nyoutube zzzzzzzzzzz\nyoutube abcdefghijk\n").unwrap();
-
-        assert!(remove_from_archive(&file, "abcdefghijk"));
-        assert_eq!(std::fs::read_to_string(&file).unwrap(), "youtube zzzzzzzzzzz\n");
-        // Removing an id that isn't there changes nothing and reports it.
-        assert!(!remove_from_archive(&file, "abcdefghijk"));
-        assert!(!remove_from_archive(&file, "nosuchvide"));
-        // A missing archive file is a no-op, not an error.
-        assert!(!remove_from_archive(&file.join("gone"), "abcdefghijk"));
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
     fn archive_ownership_follows_the_folders() {
         // Ownership comes from the archive files, not the saved video lists:
         // a video still archived in a folder belongs to that channel even when
@@ -1082,6 +1044,27 @@ mod tests {
         assert_eq!(owners[0].0, "abcdefghijk");
         assert_eq!(owners[0].1, "https://www.youtube.com/@foo");
         assert_eq!(owners[0].2.as_deref(), Some(dir.to_string_lossy().as_ref()));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn append_to_archive_is_idempotent_and_creates_the_file() {
+        let dir = std::env::temp_dir().join(format!("vault-append-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = channel_archive_path(&dir);
+
+        // Creates the .vault folder and file when neither exists.
+        append_to_archive(&file, "abcdefghijk");
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "youtube abcdefghijk\n");
+        // A second append must not duplicate the line.
+        append_to_archive(&file, "abcdefghijk");
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "youtube abcdefghijk\n");
+        append_to_archive(&file, "zzzzzzzzzzz");
+        assert_eq!(
+            std::fs::read_to_string(&file).unwrap(),
+            "youtube abcdefghijk\nyoutube zzzzzzzzzzz\n"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
