@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vault</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <div class="main">
+        <div class="topbar">
+          <div class="logo">Vau<span>lt</span></div>
+
+          <div class="chansel" id="chansel">
+            <button id="chansel-btn" disabled>
+              <span class="lbl" id="chansel-lbl">No channels yet</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="chansel-menu" id="chansel-menu"></div>
+          </div>
+
+          <label class="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+            </svg>
+            <input id="url" placeholder="Paste a channel URL, or type @handle" spellcheck="false" autocomplete="off" />
+          </label>
+          <button class="btn btn-primary" id="fetch">Fetch channel</button>
+          <button class="btn btn-icon" id="sync" title="Re-fetch this channel for new videos" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>
+          </button>
+
+          <button class="btn btn-icon" id="folder" title="Choose the download folder" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          </button>
+          <button class="btn btn-icon" id="theme" title="Toggle light / dark">&#9789;</button>
+        </div>
+
+        <div class="wrap">
+          <div id="chanhead"></div>
+          <div id="controls"></div>
+          <div class="grid" id="grid"></div>
+          <div class="empty" id="empty">
+            <div class="mark">VAULT</div>
+            <h2>Fetch a channel</h2>
+            <p>Paste a channel URL or type an @handle. Vault lists every video and keeps the ones you choose.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="side-hd">
+          <div class="t">Downloads</div>
+          <div class="s" id="qsum">Idle</div>
+          <div class="side-actions">
+            <button class="warn" id="clear">Clear finished</button>
+            <button id="retryall">Retry failed</button>
+          </div>
+        </div>
+        <div class="queue" id="queue"></div>
+      </aside>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

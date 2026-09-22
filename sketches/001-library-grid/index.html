@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vault — Library grid</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased; color: #16181d; background: #f7f7f5; line-height: 1.5; }
+  .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px;
+    padding: 14px 28px; background: rgba(247,247,245,.85); backdrop-filter: blur(14px);
+    border-bottom: 1px solid #e7e7e3; }
+  .logo { font-weight: 800; letter-spacing: -.04em; font-size: 19px; }
+  .logo span { color: #d94f2b; }
+  .search { flex: 1; max-width: 560px; display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1px solid #e2e2dd; border-radius: 12px; padding: 9px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .search svg { flex: none; color: #9a9a92; }
+  .search input { flex: 1; border: 0; outline: 0; font-size: 14px; background: transparent; color: inherit; }
+  .search kbd { font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace; color: #8a8a82;
+    border: 1px solid #e2e2dd; border-radius: 5px; padding: 3px 6px; background: #fafaf8; }
+  .btn { border: 0; border-radius: 10px; padding: 9px 15px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: .15s; }
+  .btn-primary { background: #16181d; color: #fff; }
+  .btn-primary:hover { background: #2b2e36; }
+  .btn-ghost { background: #fff; color: #16181d; border: 1px solid #e2e2dd; }
+  .btn-ghost:hover { background: #f0f0ec; }
+  .queuepill { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px;
+    font-weight: 600; color: #16181d; }
+  .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #d94f2b;
+    border-top-color: transparent; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 26px 28px 160px; }
+  .chan { display: flex; align-items: center; gap: 20px; padding: 6px 0 22px; }
+  .avatar { width: 84px; height: 84px; border-radius: 50%; flex: none;
+    background: conic-gradient(from 210deg, #ffd76e, #ff8a5c, #6ec3ff, #b79bff, #ffd76e);
+    box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .chan-info h1 { font-size: 26px; letter-spacing: -.02em; }
+  .chan-meta { color: #6b6b63; font-size: 13.5px; margin-top: 3px; }
+  .chan-meta b { color: #16181d; font-weight: 600; }
+  .chan-actions { margin-left: auto; display: flex; gap: 10px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card { background: #fff; border: 1px solid #ececE7; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.03); transition: .18s; display: flex; flex-direction: column; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.09); }
+  .thumb { position: relative; aspect-ratio: 16/9; background: #e9e9e3 center/cover; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.82); color: #fff;
+    font: 600 11.5px/1 ui-monospace, monospace; padding: 4px 6px; border-radius: 5px; }
+  .card-body { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .card-body h3 { font-size: 14.5px; font-weight: 650; line-height: 1.35; letter-spacing: -.01em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .sub { color: #8a8a82; font-size: 12.5px; display: flex; gap: 7px; align-items: center; }
+  .dot { width: 3px; height: 3px; border-radius: 50%; background: #c9c9c1; }
+  .card-foot { margin-top: auto; display: flex; }
+  .dl { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+    background: #f4f4f0; border: 1px solid #e6e6e0; border-radius: 10px; padding: 9px;
+    font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; color: #16181d; transition: .15s; }
+  .dl:hover { background: #16181d; color: #fff; border-color: #16181d; }
+  .dl svg { flex: none; }
+  .dl.on { background: #16181d; color: #fff; border-color: #16181d; }
+  .dl.done { background: #e8f5ec; color: #1a7f43; border-color: #cfe9d9; }
+
+  /* bottom dock */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: #16181d; color: #fff;
+    border-radius: 16px 16px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.28); }
+  .dock-head { display: flex; align-items: center; gap: 12px; padding: 13px 28px; cursor: pointer; }
+  .dock-head b { font-size: 13.5px; }
+  .dock-head .pct { color: #9a9aa6; font: 600 12.5px ui-monospace, monospace; }
+  .dock-head .chev { margin-left: auto; color: #9a9aa6; transition: .2s; }
+  .dock.open .chev { transform: rotate(180deg); }
+  .dock-body { max-height: 0; overflow: hidden; transition: max-height .25s ease; border-top: 1px solid #262830; }
+  .dock.open .dock-body { max-height: 260px; }
+  .qitem { display: flex; align-items: center; gap: 14px; padding: 11px 28px; }
+  .qthumb { width: 68px; aspect-ratio: 16/9; border-radius: 7px; object-fit: cover; flex: none; background:#2a2c34; }
+  .qmain { flex: 1; min-width: 0; }
+  .qtitle { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar { height: 6px; border-radius: 4px; background: #2a2c34; margin-top: 7px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: #d94f2b; border-radius: 4px; }
+  .qstat { font: 600 11.5px ui-monospace, monospace; color: #9a9aa6; margin-top: 6px; }
+  .qctrl { display: flex; gap: 6px; }
+  .iconbtn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #33363f; background: #1e2028;
+    color: #d9d9dd; cursor: pointer; display: grid; place-items: center; transition:.15s; }
+  .iconbtn:hover { background: #2a2d36; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">Vau<span>lt</span></div>
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input value="https://www.youtube.com/@kurzgesagt" spellcheck="false">
+      <kbd>⌘K</kbd>
+    </label>
+    <button class="btn btn-primary">Fetch channel</button>
+    <div class="queuepill"><span class="spinner"></span> 2 downloading</div>
+  </div>
+
+  <div class="wrap">
+    <div class="chan">
+      <div class="avatar"></div>
+      <div class="chan-info">
+        <h1>Kurzgesagt – In a Nutshell</h1>
+        <div class="chan-meta"><b>24.1M</b> subscribers · <b>270</b> videos · <b>184</b> downloaded</div>
+      </div>
+      <div class="chan-actions">
+        <button class="btn btn-ghost">↻ Sync new</button>
+        <button class="btn btn-primary">Download all</button>
+      </div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="dock open" id="dock">
+    <div class="dock-head" onclick="document.getElementById('dock').classList.toggle('open')">
+      <b>Downloads</b>
+      <span class="pct">2 active · 1 paused · 1 done</span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="dock-body" id="dockBody"></div>
+  </div>
+
+<script>
+const VIDEOS = [
+  ["0NY2gAftzJE","This Woman Cured Her Cancer with an Insane Method","13:04","12.4M","3 weeks ago"],
+  ["Cyl3X88KEgg","Why Humanity Will Never Leave The Solar System","11:22","8.1M","1 month ago"],
+  ["PqtggjVAi8M","How Are Memories Stored Inside Your Brain?","9:48","6.7M","1 month ago"],
+  ["8qQW4LTWgtc","Why Earth Sucks Compared to the Planet Hestia","10:31","15.2M","2 months ago"],
+  ["TYhNHX372ek","The Uncomfortable Truth About Ozempic","14:09","9.9M","2 months ago"],
+  ["n-gYFcVx-8Y","GERMANY IS OVER","12:56","5.3M","3 months ago"],
+  ["dl0-TveDDGA","Our Minds Are Weirder than You Think","8:37","7.2M","3 months ago"],
+  ["h3DCdWyb0cc","The Most Insane Megaproject You Never Heard About","15:14","11.0M","4 months ago"],
+];
+const dlIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>';
+const grid = document.getElementById('grid');
+VIDEOS.forEach(([id,title,dur,views,ago],i)=>{
+  const c=document.createElement('div'); c.className='card';
+  c.innerHTML=`
+    <div class="thumb"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt=""><span class="dur">${dur}</span></div>
+    <div class="card-body">
+      <h3>${title}</h3>
+      <div class="sub">${views} views <span class="dot"></span> ${ago}</div>
+      <div class="card-foot"><button class="dl" data-i="${i}">${dlIcon} Download</button></div>
+    </div>`;
+  grid.appendChild(c);
+});
+grid.addEventListener('click',e=>{
+  const b=e.target.closest('.dl'); if(!b) return;
+  b.classList.toggle('on');
+  const on=b.classList.contains('on');
+  b.innerHTML = on ? '✓ Queued' : dlIcon+' Download';
+});
+const QUEUE=[
+  ["8qQW4LTWgtc","Why Earth Sucks Compared to the Planet Hestia",63,"4.2 MB/s · 0:38 left","down"],
+  ["h3DCdWyb0cc","The Most Insane Megaproject You Never Heard About",28,"3.7 MB/s · 1:12 left","down"],
+  ["n-gYFcVx-8Y","GERMANY IS OVER",41,"paused","pause"],
+  ["dl0-TveDDGA","Our Minds Are Weirder than You Think",100,"Complete · 1080p","done"],
+];
+const qb=document.getElementById('dockBody');
+QB=()=>{qb.innerHTML=QUEUE.map((q,i)=>`
+  <div class="qitem">
+    <img class="qthumb" src="https://i.ytimg.com/vi/${q[0]}/mqdefault.jpg">
+    <div class="qmain"><div class="qtitle">${q[1]}</div>
+      <div class="bar"><i style="width:${q[2]}%"></i></div>
+      <div class="qstat">${q[4]==='down'?q[2]+'%  ':q[4]==='pause'?q[2]+'%  ':''}${q[3]}</div></div>
+    <div class="qctrl">
+      ${q[4]==='done'
+        ? `<button class="iconbtn" title="done">✓</button>`
+        : `<button class="iconbtn" data-p="${i}" title="${q[4]==='pause'?'Resume':'Pause'}">${q[4]==='pause'
+            ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>'
+            : '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>'}</button>
+           <button class="iconbtn" title="Cancel">✕</button>`}
+    </div>
+  </div>`).join('');};
+QB();
+qb.addEventListener('click',e=>{
+  const p=e.target.closest('[data-p]'); if(!p) return;
+  const i=+p.dataset.p; QUEUE[i][4]=QUEUE[i][4]==='pause'?'down':'pause';
+  QUEUE[i][3]=QUEUE[i][4]==='pause'?'paused':'3.9 MB/s · 0:52 left'; QB();
+});
+</script>
+</body>
+</html>

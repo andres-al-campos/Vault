@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vault — Download manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg:#0e0f13; --panel:#15171d; --panel2:#1b1e25; --line:#252832;
+    --txt:#e7e8ec; --mut:#8b8f9a; --acc:#4ade80; --acc2:#38bdf8; --warn:#fbbf24; }
+  body { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--bg);
+    color: var(--txt); line-height: 1.45; font-size: 13px; height: 100vh; display: flex; flex-direction: column; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line);
+    background: var(--panel); }
+  .brand { font-weight: 700; letter-spacing: .12em; font-size: 12px; color: var(--acc); }
+  .url { flex: 1; display: flex; align-items: center; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 11px; }
+  .url input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--txt); font: inherit; }
+  .url .prompt { color: var(--acc); margin-right: 8px; }
+  .go { background: var(--acc); color: #06120a; border: 0; border-radius: 6px; padding: 8px 16px;
+    font: 700 12px inherit; cursor: pointer; letter-spacing: .04em; }
+  .go:hover { filter: brightness(1.1); }
+
+  .panes { flex: 1; display: grid; grid-template-columns: 1fr 460px; min-height: 0; }
+  .pane { min-height: 0; display: flex; flex-direction: column; }
+  .pane.right { border-left: 1px solid var(--line); background: var(--panel); }
+  .pane-hd { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line);
+    color: var(--mut); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .pane-hd .count { margin-left: auto; color: var(--txt); }
+
+  .chan-hd { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .av { width: 42px; height: 42px; border-radius: 8px; flex: none;
+    background: conic-gradient(from 210deg,#ffd76e,#ff8a5c,#6ec3ff,#b79bff,#ffd76e); }
+  .chan-hd .nm { font-weight: 700; font-size: 14px; }
+  .chan-hd .mt { color: var(--mut); font-size: 11.5px; }
+  .chan-hd button { margin-left: auto; background: var(--panel2); border: 1px solid var(--line); color: var(--txt);
+    border-radius: 6px; padding: 7px 12px; font: 600 11.5px inherit; cursor: pointer; }
+  .chan-hd button:hover { border-color: var(--acc); color: var(--acc); }
+
+  .list { flex: 1; overflow: auto; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 9px 16px; border-bottom: 1px solid #1a1c22;
+    cursor: pointer; }
+  .row:hover { background: var(--panel2); }
+  .row .th { width: 78px; aspect-ratio: 16/9; border-radius: 5px; object-fit: cover; flex: none; background:#222; }
+  .row .tt { flex: 1; min-width: 0; }
+  .row .tt .t1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; font-size: 12.5px; }
+  .row .tt .t2 { color: var(--mut); font-size: 11px; margin-top: 3px; }
+  .row .sz { color: var(--mut); font-size: 11px; flex: none; width: 74px; text-align: right; }
+  .pick { flex: none; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line);
+    background: transparent; color: var(--mut); cursor: pointer; display: grid; place-items: center; }
+  .pick:hover { border-color: var(--acc2); color: var(--acc2); }
+  .pick.on { background: rgba(56,189,248,.14); border-color: var(--acc2); color: var(--acc2); }
+  .pick.ok { background: rgba(74,222,128,.14); border-color: var(--acc); color: var(--acc); }
+
+  .qitem { padding: 12px 16px; border-bottom: 1px solid #1a1c22; }
+  .qtop { display: flex; align-items: center; gap: 10px; }
+  .qtop .qt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 12.5px; font-weight: 600; }
+  .tag { font: 700 10px inherit; letter-spacing: .06em; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; }
+  .tag.down { background: rgba(56,189,248,.15); color: var(--acc2); }
+  .tag.pause { background: rgba(251,191,36,.15); color: var(--warn); }
+  .tag.done { background: rgba(74,222,128,.15); color: var(--acc); }
+  .qbar { height: 7px; border-radius: 4px; background: #23262f; margin: 10px 0 7px; overflow: hidden; }
+  .qbar > i { display: block; height: 100%; border-radius: 4px; background: var(--acc2); }
+  .qbar > i.pause { background: var(--warn); }
+  .qbar > i.done { background: var(--acc); }
+  .qmeta { display: flex; align-items: center; gap: 14px; color: var(--mut); font-size: 11px; }
+  .qmeta .grow { flex: 1; }
+  .qctrl { display: flex; gap: 6px; }
+  .ib { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel2);
+    color: var(--txt); cursor: pointer; display: grid; place-items: center; }
+  .ib:hover { border-color: var(--acc2); }
+  .empty { padding: 40px 16px; text-align: center; color: var(--mut); font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div class="brand">VAULT</div>
+    <label class="url"><span class="prompt">›</span>
+      <input value="https://www.youtube.com/@kurzgesagt" spellcheck="false"></label>
+    <button class="go">FETCH</button>
+  </div>
+
+  <div class="panes">
+    <div class="pane">
+      <div class="chan-hd">
+        <div class="av"></div>
+        <div>
+          <div class="nm">Kurzgesagt – In a Nutshell</div>
+          <div class="mt">@kurzgesagt · 24.1M subs · 270 videos · 184 in library</div>
+        </div>
+        <button>⇩ Queue all</button>
+      </div>
+      <div class="pane-hd">Channel videos <span class="count" id="vcount">270</span></div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="pane right">
+      <div class="pane-hd">Transfer queue <span class="count" id="qcount">2 active · 24 queued</span></div>
+      <div class="list" id="queue"></div>
+    </div>
+  </div>
+
+<script>
+const V=[
+ ["0NY2gAftzJE","This Woman Cured Her Cancer with an Insane Method","13:04","12.4M","142 MB"],
+ ["Cyl3X88KEgg","Why Humanity Will Never Leave The Solar System","11:22","8.1M","118 MB"],
+ ["PqtggjVAi8M","How Are Memories Stored Inside Your Brain?","9:48","6.7M","96 MB"],
+ ["8qQW4LTWgtc","Why Earth Sucks Compared to the Planet Hestia","10:31","15.2M","164 MB"],
+ ["TYhNHX372ek","The Uncomfortable Truth About Ozempic","14:09","9.9M","131 MB"],
+ ["n-gYFcVx-8Y","GERMANY IS OVER","12:56","5.3M","127 MB"],
+ ["dl0-TveDDGA","Our Minds Are Weirder than You Think","8:37","7.2M","88 MB"],
+ ["h3DCdWyb0cc","The Most Insane Megaproject You Never Heard About","15:14","11.0M","189 MB"],
+];
+const play='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg>';
+const pause='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+const plus='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>';
+const list=document.getElementById('list');
+V.forEach(([id,t,dur,views,sz],i)=>{
+  const el=document.createElement('div'); el.className='row';
+  el.innerHTML=`<img class="th" src="https://i.ytimg.com/vi/${id}/mqdefault.jpg">
+    <div class="tt"><div class="t1">${t}</div><div class="t2">${dur} · ${views} views · 3 weeks ago</div></div>
+    <div class="sz">${sz}</div><button class="pick" data-i="${i}" title="Queue download">${plus}</button>`;
+  list.appendChild(el);
+});
+list.addEventListener('click',e=>{const b=e.target.closest('.pick'); if(!b)return;
+  b.classList.toggle('on'); b.innerHTML=b.classList.contains('on')?'✓':'✓'.replace('✓',plus);
+  b.innerHTML=b.classList.contains('on')?'✓':plus;
+  b.classList.toggle('ok',b.classList.contains('on'));});
+
+const Q=[
+ ["8qQW4LTWgtc","Why Earth Sucks Compared to the Planet Hestia",63,"4.2 MB/s · ETA 0:38 · remux 1080p","down"],
+ ["h3DCdWyb0cc","The Most Insane Megaproject You Never Heard About",28,"3.7 MB/s · ETA 1:12 · remux 1080p","down"],
+ ["n-gYFcVx-8Y","GERMANY IS OVER",41,"41.7 MB written · 64.0%","pause"],
+ ["dl0-TveDDGA","Our Minds Are Weirder than You Think",100,"Complete · 1080p · 88 MB","done"],
+];
+const queue=document.getElementById('queue');
+QR=()=>{queue.innerHTML=Q.map((q,i)=>`
+  <div class="qitem">
+    <div class="qtop"><span class="qt">${q[1]}</span><span class="tag ${q[4]}">${q[4]==='down'?'downloading':q[4]==='pause'?'paused':'done'}</span></div>
+    <div class="qbar"><i class="${q[4]}" style="width:${q[2]}%"></i></div>
+    <div class="qmeta"><span class="grow">${q[3]}</span>
+      <div class="qctrl">
+        ${q[4]==='done'?'<button class="ib" title="open">⤢</button>':
+        `<button class="ib" data-p="${i}" title="${q[4]==='pause'?'Resume':'Pause'}">${q[4]==='pause'?play:pause}</button>
+         <button class="ib" title="Cancel">✕</button>`}
+      </div>
+    </div>
+  </div>`).join('');};
+QR();
+queue.addEventListener('click',e=>{const b=e.target.closest('[data-p]'); if(!b)return;
+  const i=+b.dataset.p; Q[i][4]=Q[i][4]==='pause'?'down':'pause';
+  Q[i][3]=Q[i][4]==='pause'?Q[i][2]+'.0% · paused':'4.0 MB/s · ETA 0:47 · remux 1080p'; QR();});
+</script>
+</body>
+</html>

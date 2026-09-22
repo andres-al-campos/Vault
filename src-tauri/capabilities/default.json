@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Core permissions for the main window. Custom app commands do not need entries here. The asset protocol is not ACL-gated — it is enabled by app.security.assetProtocol in tauri.conf.json plus the `protocol-asset` cargo feature.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:default"]
+}

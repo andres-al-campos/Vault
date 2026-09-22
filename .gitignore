@@ -1,0 +1,9 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icon-src.html
+src-tauri/icon-src.png
+.DS_Store
+# Local build/IDE noise
+*.tmp

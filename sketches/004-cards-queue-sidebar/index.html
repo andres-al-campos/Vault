@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vault — Cards + queue sidebar</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased; color: #16181d; background: #f7f7f5; line-height: 1.5;
+    height: 100vh; overflow: hidden; }
+
+  .app { display: flex; height: 100vh; }
+
+  /* ---------- main column ---------- */
+  .main { flex: 1; overflow: auto; min-width: 0; }
+  .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 14px;
+    padding: 14px 26px; background: rgba(247,247,245,.86); backdrop-filter: blur(14px);
+    border-bottom: 1px solid #e7e7e3; }
+  .logo { font-weight: 800; letter-spacing: -.04em; font-size: 19px; flex: none; }
+  .logo span { color: #d94f2b; }
+  .search { flex: 1; max-width: 520px; display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1px solid #e2e2dd; border-radius: 12px; padding: 9px 14px; }
+  .search svg { flex: none; color: #9a9a92; }
+  .search input { flex: 1; border: 0; outline: 0; font: 400 14px inherit; background: transparent; color: inherit; }
+  .btn { border: 0; border-radius: 10px; padding: 9px 15px; font: 600 13.5px inherit; cursor: pointer; transition: .15s; }
+  .btn-primary { background: #16181d; color: #fff; }
+  .btn-primary:hover { background: #2b2e36; }
+  .btn-ghost { background: #fff; color: #16181d; border: 1px solid #e2e2dd; }
+  .btn-ghost:hover { background: #f0f0ec; }
+
+  .wrap { padding: 24px 26px 40px; }
+  .chan { display: flex; align-items: center; gap: 18px; padding-bottom: 20px; }
+  .avatar { width: 74px; height: 74px; border-radius: 50%; flex: none;
+    background: conic-gradient(from 210deg, #ffd76e, #ff8a5c, #6ec3ff, #b79bff, #ffd76e);
+    box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .chan-info h1 { font-size: 24px; letter-spacing: -.02em; }
+  .chan-meta { color: #6b6b63; font-size: 13.5px; margin-top: 3px; }
+  .chan-meta b { color: #16181d; font-weight: 600; }
+  .chan-actions { margin-left: auto; display: flex; gap: 10px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+  .card { background: #fff; border: 1px solid #ececE7; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.03); transition: .18s; display: flex; flex-direction: column; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.09); }
+  .thumb { position: relative; aspect-ratio: 16/9; background: #e9e9e3 center/cover; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.82); color: #fff;
+    font: 600 11.5px/1 ui-monospace, monospace; padding: 4px 6px; border-radius: 5px; }
+  .card-body { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .card-body h3 { font-size: 14.5px; font-weight: 650; line-height: 1.35; letter-spacing: -.01em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .sub { color: #8a8a82; font-size: 12.5px; }
+  .card-foot { margin-top: auto; }
+  .dl { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px;
+    background: #f4f4f0; border: 1px solid #e6e6e0; border-radius: 10px; padding: 9px;
+    font: 600 13px inherit; cursor: pointer; color: #16181d; transition: .15s; }
+  .dl:hover { background: #16181d; color: #fff; border-color: #16181d; }
+  .dl.on { background: #e8f5ec; color: #1a7f43; border-color: #cfe9d9; }
+
+  /* ---------- sidebar queue ---------- */
+  .side { width: 372px; flex: none; background: #fff; border-left: 1px solid #e7e7e3;
+    display: flex; flex-direction: column; }
+  .side-hd { padding: 18px 20px 14px; border-bottom: 1px solid #eeece7; }
+  .side-hd .t { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+  .side-hd .s { color: #8a8a82; font-size: 12.5px; margin-top: 3px; }
+  .side-actions { display: flex; gap: 8px; margin-top: 13px; }
+  .side-actions button { flex: 1; font: 600 12px inherit; padding: 8px; border-radius: 9px; cursor: pointer;
+    border: 1px solid #e2e2dd; background: #fafaf8; color: #16181d; }
+  .side-actions button:hover { background: #f0f0ec; }
+  .side-actions button.warn { color: #b4402a; }
+  .queue { flex: 1; overflow: auto; padding: 6px 0 20px; }
+
+  .qi { padding: 12px 20px; border-bottom: 1px solid #f2f1ed; display: flex; gap: 12px; }
+  .qi img { width: 72px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; flex: none; background: #e9e9e3; }
+  .qi .m { flex: 1; min-width: 0; }
+  .qi .t { font-size: 12.8px; font-weight: 600; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .bar { height: 6px; border-radius: 4px; background: #eceae4; margin-top: 8px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 4px; background: #d94f2b; }
+  .bar > i.done { background: #2f9e5a; }
+  .stat { font: 500 11px ui-monospace, "SF Mono", Menlo, monospace; color: #94948c; margin-top: 6px;
+    display: flex; align-items: center; gap: 8px; }
+  .stat .grow { flex: 1; }
+  .x { border: 0; background: transparent; color: #b3b3ab; cursor: pointer; font-size: 15px; line-height: 1;
+    padding: 2px 4px; border-radius: 5px; }
+  .x:hover { background: #f2f1ed; color: #b4402a; }
+  .okmark { color: #2f9e5a; font-size: 13px; }
+  .empty { padding: 30px 20px; text-align: center; color: #a4a49c; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="main">
+    <div class="topbar">
+      <div class="logo">Vau<span>lt</span></div>
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input value="https://www.youtube.com/@kurzgesagt" spellcheck="false">
+      </label>
+      <button class="btn btn-primary">Fetch channel</button>
+    </div>
+    <div class="wrap">
+      <div class="chan">
+        <div class="avatar"></div>
+        <div class="chan-info">
+          <h1>Kurzgesagt – In a Nutshell</h1>
+          <div class="chan-meta"><b>24.1M</b> subscribers · <b>270</b> videos · <b>184</b> downloaded</div>
+        </div>
+        <div class="chan-actions">
+          <button class="btn btn-ghost">↻ Sync new</button>
+          <button class="btn btn-primary">Download all</button>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="side-hd">
+      <div class="t">Downloads</div>
+      <div class="s" id="qsum">2 downloading · 24 queued · 184 done</div>
+      <div class="side-actions">
+        <button class="warn" id="clear">Clear finished</button>
+        <button>Open folder</button>
+      </div>
+    </div>
+    <div class="queue" id="queue"></div>
+  </div>
+</div>
+
+<script>
+const V=[
+ ["0NY2gAftzJE","This Woman Cured Her Cancer with an Insane Method","13:04","12.4M","3 weeks ago"],
+ ["Cyl3X88KEgg","Why Humanity Will Never Leave The Solar System","11:22","8.1M","1 month ago"],
+ ["PqtggjVAi8M","How Are Memories Stored Inside Your Brain?","9:48","6.7M","1 month ago"],
+ ["8qQW4LTWgtc","Why Earth Sucks Compared to the Planet Hestia","10:31","15.2M","2 months ago"],
+ ["TYhNHX372ek","The Uncomfortable Truth About Ozempic","14:09","9.9M","2 months ago"],
+ ["n-gYFcVx-8Y","GERMANY IS OVER","12:56","5.3M","3 months ago"],
+ ["dl0-TveDDGA","Our Minds Are Weirder than You Think","8:37","7.2M","3 months ago"],
+ ["h3DCdWyb0cc","The Most Insane Megaproject You Never Heard About","15:14","11.0M","4 months ago"],
+];
+const dlIcon='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 21h16"/></svg>';
+const grid=document.getElementById('grid');
+V.forEach(([id,t,dur,v,a],i)=>{
+  const c=document.createElement('div'); c.className='card';
+  c.innerHTML=`<div class="thumb"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg"><span class="dur">${dur}</span></div>
+    <div class="card-body"><h3>${t}</h3><div class="sub">${v} views · ${a}</div>
+    <div class="card-foot"><button class="dl" data-i="${i}">${dlIcon} Download</button></div></div>`;
+  grid.appendChild(c);
+});
+grid.addEventListener('click',e=>{const b=e.target.closest('.dl');if(!b)return;
+  b.classList.toggle('on'); b.innerHTML=b.classList.contains('on')?'✓ Queued':dlIcon+' Download';});
+
+// queue state
+const Q=[
+ {id:"8qQW4LTWgtc",t:"Why Earth Sucks Compared to the Planet Hestia",p:63,s:"4.2 MB/s · 0:38 left",st:"down"},
+ {id:"h3DCdWyb0cc",t:"The Most Insane Megaproject You Never Heard About",p:28,s:"3.7 MB/s · ETA 1:12",st:"down"},
+ {id:"n-gYFcVx-8Y",t:"GERMANY IS OVER",p:41,s:"queued · 2nd",st:"queue"},
+ {id:"dl0-TveDDGA",t:"Our Minds Are Weirder than You Think",p:100,s:"Complete · 1080p · 88 MB",st:"done"},
+];
+const queue=document.getElementById('queue');
+function render(){
+  queue.innerHTML=Q.map((q,i)=>`
+    <div class="qi">
+      <img src="https://i.ytimg.com/vi/${q.id}/mqdefault.jpg">
+      <div class="m">
+        <div class="t">${q.t}</div>
+        <div class="bar"><i class="${q.st==='done'?'done':''}" style="width:${q.p}%"></i></div>
+        <div class="stat"><span class="grow">${q.s}</span>
+          ${q.st==='done'?'<span class="okmark">✓</span>':'<button class="x" data-i="'+i+'">✕</button>'}
+        </div>
+      </div>
+    </div>`).join('');
+  const active=Q.filter(q=>q.st==='down').length, qn=Q.filter(q=>q.st==='queue').length, dn=Q.filter(q=>q.st==='done').length;
+  document.getElementById('qsum').textContent=`${active} downloading · ${qn} queued · ${184+dn} done`;
+}
+render();
+queue.addEventListener('click',e=>{const b=e.target.closest('.x');if(!b)return;
+  Q.splice(+b.dataset.i,1); render();});
+document.getElementById('clear').onclick=()=>{for(let i=Q.length-1;i>=0;i--) if(Q[i].st==='done') Q.splice(i,1); render();};
+</script>
+</body>
+</html>

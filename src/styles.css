@@ -1,0 +1,302 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --text: #16181d;
+  --muted: #8a8a82;
+  --muted2: #6b6b63;
+  --line: #e7e7e3;
+  --line2: #ececE7;
+  --chip: #f4f4f0;
+  --chip-line: #e6e6e0;
+  --accent: #d94f2b;
+  --accent-soft: #e8f5ec;
+  --accent-soft-fg: #1a7f43;
+  --accent-soft-line: #cfe9d9;
+  --track: #eceae4;
+  --done: #2f9e5a;
+  --hover: #f0f0ec;
+  --hover-strong: #e6e6e0;
+  /* Primary button. Kept as its own tokens rather than derived from --text so
+     dark mode can pick a raised surface instead of an inverting near-white. */
+  --btn-bg: #16181d;
+  --btn-fg: #ffffff;
+  --btn-bg-hover: #2b2e36;
+  /* Ring around the currently selected tab / filter / sort option. Distinct
+     from --accent, which marks counts and warnings. */
+  --sel-ring: #8a8f9c;
+  --sb-thumb: #cfcfc7;
+  --sb-thumb-hover: #b4b4ab;
+}
+[data-theme="dark"] {
+  --bg: #0e0f13;
+  --panel: #15171d;
+  --card: #171a21;
+  --text: #e7e8ec;
+  --muted: #8b8f9a;
+  --muted2: #9aa0ad;
+  --line: #252832;
+  --line2: #22252d;
+  --chip: #1b1e25;
+  --chip-line: #2a2e38;
+  --accent: #ff7a4d;
+  --accent-soft: rgba(74, 222, 128, 0.13);
+  --accent-soft-fg: #4ade80;
+  --accent-soft-line: rgba(74, 222, 128, 0.3);
+  --track: #23262f;
+  --done: #4ade80;
+  --hover: #1f222a;
+  --hover-strong: #262a33;
+  /* A raised dark surface, not the near-white --text. */
+  --btn-bg: #2b2f39;
+  --btn-fg: #e7e8ec;
+  --btn-bg-hover: #363b46;
+  --sel-ring: #7c8494;
+  --sb-thumb: #3a3f4d;
+  --sb-thumb-hover: #4c5364;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app { display: flex; height: 100vh; }
+
+/* ---------- main column ---------- */
+.main { flex: 1; overflow: auto; min-width: 0; }
+.topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px;
+  padding: 13px 22px; background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);
+}
+.logo { font-weight: 800; letter-spacing: -0.04em; font-size: 19px; flex: none; }
+.logo span { color: var(--accent); }
+.search {
+  flex: 1; min-width: 180px; display: flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 14px;
+}
+.search svg { flex: none; color: var(--muted); }
+.search input { flex: 1; border: 0; outline: 0; font: 400 14px inherit; background: transparent; color: inherit; }
+.search input::placeholder { color: var(--muted); }
+
+.btn { border: 0; border-radius: 10px; padding: 9px 15px; font: 600 13.5px inherit; cursor: pointer; transition: 0.15s; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn-primary { background: var(--btn-bg); color: var(--btn-fg); }
+.btn-primary:not(:disabled):hover { background: var(--btn-bg-hover); }
+.btn-icon { background: var(--panel); border: 1px solid var(--line); color: var(--text); padding: 9px 11px; display: grid; place-items: center; }
+.btn-icon:not(:disabled):hover { background: var(--hover); }
+.btn-icon:disabled { color: var(--muted); }
+
+/* ---------- channel selector ---------- */
+.chansel { position: relative; flex: none; }
+#chansel-btn {
+  display: flex; align-items: center; gap: 8px; max-width: 210px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  border-radius: 10px; padding: 9px 12px; font: 600 13px inherit; cursor: pointer;
+}
+#chansel-btn:disabled { opacity: 0.6; cursor: default; }
+#chansel-btn:hover:not(:disabled) { background: var(--hover); }
+#chansel-btn .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#chansel-btn svg { flex: none; color: var(--muted); }
+.chansel-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; min-width: 280px; z-index: 40;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22); padding: 6px; display: none;
+}
+.chansel-menu.open { display: block; }
+.chansel-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; }
+.chansel-item:hover { background: var(--hover); }
+.chansel-item.active { background: var(--chip); }
+.chansel-item .nm { flex: 1; min-width: 0; font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chansel-item .ct { font-size: 11.5px; color: var(--muted); flex: none; }
+.chansel-item .rm { border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 3px 5px; border-radius: 6px; flex: none; }
+.chansel-item .rm:hover { background: var(--hover-strong); color: var(--accent); }
+.chansel-empty { padding: 12px; font-size: 12.5px; color: var(--muted); }
+
+.wrap { padding: 22px 22px 40px; }
+
+/* empty state */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 90px 20px; color: var(--muted); }
+.empty .mark { font-size: 40px; font-weight: 800; letter-spacing: -0.05em; color: var(--text); opacity: 0.16; margin-bottom: 18px; }
+.empty h2 { font-size: 19px; color: var(--text); font-weight: 650; margin-bottom: 6px; }
+.empty p { font-size: 13.5px; max-width: 380px; }
+.empty .spin { margin-top: 26px; }
+
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--accent);
+  border-top-color: transparent; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* channel header */
+.chan { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; }
+.avatar { width: 74px; height: 74px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  font-weight: 800; font-size: 26px; color: #fff;
+  background: conic-gradient(from 210deg, #ffd76e, #ff8a5c, #6ec3ff, #b79bff, #ffd76e);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.chan-info h1 { font-size: 23px; letter-spacing: -0.02em; }
+.chan-meta { color: var(--muted2); font-size: 13.5px; margin-top: 3px; }
+.chan-meta b { color: var(--text); font-weight: 600; }
+.chan-actions { margin-left: auto; display: flex; gap: 10px; }
+
+/* download-folder chip under the header */
+.dirmeta { display: flex; align-items: center; gap: 9px; margin: 0 0 20px;
+  font-size: 12.5px; color: var(--muted2); }
+.dirmeta .path { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch; }
+.dirmeta .mini { border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  border-radius: 7px; padding: 4px 9px; font: 600 11.5px inherit; cursor: pointer; flex: none; }
+.dirmeta .mini:hover { background: var(--hover); }
+.dirmeta .mini.accent { border-color: var(--accent); color: var(--accent); }
+.dirmeta svg { flex: none; }
+/* Marks the channel's own vault, which lives in a hidden .vault/ in this folder. */
+.dirmeta .vaultnote { flex: none; font-size: 11.5px; color: var(--accent-soft-fg);
+  background: var(--accent-soft); border: 1px solid var(--accent-soft-line);
+  border-radius: 6px; padding: 3px 7px; }
+.dirmeta .vaultnote.bad { color: var(--accent); background: transparent; border-color: var(--accent); }
+
+/* grid + cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.card { background: var(--card); border: 1px solid var(--line2); border-radius: 16px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); transition: 0.18s; display: flex; flex-direction: column; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.09); }
+.thumb { position: relative; aspect-ratio: 16/9; background: var(--chip); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, 0.82); color: #fff;
+  font: 600 11.5px/1 ui-monospace, "SF Mono", Menlo, monospace; padding: 4px 6px; border-radius: 5px; }
+.card-body { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+.card-body h3 { font-size: 14.5px; font-weight: 650; line-height: 1.35; letter-spacing: -0.01em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sub { color: var(--muted); font-size: 12.5px; }
+.card-foot { margin-top: auto; }
+.dl { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: var(--chip); border: 1px solid var(--chip-line); border-radius: 10px; padding: 9px;
+  font: 600 13px inherit; cursor: pointer; color: var(--text); transition: 0.15s; }
+/* Lifts on hover rather than inverting: inverting to --text was a near-white
+   flash in dark mode. */
+.dl:hover { background: var(--hover-strong); }
+.dl.on { background: var(--accent-soft); color: var(--accent-soft-fg); border-color: var(--accent-soft-line); }
+
+/* ---------- sidebar queue ---------- */
+.side { width: 372px; flex: none; background: var(--panel); border-left: 1px solid var(--line);
+  display: flex; flex-direction: column; }
+.side-hd { padding: 17px 20px 14px; border-bottom: 1px solid var(--line2); }
+.side-hd .t { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.side-hd .s { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.side-actions { display: flex; gap: 8px; margin-top: 13px; }
+.side-actions button { flex: 1; font: 600 12px inherit; padding: 8px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--chip); color: var(--text); }
+.side-actions button:hover { background: var(--hover); }
+.side-actions button.warn { color: var(--accent); }
+.queue { flex: 1; overflow: auto; padding: 6px 0 20px; }
+
+.qi { padding: 12px 20px; border-bottom: 1px solid var(--line2); display: flex; gap: 12px; }
+.qi img { width: 72px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; flex: none; background: var(--chip); }
+.qi .m { flex: 1; min-width: 0; }
+.qi .t { font-size: 12.8px; font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bar { height: 6px; border-radius: 4px; background: var(--track); margin-top: 8px; overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.25s; }
+.bar > i.done { background: var(--done); }
+.stat { font: 500 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); margin-top: 6px;
+  display: flex; align-items: center; gap: 8px; }
+.stat .grow { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.x { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1;
+  padding: 2px 5px; border-radius: 5px; }
+.x:hover { background: var(--hover); color: var(--accent); }
+.okmark { color: var(--done); font-size: 13px; font-weight: 700; }
+.qempty { padding: 30px 20px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* ---------- tabs / sort / filter bar ---------- */
+.controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 4px 0 20px; }
+.tabs { display: flex; gap: 2px; background: var(--chip); border: 1px solid var(--chip-line);
+  border-radius: 10px; padding: 3px; }
+.tab { border: 0; background: transparent; color: var(--muted2); font: 600 13px inherit;
+  padding: 6px 13px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  outline: 2px solid var(--sel-ring); outline-offset: -1px; }
+.tab .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+.tab.active .n { color: var(--accent); }
+.tabs-spacer { flex: 1; }
+.filters { display: flex; gap: 2px; background: var(--chip); border: 1px solid var(--chip-line);
+  border-radius: 10px; padding: 3px; }
+.pill { border: 0; background: transparent; color: var(--muted2); font: 600 12.5px inherit;
+  padding: 6px 12px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.pill:hover { color: var(--text); }
+.pill.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  outline: 2px solid var(--sel-ring); outline-offset: -1px; }
+.pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+.pill.active .n { color: var(--accent); }
+/* Matches the tab and filter groups' outer height (3px pad + 6px button pad +
+   1px border at each end) so the three controls line up on one baseline. */
+.controls select {
+  font: 600 12.5px inherit; color: var(--text); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; cursor: pointer; outline: 0;
+}
+.controls select:focus-visible { outline: 2px solid var(--sel-ring); outline-offset: -1px; border-color: var(--line); }
+.controls select option:checked { outline: 2px solid var(--sel-ring); outline-offset: -2px; }
+.shown { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+
+/* ---------- card extras ---------- */
+/* Members-only badge. Green-on-dark like YouTube's own members label, rather
+   than the amber this started as — it reads as a status, not a warning. Not
+   uppercased: YouTube writes "Members only" in sentence case. */
+.badge { position: absolute; left: 8px; top: 8px; background: rgba(0, 0, 0, 0.82);
+  color: #2ba640;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  padding: 5px 7px; border-radius: 5px; }
+.dl:disabled { cursor: default; color: var(--muted); background: var(--chip); opacity: 0.75; }
+.dl:disabled:hover { background: var(--chip); }
+/* Archive thumbnails are the play affordance: the whole image is the target.
+   A file that couldn't be located stays inert rather than looking clickable. */
+.thumb.playable { cursor: pointer; }
+.thumb.playable img { transition: 0.18s; }
+.thumb.playable:hover img { filter: brightness(0.72); }
+.thumb .play { position: absolute; inset: 0; display: grid; place-items: center;
+  color: #fff; font-size: 26px; opacity: 0; transition: 0.18s; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+.thumb.playable:hover .play { opacity: 1; }
+.badge.gone { color: var(--muted); font-weight: 600; }
+.reason { color: var(--accent); font-size: 11.5px; }
+
+/* retry / dismiss buttons in the queue */
+.qbtn { border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer;
+  border-radius: 6px; padding: 3px 8px; font: 600 11px inherit; }
+.qbtn:hover { background: var(--hover); }
+.qbtn.retry { color: var(--accent); border-color: var(--accent); }
+
+/* ---------- scrollbars ---------- */
+/* macOS overlay scrollbars stay hidden until you scroll, and no amount of
+   ::-webkit-scrollbar styling overrides the system "Show scroll bars: When
+   scrolling" preference — in a 600-video grid that leaves no sense of position
+   or how much is left. `overflow-y: scroll` reserves the gutter and forces a
+   persistent bar regardless of the setting. */
+.main, .queue, .chansel-menu {
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) transparent;
+}
+.main::-webkit-scrollbar, .queue::-webkit-scrollbar, .chansel-menu::-webkit-scrollbar {
+  width: 12px; -webkit-appearance: none; appearance: none;
+}
+.main::-webkit-scrollbar-track, .queue::-webkit-scrollbar-track,
+.chansel-menu::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb, .queue::-webkit-scrollbar-thumb,
+.chansel-menu::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb); border-radius: 6px; min-height: 40px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+.main::-webkit-scrollbar-thumb:hover, .queue::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover); background-clip: content-box;
+}
+/* The corner where the two axes meet would otherwise show a stray square. */
+.main::-webkit-scrollbar-corner, .queue::-webkit-scrollbar-corner { background: transparent; }

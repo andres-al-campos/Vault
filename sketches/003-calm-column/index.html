@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vault — Calm column</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; background: #fbfaf7;
+    color: #23252b; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .col { max-width: 760px; margin: 0 auto; padding: 44px 24px 140px; }
+
+  .brandline { display: flex; align-items: baseline; gap: 10px; margin-bottom: 34px; }
+  .brandline .b { font-size: 15px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    font-family: -apple-system, sans-serif; }
+  .brandline .t { color: #a09a8c; font-size: 13.5px; font-style: italic; }
+
+  h1 { font-size: 34px; font-weight: 500; letter-spacing: -.01em; margin-bottom: 6px; }
+  .lede { color: #8a8578; font-style: italic; font-size: 15px; margin-bottom: 24px; }
+
+  .search { display: flex; gap: 10px; margin-bottom: 14px; }
+  .search input { flex: 1; font: 400 15px -apple-system, sans-serif; padding: 13px 16px; border-radius: 3px;
+    border: 1px solid #ddd7c8; background: #fff; color: inherit; outline: 0; }
+  .search input:focus { border-color: #23252b; }
+  .search button { font: 600 14px -apple-system, sans-serif; padding: 0 22px; border-radius: 3px;
+    border: 1px solid #23252b; background: #23252b; color: #fbfaf7; cursor: pointer; }
+  .search button:hover { background: #3a3d45; }
+  .hint { color: #a09a8c; font-size: 13px; font-style: italic; margin-bottom: 40px; }
+
+  .chan { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid #e7e2d5; }
+  .av { width: 54px; height: 54px; border-radius: 50%; flex: none;
+    background: conic-gradient(from 210deg,#ffd76e,#ff8a5c,#6ec3ff,#b79bff,#ffd76e); }
+  .chan .nm { font-size: 17px; font-weight: 600; font-family: -apple-system, sans-serif; }
+  .chan .mt { color: #8a8578; font-size: 13px; }
+  .chan .acts { margin-left: auto; display: flex; gap: 8px; }
+  .chan .acts button { font: 600 12.5px -apple-system, sans-serif; padding: 8px 13px; border-radius: 3px;
+    border: 1px solid #ddd7c8; background: #fff; cursor: pointer; }
+  .chan .acts button.pri { background: #23252b; border-color: #23252b; color: #fbfaf7; }
+
+  .row { display: flex; gap: 20px; padding: 22px 0; border-bottom: 1px solid #e7e2d5; align-items: center; }
+  .row .th { width: 176px; aspect-ratio: 16/9; border-radius: 4px; object-fit: cover; flex: none; background:#e7e2d5;
+    box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+  .row .txt { flex: 1; }
+  .row h3 { font-size: 18px; font-weight: 500; letter-spacing: -.005em; line-height: 1.35; margin-bottom: 7px; }
+  .row .meta { color: #8a8578; font-size: 13px; font-family: -apple-system, sans-serif; }
+  .row .go { flex: none; font: 600 13px -apple-system, sans-serif; border: 1px solid #ddd7c8; background: #fff;
+    border-radius: 3px; padding: 10px 15px; cursor: pointer; color: #23252b; transition: .15s; }
+  .row .go:hover { background: #23252b; color: #fbfaf7; border-color: #23252b; }
+  .row .go.on { background: #eef3ea; border-color: #cddcc2; color: #4d7a34; }
+
+  /* floating queue pill */
+  .pill { position: fixed; right: 26px; bottom: 26px; background: #23252b; color: #fbfaf7;
+    border-radius: 30px; padding: 12px 18px; display: flex; align-items: center; gap: 11px; cursor: pointer;
+    box-shadow: 0 8px 30px rgba(0,0,0,.25); font: 600 13px -apple-system, sans-serif; z-index: 20; }
+  .ring { width: 18px; height: 18px; border-radius: 50%;
+    background: conic-gradient(#fbbf24 0 63%, #4de1a0 63% 75%, #3a3d45 75% 100%);
+    -webkit-mask: radial-gradient(farthest-side, transparent 55%, #000 57%); mask: radial-gradient(farthest-side, transparent 55%, #000 57%); }
+  .pill .d { color: #a7a29a; font-weight: 400; }
+  .drawer { position: fixed; right: 26px; bottom: 78px; width: 380px; background: #fff; border: 1px solid #e7e2d5;
+    border-radius: 8px; box-shadow: 0 16px 50px rgba(0,0,0,.18); z-index: 21; overflow: hidden; display: none; }
+  .drawer.open { display: block; }
+  .drawer .dh { padding: 12px 16px; border-bottom: 1px solid #eee8da; font: 600 12px -apple-system, sans-serif;
+    letter-spacing: .06em; text-transform: uppercase; color: #8a8578; }
+  .dq { display: flex; gap: 11px; padding: 12px 16px; border-bottom: 1px solid #f2ede1; align-items: center; }
+  .dq img { width: 62px; aspect-ratio: 16/9; border-radius: 3px; object-fit: cover; flex: none; background:#eee; }
+  .dq .m { flex: 1; min-width: 0; }
+  .dq .t { font: 600 12.5px -apple-system, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dq .bar { height: 5px; background: #eee8da; border-radius: 3px; margin-top: 7px; overflow: hidden; }
+  .dq .bar > i { display: block; height: 100%; background: #23252b; }
+  .dq .bar > i.pause { background: #fbbf24; }
+  .dq .bar > i.done { background: #4d7a34; }
+  .dq .s { font: 400 11px -apple-system, sans-serif; color: #a09a8c; margin-top: 5px; }
+  .dq .ib { width: 28px; height: 28px; border-radius: 4px; border: 1px solid #ddd7c8; background: #fff;
+    cursor: pointer; color: #23252b; display: grid; place-items: center; flex: none; }
+  .dq .ib:hover { background: #f2ede1; }
+</style>
+</head>
+<body>
+  <div class="col">
+    <div class="brandline"><span class="b">Vault</span><span class="t">your channels, kept</span></div>
+
+    <h1>Fetch a channel</h1>
+    <p class="lede">Paste a channel URL or type an @handle. Vault lists every video and keeps what you choose — slowly, in the background.</p>
+
+    <div class="search">
+      <input value="@kurzgesagt" spellcheck="false">
+      <button>Fetch</button>
+    </div>
+    <div class="hint">Try <b>@kurzgesagt</b>, a full URL, or a channel ID.</div>
+
+    <div class="chan">
+      <div class="av sans"></div>
+      <div class="sans">
+        <div class="nm">Kurzgesagt – In a Nutshell</div>
+        <div class="mt">@kurzgesagt · 24.1M subscribers · 270 videos</div>
+      </div>
+      <div class="acts sans">
+        <button>Sync</button>
+        <button class="pri">Download all</button>
+      </div>
+    </div>
+
+    <div id="rows"></div>
+  </div>
+
+  <div class="pill" onclick="document.getElementById('dr').classList.toggle('open')">
+    <span class="ring"></span> Downloading <span class="d">2 of 4</span>
+  </div>
+  <div class="drawer" id="dr">
+    <div class="dh">Downloads</div>
+    <div id="dq"></div>
+  </div>
+
+<script>
+const V=[
+ ["0NY2gAftzJE","This Woman Cured Her Cancer with an Insane Method","13:04","12.4M","3 weeks ago"],
+ ["Cyl3X88KEgg","Why Humanity Will Never Leave The Solar System","11:22","8.1M","1 month ago"],
+ ["PqtggjVAi8M","How Are Memories Stored Inside Your Brain?","9:48","6.7M","1 month ago"],
+ ["8qQW4LTWgtc","Why Earth Sucks Compared to the Planet Hestia","10:31","15.2M","2 months ago"],
+ ["TYhNHX372ek","The Uncomfortable Truth About Ozempic","14:09","9.9M","2 months ago"],
+];
+document.getElementById('rows').innerHTML=V.map(([id,t,dur,v,a],i)=>`
+  <div class="row">
+    <img class="th" src="https://i.ytimg.com/vi/${id}/mqdefault.jpg">
+    <div class="txt"><h3>${t}</h3><div class="meta">${dur} · ${v} views · ${a}</div></div>
+    <button class="go" data-i="${i}">Download</button>
+  </div>`).join('');
+document.getElementById('rows').addEventListener('click',e=>{
+  const b=e.target.closest('.go'); if(!b)return;
+  b.classList.toggle('on'); b.textContent=b.classList.contains('on')?'✓ Queued':'Download';});
+
+const Q=[
+ ["8qQW4LTWgtc","Why Earth Sucks Compared to the Planet Hestia",63,"4.2 MB/s · 0:38 left","down"],
+ ["h3DCdWyb0cc","The Most Insane Megaproject You Never Heard About",28,"3.7 MB/s · 1:12 left","down"],
+ ["n-gYFcVx-8Y","GERMANY IS OVER",41,"paused","pause"],
+ ["dl0-TveDDGA","Our Minds Are Weirder than You Think",100,"Done · 1080p","done"],
+];
+const dq=document.getElementById('dq');
+DR=()=>{dq.innerHTML=Q.map((q,i)=>`
+  <div class="dq">
+    <img src="https://i.ytimg.com/vi/${q[0]}/mqdefault.jpg">
+    <div class="m"><div class="t">${q[1]}</div>
+      <div class="bar"><i class="${q[4]}" style="width:${q[2]}%"></i></div>
+      <div class="s">${q[3]}</div></div>
+    ${q[4]==='done'?'<button class="ib">✓</button>':
+      `<button class="ib" data-p="${i}">${q[4]==='pause'?'▶':'⏸'}</button>`}
+  </div>`).join('');};
+DR();
+dq.addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;
+  const i=+b.dataset.p; Q[i][4]=Q[i][4]==='pause'?'down':'pause'; Q[i][3]=Q[i][4]==='pause'?'paused':'4.0 MB/s · 0:52 left'; DR();});
+</script>
+</body>
+</html>
