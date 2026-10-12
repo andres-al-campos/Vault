@@ -241,16 +241,17 @@ fn property(name: &str) -> Option<String> {
     }
 }
 
-/// Loads a file and plays it from `start` seconds in.
+/// Loads a file at `start` seconds in, playing or held on that frame.
 #[tauri::command(async)]
-pub fn player_load(path: String, start: f64) -> Result<(), String> {
+pub fn player_load(path: String, start: f64, paused: bool) -> Result<(), String> {
     if !std::path::Path::new(&path).is_file() {
         return Err(format!(
             "The file isn't there: {path}. If it's on an external drive, connect it; otherwise press Sync and download it again."
         ));
     }
-    command(&["loadfile", &path, "replace", "-1", &format!("start={start}")])?;
-    command(&["set", "pause", "no"])
+    // Set before the file loads, so a held video never sounds for a moment.
+    command(&["set", "pause", if paused { "yes" } else { "no" }])?;
+    command(&["loadfile", &path, "replace", "-1", &format!("start={start}")])
 }
 
 /// What the page asks of a playing video.

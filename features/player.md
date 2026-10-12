@@ -14,7 +14,8 @@ videos sit in browser tabs through a day.
   under the pointer). The line under a title is how far through it is. Resting
   on a tab shows its whole title and its time; once one such card is up, moving
   to another tab shows its card at once. Closing the tab on screen moves to the one on its right, or its left
-  from the last one; closing the last tab returns to the channel.
+  from the last one, and that tab waits paused where it was left. Closing the
+  last tab returns to the channel.
 - Controls: play/pause, time, a seek bar, volume, and a button that opens the
   file in the Mac's default player instead. Clicking the picture also toggles
   play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, Esc goes back to

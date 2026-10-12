@@ -747,8 +747,10 @@ function stageError(err) {
   stageMsg.innerHTML = `<h3>This video couldn't be played</h3><p>${esc(err)}</p>`;
 }
 
-// Puts the active tab's video on, from where it was left.
-async function loadActive() {
+// Puts the active tab's video on, from where it was left. `paused` holds it
+// on that frame: a tab that only came forward because its neighbour was closed
+// wasn't asked to play.
+async function loadActive({ paused = false } = {}) {
   const tab = tabs.active;
   if (!tab) return;
   stageMsg.hidden = true;
@@ -759,10 +761,10 @@ async function loadActive() {
       // never shows through to whatever was there before the first frame.
       stageEl.classList.add("loading");
       reported = false;
-      await invoke("player_load", { path: tab.path, start: resumeAt(tab) });
+      await invoke("player_load", { path: tab.path, start: resumeAt(tab), paused });
       loadedId = tab.id;
     }
-    playing = { paused: false, ended: false };
+    playing = { paused, ended: false };
   } catch (e) {
     loadedId = null;
     playing = { paused: true, ended: false };
@@ -875,7 +877,7 @@ async function closeTab(id) {
   }
   if (!tabs.active) { await leavePlayer(); renderWatching(); return; }
   renderTabs();
-  if (wasActive && watching()) loadActive();
+  if (wasActive && watching()) loadActive({ paused: true });
 }
 
 // Play on a card. With ⌘ held the video opens in a tab without leaving the
