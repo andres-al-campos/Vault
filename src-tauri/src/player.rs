@@ -189,7 +189,12 @@ pub fn init(window: &tauri::WebviewWindow) -> Result<(), String> {
             // A finished video stays on its last frame instead of unloading,
             // so the page can offer to replay it.
             ("keep-open", "yes"),
-            ("input-default-bindings", "no"),
+            // The keyboard's play/pause key, headphone buttons and Control
+            // Center. mpv ships this for macOS but leaves it off as a library;
+            // it arrives as a key press, which the default bindings turn into
+            // a pause toggle. No other key reaches mpv: it has no window.
+            ("input-media-keys", "yes"),
+            ("input-default-bindings", "yes"),
         ] {
             let (k, v) = (CString::new(k).unwrap(), CString::new(v).unwrap());
             let rc = mpv_set_option_string(h, k.as_ptr(), v.as_ptr());

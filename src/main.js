@@ -684,6 +684,7 @@ let full = false;          // the picture has the whole screen, bars over it
 let windowWasFull = false; // the window was already fullscreen, so leaving keeps it
 let idle = null;
 let loadedId = null;   // the tab whose file mpv holds
+let reported = false;  // the loaded file has reported in at least once
 let playing = { paused: true, ended: false };
 let seeking = false;   // the seek bar is being dragged, so reports don't move it
 let poll = null;
@@ -730,6 +731,16 @@ function placeVideo() {
 }
 new ResizeObserver(placeVideo).observe(stageEl);
 
+// The mark that blinks in the middle of the picture when playback starts or
+// stops, as on YouTube.
+function flash(paused) {
+  const el = $("bezel");
+  el.innerHTML = paused ? PAUSE_ICON : PLAY_ICON;
+  el.classList.remove("go");
+  void el.offsetWidth; // restarts the animation when toggled twice quickly
+  el.classList.add("go");
+}
+
 function stageError(err) {
   // Drawn over the hole, so it has its own ground.
   stageMsg.hidden = false;
@@ -747,6 +758,7 @@ async function loadActive() {
       // Black until the new file reports in (tick lifts it), so the stage
       // never shows through to whatever was there before the first frame.
       stageEl.classList.add("loading");
+      reported = false;
       await invoke("player_load", { path: tab.path, start: resumeAt(tab) });
       loadedId = tab.id;
     }
@@ -767,6 +779,10 @@ async function tick() {
   // came before the file opened. Either would overwrite this tab's place.
   if (!tab || loadedId !== tab.id || s.path !== tab.path || !(s.duration > 0)) return;
   stageEl.classList.remove("loading");
+  // Seen here and not where the button is pressed, so a pause that came from
+  // the keyboard's media key shows too.
+  if (reported && s.paused !== playing.paused && !s.ended) flash(s.paused);
+  reported = true;
   tabs.note(tab.id, s.position, s.duration);
   playing = { paused: s.paused, ended: s.ended };
   renderTransport();
@@ -920,7 +936,6 @@ function hideTip() {
 $("ptabs").addEventListener("mouseover", (e) => {
   const el = e.target.closest(".ptab");
   const tab = el && tabs.find(el.dataset.id);
-  if (e.target.closest("[data-close]")) return hideTip();
   // The gap between two tabs: keep the card that's up.
   if (!tab) return;
   clearTimeout(tipTimer);

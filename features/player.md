@@ -25,6 +25,10 @@ videos sit in browser tabs through a day.
   They stay while the video is paused or the pointer is on them. F or Esc
   leaves; a second Esc goes back to the channel. A window that was already
   fullscreen stays so on the way out.
+- Starting or stopping playback blinks a play or pause mark in the middle of
+  the picture.
+- The keyboard's play/pause key, headphone buttons and Control Center toggle
+  the loaded video, through mpv's own media-key support.
 - A video that reaches its end stays on its last frame and the play button
   becomes "Play again".
 - Each tab resumes where it was left, across tab switches and relaunches. One
@@ -86,5 +90,8 @@ it from 0.
   see-through, so anything in the channel that is slow to hide shows over the
   video. A `transition: all` did exactly that to the clicked thumbnail;
   transitions are switched off under the player for that reason.
+- The media key reaches mpv whether or not the player is on screen, so it can
+  start the paused video's sound while the channel is showing. Its place is
+  picked up again when the player is next opened.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.
