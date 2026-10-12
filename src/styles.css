@@ -407,7 +407,8 @@ body {
   font: 500 13px inherit; cursor: pointer; }
 .ptab:hover { background: var(--hover); color: var(--text); }
 .ptab.active { background: var(--hover-strong); color: var(--text); }
-.ptab + .ptab::before { content: ""; position: absolute; left: -5px; top: 9px; bottom: 9px; width: 1px; background: var(--chip-line); }
+.ptab + .ptab::before { content: ""; position: absolute; left: -5px; top: 9px; bottom: 9px; width: 1px;
+  background: color-mix(in srgb, var(--muted) 50%, transparent); }
 .ptab.active::before, .ptab.active + .ptab::before, .ptab:hover::before, .ptab:hover + .ptab::before { display: none; }
 /* A long title fades out at the tab's edge instead of ending in dots. */
 .ptab .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
@@ -432,7 +433,7 @@ body {
 .bezel { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px;
   border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; display: grid; place-items: center;
   opacity: 0; pointer-events: none; }
-.bezel svg { width: 32px; height: 32px; }
+.bezel svg { width: 42px; height: 42px; }
 /* Grows for the first half, easing out, then fades at that size. */
 .bezel.go { animation: bezel .5s linear; }
 @keyframes bezel {
