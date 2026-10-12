@@ -12,7 +12,7 @@ videos sit in browser tabs through a day.
   tabs are open.
 - Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
   under the pointer). The line under a title is how far through it is. Resting
-  on a tab shows its whole title and its time; once one such card is up, moving
+  on a tab shows its whole title, its time and its thumbnail; once one such card is up, moving
   to another tab shows its card at once. Closing the tab on screen moves to the one on its right, or its left
   from the last one, and that tab waits paused where it was left. Closing the
   last tab returns to the channel.

@@ -422,10 +422,11 @@ body {
 .ptab .prog { position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; }
 .ptab .prog i { display: block; height: 100%; border-radius: 1px; background: var(--accent); }
 
-.ptip { position: fixed; z-index: 60; max-width: 360px; padding: 9px 12px; border-radius: 10px;
+.ptip { position: fixed; z-index: 60; width: 280px; padding: 9px 12px; border-radius: 10px; overflow: hidden;
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
   pointer-events: none; }
 .ptip b { display: block; font-size: 13px; line-height: 1.35; }
+.ptip img { display: block; width: calc(100% + 24px); margin: 9px -12px -9px; aspect-ratio: 16/9; object-fit: cover; }
 .ptip span { font: 500 11.5px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
 
 .stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; }
@@ -434,8 +435,13 @@ body {
   border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; display: grid; place-items: center;
   opacity: 0; pointer-events: none; }
 .bezel svg { width: 32px; height: 32px; }
-.bezel.go { animation: bezel .5s ease-in; }
-@keyframes bezel { from { opacity: .9; transform: scale(.8); } to { opacity: 0; transform: scale(1.35); } }
+/* Grows for 0.3s at full strength, then fades over the last 0.2s. */
+.bezel.go { animation: bezel .5s linear; }
+@keyframes bezel {
+  0% { opacity: .9; transform: scale(.8); }
+  60% { opacity: .9; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
 .stage-msg { max-width: 520px; margin: 24px; padding: 20px 22px; border-radius: 12px;
   background: var(--panel); border: 1px solid var(--line); }
 .stage-msg h3 { font-size: 15px; margin-bottom: 6px; }
