@@ -448,7 +448,7 @@ function card(v) {
   const playable = have === "have" && !!entry?.path;
   const meta = [
     fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`,
-    v.unlisted && "No longer on the channel",
+    v.unlisted && "Delisted",
   ].filter(Boolean).join(" · ");
   return `
     <div class="card" data-id="${esc(v.id)}">

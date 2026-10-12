@@ -19,7 +19,7 @@ what you have and what you can get.
   thumbnail also plays it.
 - A missing file counts as archived and says so on its card.
 - Archived videos the channel no longer lists stay on the Videos tab after the
-  listed ones, marked "No longer on the channel".
+  listed ones, marked "Delisted".
 - Download N shown queues everything on screen that isn't on disk or already
   queued, forcing the missing ones. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
@@ -46,8 +46,7 @@ By click against the stand-in backend (see the README's driving conventions):
 By hand only: how it looks, in both themes and at other window sizes.
 
 Last driven: 2026-10-12, against the stand-in at 1240x820, light theme.
-Archived showed 7 cards (6 Play, 1 Download again, 1 "No longer on the
-channel"); Members + Not archived showed 2 locked cards and "Set cookies to
+Archived showed 7 cards (6 Play, 1 Download again, 1 unlisted); Members + Not archived showed 2 locked cards and "Set cookies to
 download", which opened the cookie menu; choosing a browser unlocked them. A
 download filled its card button to 40%, read Archived when done, then Play.
 
@@ -55,7 +54,7 @@ download filled its card button to 40%, read Archived when done, then Play.
 
 - The header's art and subscriber count are saved with the channel. A channel
   saved before they were fetched shows its initial until the next Sync.
-- An archived Short shows on the Videos tab as "No longer on the channel" until
+- An archived Short shows on the Videos tab as "Delisted" until
   Shorts has been opened once: that is when the app learns it is a Short.
 - There is no upload date in the listing, so no "3 weeks ago" under a card.
 - Shorts use the same 16:9 cards as videos.
