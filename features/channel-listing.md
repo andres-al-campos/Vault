@@ -10,6 +10,8 @@ Type a channel and see its videos as cards.
   tab, query, trailing slash and the handle's case don't make a second entry.
 - Videos is fetched up front and saved. Shorts and Live are fetched the first
   time they're opened and kept in memory only.
+- The listing also brings the channel's avatar, banner, subscriber count and
+  verified flag, when YouTube has them.
 - Sync re-fetches the Videos list of the channel on screen.
 - A channel with no Shorts or Live tab shows that tab as empty.
 - A failed Shorts or Live fetch shows the error with Try again. A failed Sync

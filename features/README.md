@@ -4,13 +4,14 @@ What a user can do with Vault, how to reach it, and how to check it. Read this
 before adding anything: if it's already here, extend it instead of building it
 again.
 
-This map covers the features changed so far, not the whole app. Folder choice,
-the Archive tab, cookies, sorting and filters have no file yet.
+This map covers the features changed so far, not the whole app. Folder choice
+and cookies have no file yet.
 
 | Feature | File | Platforms | Driveable headless? |
 |---|---|---|---|
 | Download queue | [download-queue.md](download-queue.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 | Channel listing | [channel-listing.md](channel-listing.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
+| Browsing a channel | [browsing.md](browsing.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 | Remembered channels | [remembered-channels.md](remembered-channels.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 
 ## What counts as a feature

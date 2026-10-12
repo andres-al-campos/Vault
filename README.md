@@ -2,11 +2,12 @@
 
 A small desktop app around [yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a
 YouTube channel: fetch a channel, see every video as a card, download the ones you want.
-Downloads run one at a time and are recorded in an archive file, so running it again
-later fetches only what's new.
+Downloads run one at a time and are recorded in an archive file in the channel's folder,
+so running it again later fetches only what's new.
 
-Built with [Tauri v2](https://tauri.app) — a Rust backend that drives yt-dlp as a
-subprocess, and the same HTML/CSS UI from the `sketches/004-cards-queue-sidebar` mockup.
+Built with [Tauri v2](https://tauri.app): a Rust backend that drives yt-dlp as a
+subprocess, and a plain HTML/CSS/JS frontend laid out like a YouTube channel page.
+[features/](features/README.md) says what each feature does and how it is checked.
 
 ## Requirements
 
@@ -26,11 +27,11 @@ subprocess, and the same HTML/CSS UI from the `sketches/004-cards-queue-sidebar`
 `build.sh` is the entry point, following the same convention as the other projects:
 
 ```sh
-./build.sh          # package Vault.app, install to /Applications/_vibe_coded, launch
-./build.sh dev      # hot-reload dev window
-./build.sh test     # fast Rust unit tests
-./build.sh test net # also the live tests that fetch real channels (~80s)
-./build.sh clean    # drop dist/ and src-tauri/target/
+./build.sh           # package Vault.app, install to /Applications/_vibe_coded, launch
+./build.sh dev       # hot-reload dev window
+./build.sh check     # every check: JS and Rust unit tests, the feature-map law
+./build.sh check net # also the live tests, which fetch real channels and download two short videos
+./build.sh clean     # drop dist/ and src-tauri/target/
 ```
 
 The default replaces whatever copy is already in `/Applications/_vibe_coded`, ad-hoc
@@ -40,11 +41,14 @@ signs it, and launches it — so a rebuild is the copy that opens, never last bu
 
 | Piece | Where | What it does |
 |---|---|---|
-| `fetch_channel` | `src-tauri/src/lib.rs` | Runs `yt-dlp --flat-playlist -J <url>` and parses the JSON into a video list (id, title, duration, views). One request gets the whole channel. |
+| `fetch_channel` | `src-tauri/src/lib.rs` | Runs `yt-dlp --flat-playlist -J <url>` and parses the JSON into a video list (id, title, duration, views) plus the channel's avatar, banner and subscriber count. One request gets the whole channel. |
 | `download_video` | `src-tauri/src/lib.rs` | Spawns yt-dlp with `--download-archive` and a `--progress-template`, then streams parsed progress back as a Tauri event. |
 | `cancel_download` | `src-tauri/src/lib.rs` | Sends `SIGTERM` to the running yt-dlp process. The partial `.part` file stays, so re-queuing resumes. |
+| `list_archive` | `src-tauri/src/lib.rs` | Reads each channel folder's archive file and matches every recorded id to its file on disk. |
 | `load_state` / `save_state` | `src-tauri/src/lib.rs` | Reads and writes `~/.vault/state.json` — the remembered channels, which one is active, and each channel's download folder. |
-| queue engine | `src/main.js` | Downloads strictly one at a time. Each finished job starts the next. |
+| queue | `src/queue.js` | Which jobs exist and which runs next. Downloads strictly one at a time. |
+| filters | `src/library.js` | Which videos the grid shows, in what order, and each one's archive state. |
+| screen | `src/main.js` | Draws the header, tabs, filters, cards and queue, and wires them to the backend. |
 
 ### Remembered channels
 
@@ -62,38 +66,50 @@ suggested `~/Downloads/Vault/<channel>` and creates it. The choice is remembered
 channel and can be changed any time from the folder button in the top bar or the chip
 under the channel name. All of a channel's files land directly in its folder.
 
-The **archive** at `~/.vault/archive.txt` is global, not per-channel: a video id is
-recorded once, so re-fetching a channel skips anything already downloaded regardless of
-which folder it landed in.
+A channel's **archive** lives in its folder, at `.vault/archive.txt`, next to a
+`.vault/channel.json` naming the channel. The folder is self-describing: move it to
+another drive, point the channel at it again, and Vault knows what it holds. A video
+counts as archived only for the channel whose folder records it.
 
 ### Members-only videos
 
 yt-dlp's flat channel listing marks restricted videos with
 `availability: "subscriber_only"` — verified against a video literally titled
-"(MEMBERS ONLY)" and against LTT, where 609 of 7171 listings carry it. So Vault
-flags those cards with a **Members** badge and disables their Download button
-rather than letting them fail every time. `Download all` skips them.
+"(MEMBERS ONLY)" and against LTT, where 609 of 7171 listings carry it. Vault
+flags those cards with a **Members only** badge. Without cookies their Download
+button is disabled rather than letting them fail every time; pick the browser
+you're signed into YouTube with from the cookie button in the top bar and they
+download like any other video.
 
 Note the tempting shortcut is wrong: **"no view count" does not mean
 members-only.** Plenty of ordinary public videos come back with a null
 `view_count` in flat mode (several Veritasium videos with 8M+ views, for
 instance). `availability` is the signal that actually holds.
 
-### Tabs, sorting, filters
+### Tabs, filters, sorting
 
 The `Videos` tab is the default and is the only one that's fetched up front —
 it already excludes shorts and past livestreams, so the main list stays clean.
-`Shorts` and `Live` are fetched lazily the first time you click them, and kept
-in memory only (not persisted).
+`Shorts` and `Live` are fetched the first time you open them, and kept in
+memory only (not persisted).
+
+Two filters, each with one choice at a time, narrow each other:
+
+- **All / Public / Members** — shown only when the channel has members-only videos.
+- **All / Archived / Not archived** — a video whose file has gone missing still
+  counts as archived; its card says "File missing" and offers Download again.
+
+The number on each option is what choosing it would show. **Download N shown**
+queues everything on screen that isn't already on disk.
+
+Archived videos the channel no longer lists (deleted or made private) stay on
+the Videos tab, after the listed ones, marked "No longer on the channel".
 
 Sorting: **Newest** (YouTube's own order), **Oldest** (reversed), **Most
 popular** (`view_count`), **Shortest** / **Longest** (`duration`). There is no
 upload date in flat mode — `timestamp` came back null on every video tested — so
 newest/oldest fall back to the order YouTube returns, which is newest-first.
 Shorts carry no duration, so they sort last under Shortest/Longest.
-
-Filters: **All**, **Public** (not `subscriber_only`), **Members**
-(`subscriber_only`), each with a live count.
 
 ### Failures and retries
 
@@ -120,23 +136,30 @@ out.
 
 - `csp` is `null` in `tauri.conf.json` (no Content-Security-Policy). Fine for a local
   app; tighten before distributing.
-- `Download all` queues every video in the channel without a cap. For a large channel
-  that's a long queue — a batch-size limit would be a sensible addition.
-- The archive is global, so changing a channel's folder after downloading doesn't
-  re-fetch files that are now in the old location.
+- `Download N shown` has no cap. With no filter on a large channel that's a long queue.
+- Changing a channel's folder starts a fresh archive there: videos downloaded into
+  the old folder read as not archived until the folder is switched back.
+- An archived Short shows on the Videos tab as "No longer on the channel" until the
+  Shorts tab has been opened once, since that is when Vault learns it is a Short.
 
 ## Layout
 
 ```
 youtube-vault/
-├── build.sh              the entry point (package / dev / test / clean)
+├── build.sh              the entry point (package / dev / check / clean)
 ├── index.html            UI shell
 ├── src/
-│   ├── main.js           fetch, queue, persistence, event wiring
+│   ├── boot.js           entry: loads the app, and the stand-in backend on a dev server
+│   ├── main.js           the screen: header, tabs, filters, cards, queue
+│   ├── queue.js          download queue rules (+ queue.test.js)
+│   ├── library.js        filter, sort and archive-state rules (+ library.test.js)
 │   └── styles.css        light & dark themes (CSS variables)
 ├── src-tauri/
-│   ├── src/lib.rs        yt-dlp integration + saved state
+│   ├── src/lib.rs        yt-dlp integration, archive, saved state
 │   ├── tauri.conf.json
 │   └── icons/
-└── sketches/             the HTML mockups this design came from
+├── drive/                stand-in backend for clicking through the UI in a browser
+├── features/             what each feature does and how it's checked
+├── laws/                 checks run by ./build.sh check
+└── sketches/             the HTML mockups the first design came from
 ```

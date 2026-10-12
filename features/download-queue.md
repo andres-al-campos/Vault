@@ -11,17 +11,16 @@ Queue videos and watch them download one at a time in the sidebar.
   cancelled download resumes its partial file.
 - A failed row shows why and gets Retry; Retry failed re-queues every failed row.
 - Clear finished removes done and failed rows.
-- Download again, on an Archive card whose file is missing, runs forced: yt-dlp
+- Download again, on a card whose file is missing, runs forced: yt-dlp
   ignores the archive record for that run and the record is re-stamped once the
   file lands. The job stays forced through any retry.
-- Download all queues every video on the Videos tab that isn't archived,
-  skipping members-only ones unless a cookie browser is set.
+- Download N shown queues what the filters have narrowed to; see
+  [browsing.md](browsing.md).
 
 ## How to get to it
 
-A card's Download button on the Videos, Shorts or Live tab; Download all in the
-channel header; Download again on an Archive card. The queue is the right-hand
-sidebar.
+A card's button on any tab; Download N shown on the tab strip. The queue is the
+right-hand sidebar.
 
 ## Driving it
 
@@ -61,6 +60,3 @@ sent with force, and the Archive tab went from 1 not found to 0.
   exit. The first report wins.
 - Download buttons resolve through the list the grid rendered. Looking a video
   up in one tab's list is what left Shorts and Live buttons dead.
-- Download all always means the Videos tab, whichever tab is showing.
-- Clicking a card that says "In archive" queues it anyway; yt-dlp skips it and
-  the row reads "Already in archive".

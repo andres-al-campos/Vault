@@ -33,16 +33,27 @@ const videos = recorded.videos.map((v, i) =>
   scenario === "library" && [2, 6, 10].includes(i) ? { ...v, availability: "subscriber_only" } : v);
 const shorts = recorded.videos.slice(40, 48).map((v) => ({ ...v, id: v.id, duration: null }));
 
+// As the real listing returns them, flattened onto the channel.
+const about = {
+  avatar: "https://yt3.googleusercontent.com/ytc/AIdro_lCR9X7hGA1PPZH2S3LL1S8eBwQL0N3xaC75J3fPe8Cs6I=s900-c-k-c0x00ffffff-no-rj",
+  banner: "https://yt3.googleusercontent.com/7yGjwamL8Fe_G8_k-_C9nUWvCr4HN0KOb7NVuaRZFyov1W6mTFx8i9uutSB23e8jasxVbCCzyA=w1707-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj",
+  followers: 5540000,
+  verified: true,
+};
+// Archived once, since deleted from the channel: in the archive, in no listing.
+const UNLISTED = { id: "gone0000001", title: "a video the channel took down" };
+
 let state = { active: null, channels: [], cookies_browser: null };
 // id -> path, or null when the archive records the id but the file is gone.
 const archive = new Map();
 if (scenario === "library") {
   state = {
     active: URL_, cookies_browser: null,
-    channels: [{ url: URL_, title: recorded.title, uploader: recorded.uploader, video_count: videos.length, fetched_at: 0, download_dir: DIR, videos }],
+    channels: [{ url: URL_, title: recorded.title, uploader: recorded.uploader, video_count: videos.length, fetched_at: 0, download_dir: DIR, videos, ...about }],
   };
   for (const i of [1, 3, 5, 6, 9]) archive.set(videos[i].id, `${DIR}/${videos[i].title} [${videos[i].id}].mp4`);
   archive.set(videos[7].id, null);
+  archive.set(UNLISTED.id, `${DIR}/${UNLISTED.title} [${UNLISTED.id}].mp4`);
 }
 
 const running = new Map(); // id -> interval
@@ -88,13 +99,13 @@ const commands = {
     if (/fail/i.test(url)) throw "ERROR: [youtube:tab] Sign in to confirm you're not a bot. Use --cookies-from-browser";
     if (failTabOnce.delete(tab)) throw "ERROR: unable to download webpage: timed out";
     const list = tab === "videos" ? videos : tab === "shorts" ? shorts : [];
-    return { url: URL_, title: recorded.title, uploader: recorded.uploader, tab, video_count: list.length, videos: list };
+    return { url: URL_, title: recorded.title, uploader: recorded.uploader, tab, video_count: list.length, videos: list, ...about };
   },
   list_archive() {
     const ch = state.channels.find((c) => c.url === URL_);
     if (!ch?.download_dir) return [];
     return [...archive].map(([id, path]) => {
-      const v = [...videos, ...shorts].find((x) => x.id === id);
+      const v = [...videos, ...shorts, UNLISTED].find((x) => x.id === id);
       return {
         id, title: v?.title ?? id, duration: v?.duration ?? null, view_count: v?.view_count ?? null,
         url: v?.url ?? `https://www.youtube.com/watch?v=${id}`,

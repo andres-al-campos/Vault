@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { createQueue } from "./queue.js";
+import { isMembers, archiveState, view, downloadable, withUnlisted } from "./library.js";
 
 /* ---------------- theme ---------------- */
 const root = document.documentElement;
@@ -44,11 +45,14 @@ function esc(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 function safeName(s) { return String(s).replace(/[/\\:]/g, "-").trim() || "channel"; }
-const isMembers = (v) => v.availability === "subscriber_only";
+// A remembered choice, or the default when what's stored isn't one of the options.
+const remembered = (key, options) => {
+  const saved = localStorage.getItem(key);
+  return options.includes(saved) ? saved : options[0];
+};
 
 /* ---------------- state ---------------- */
 let state = { active: null, channels: [] };
-let downloaded = new Set(); // ids archived in the ACTIVE channel's vault
 const queue = createQueue(); // the download jobs and their order — see queue.js
 
 // yt-dlp reads cookies straight from the chosen browser's profile, so
@@ -66,14 +70,26 @@ const tabLoading = new Set();
 const tabId = (ch, tab) => `${ch.url}|${tab}`;
 const isLazyTab = (tab) => tab === "shorts" || tab === "streams";
 
-// The Archive tab spans every channel, not just the active one, so it lives
-// outside tabCache. Rebuilt on demand (boot, after a download finishes, on
-// sync) rather than persisted — the archive files are the source of truth.
-let archive = null; // null = not loaded yet
+// Every channel's archive entries, read from the archive files in the channel
+// folders. Rebuilt on demand (boot, after a download finishes) rather than
+// persisted — the files are the source of truth.
+let archive = [];
+// The entries of the channel on screen, by video id. An id counts as archived
+// only for the channel whose folder records it, so two channels that share a
+// video don't mark each other's copy.
+let archived = new Map();
 
-let activeTab = localStorage.getItem("vault-tab") || "videos";
-let sort = localStorage.getItem("vault-sort") || "newest";
-let filter = localStorage.getItem("vault-filter") || "all";
+const TABS = { videos: "Videos", shorts: "Shorts", streams: "Live" };
+const SORTS = { newest: "Newest", oldest: "Oldest", popular: "Most popular", shortest: "Shortest", longest: "Longest" };
+const ACCESS = { all: "All", public: "Public", members: "Members" };
+const HAVE = { all: "All", archived: "Archived", not: "Not archived" };
+
+let activeTab = remembered("vault-tab", Object.keys(TABS));
+const filters = {
+  sort: remembered("vault-sort", Object.keys(SORTS)),
+  access: remembered("vault-access", Object.keys(ACCESS)),
+  have: remembered("vault-have", Object.keys(HAVE)),
+};
 
 const activeChannel = () => state.channels.find((c) => c.url === state.active) || null;
 
@@ -84,22 +100,14 @@ async function loadArchive() {
     archive = [];
     console.error("Could not read the archive:", e);
   }
-  rebuildDownloaded();
-  return archive;
+  rebuildArchived();
 }
 
-// Per-channel archive state: an id counts as downloaded only for the channel
-// whose folder records it, so two channels that share a video don't mark each
-// other's copy. Rebuilt whenever the active channel or the archive changes.
-function rebuildDownloaded() {
-  downloaded = new Set(scopedArchive().map((e) => e.id));
-}
-
-// The archive entries owned by the active channel — the channel whose folder
-// recorded them. Ownership comes from the archive files, so a video that has
-// dropped off the channel's fetched list (deleted on YouTube) still shows.
-function scopedArchive() {
-  return (archive || []).filter((e) => e.channel_url === state.active);
+// Ownership comes from the archive files, so a video that has dropped off the
+// channel's fetched list (deleted on YouTube) is still here.
+const scopedArchive = () => archive.filter((e) => e.channel_url === state.active);
+function rebuildArchived() {
+  archived = new Map(scopedArchive().map((e) => [e.id, e]));
 }
 
 // Set when the state file exists but couldn't be read. Nothing is saved while
@@ -194,6 +202,11 @@ async function doFetch(raw, { quiet = false } = {}) {
     ch.uploader = info.uploader;
     ch.video_count = info.video_count;
     ch.videos = info.videos;
+    // What the header draws. Saved with the channel so it's there on launch.
+    ch.avatar = info.avatar ?? null;
+    ch.banner = info.banner ?? null;
+    ch.followers = info.followers ?? null;
+    ch.verified = !!info.verified;
     ch.fetched_at = Math.floor(Date.now() / 1000);
     state.active = info.url;
     tabCache.delete(info.url); // tab caches are stale after a re-fetch
@@ -220,127 +233,136 @@ function showActive() {
     $("sync").disabled = true;
     return;
   }
-  rebuildDownloaded();
+  rebuildArchived();
   $("folder").disabled = false;
   $("sync").disabled = false;
   $("url").value = ch.url;
   renderHeader(ch);
-  renderControls();
-  renderGrid();
+  renderList();
   // The tab is remembered across launches but Shorts and Live aren't saved,
   // so a remembered tab can arrive here with nothing fetched yet.
   if (isLazyTab(activeTab) && !tabVideos(ch, activeTab) && !tabErrors.has(tabId(ch, activeTab))) {
     loadTab(ch, activeTab).then(() => {
-      if (activeChannel() === ch) { renderControls(); renderGrid(); }
+      if (activeChannel() === ch) renderList();
     });
   }
 }
 
+const FOLDER_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
+
+// Laid out like the channel's page on YouTube: banner, round avatar, name,
+// handle and counts. Channels saved before the art was fetched have none until
+// their next Sync, and fall back to the initial.
 function renderHeader(ch) {
   const initial = (ch.title || "?").trim().charAt(0).toUpperCase();
-  const dirChip = ch.download_dir
-    ? `<div class="dirmeta">
-         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-         <span class="path">${esc(ch.download_dir)}</span>
-         <button class="mini" id="open-dir">Open</button>
+  const handle = ch.url.split("/").pop();
+  const meta = [
+    handle.startsWith("@") && esc(handle),
+    ch.followers != null && `${fmtViews(ch.followers)} subscribers`,
+    `${ch.video_count} videos`,
+  ].filter(Boolean).join(" · ");
+  const dir = ch.download_dir
+    ? `<div class="dirmeta">${FOLDER_ICON}
+         <a class="path" id="open-dir" title="Open this folder">${esc(ch.download_dir)}</a>
          <button class="mini" id="change-dir">Change</button>
        </div>`
-    : `<div class="dirmeta">
-         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    : `<div class="dirmeta">${FOLDER_ICON}
          <span>No download folder yet — you'll be asked when you download the first video.</span>
          <button class="mini accent" id="change-dir">Choose folder</button>
        </div>`;
 
-  const members = ch.videos.filter(isMembers).length;
   headEl.innerHTML = `
+    ${ch.banner ? `<img class="banner" src="${esc(ch.banner)}" alt="">` : ""}
     <div class="chan">
-      <div class="avatar">${esc(initial)}</div>
+      <div class="avatar">${ch.avatar ? `<img src="${esc(ch.avatar)}" alt="">` : esc(initial)}</div>
       <div class="chan-info">
-        <h1>${esc(ch.title)}</h1>
-        <div class="chan-meta"><b>${ch.video_count}</b> videos · <b>${members}</b> members-only · <b>${downloaded.size}</b> in archive</div>
+        <h1>${esc(ch.title)}${ch.verified ? `<span class="tick" title="Verified">✓</span>` : ""}</h1>
+        <div class="chan-meta">${meta}</div>
+        ${dir}
       </div>
-      <div class="chan-actions">
-        <button class="btn btn-primary" id="dlall">Download all</button>
-      </div>
-    </div>
-    ${dirChip}`;
+    </div>`;
 
-  $("dlall").addEventListener("click", downloadAll);
-  $("change-dir")?.addEventListener("click", () => changeDir(ch));
+  // Art that fails to load steps aside: the initial for the avatar, nothing
+  // for the banner. A broken-image box is worse than either.
+  headEl.querySelector(".avatar img")?.addEventListener("error", (e) => { e.target.parentElement.textContent = initial; });
+  headEl.querySelector(".banner")?.addEventListener("error", (e) => e.target.remove());
+  $("change-dir").addEventListener("click", () => changeDir(ch));
   $("open-dir")?.addEventListener("click", () => invoke("reveal_folder", { dir: ch.download_dir }).catch(() => {}));
 }
 
-/* ---------------- tabs / sort / filter ---------------- */
-const TAB_LABEL = { videos: "Videos", shorts: "Shorts", streams: "Live", archive: "Archive" };
+/* ---------------- tabs / filters / sort ---------------- */
 const tabKey = (tab) => (tab === "streams" ? "live" : "shorts");
 
+// A tab's videos, or null when a lazy tab hasn't been fetched yet. The Videos
+// tab also carries archived videos the channel no longer lists: there is no
+// separate Archive tab, so this is where they stay visible.
 function tabVideos(ch, tab) {
-  if (tab === "videos") return ch.videos;
-  if (tab === "archive") return scopedArchive(); // this channel's vault, or all
-  return tabCache.get(ch.url)?.[tabKey(tab)] || null; // null = not fetched yet
+  const cached = tabCache.get(ch.url) || {};
+  if (tab !== "videos") return cached[tabKey(tab)] || null;
+  const known = new Set([...ch.videos, ...(cached.shorts || []), ...(cached.live || [])].map((v) => v.id));
+  return withUnlisted(ch.videos, scopedArchive(), known);
 }
 
-// The Archive tab is the only one that isn't confined to one channel.
-const isArchive = () => activeTab === "archive";
+// The list on screen and the numbers behind the filters, or null while the
+// tab has nothing to filter yet.
+function currentView() {
+  const ch = activeChannel();
+  const list = ch && tabVideos(ch, activeTab);
+  return list ? view(list, filters, archived) : null;
+}
 
-function renderControls() {
+// Controls and grid always redraw together: every number in the controls is
+// derived from the same list the grid shows.
+function renderList() {
+  const now = currentView();
+  renderControls(now);
+  renderGrid(now);
+}
+
+function renderControls(now) {
   const ch = activeChannel();
   if (!ch) { controlsEl.innerHTML = ""; return; }
-  const members = ch.videos.filter(isMembers).length;
-  const pub = ch.videos.length - members;
 
-  const tabBtn = (t) => {
-    const list = tabVideos(ch, t);
-    const n = list ? `<span class="n">${list.length}</span>` : "";
-    return `<button class="tab ${activeTab === t ? "active" : ""}" data-tab="${t}">${TAB_LABEL[t]}${n}</button>`;
-  };
+  let tabs = Object.entries(TABS).map(([t, label]) =>
+    `<button class="tab ${activeTab === t ? "active" : ""}" data-tab="${t}">${label}</button>`).join("");
 
-  // Every option carries a count, including All, so the two menus read the
-  // same way.
-  const total = (tabVideos(ch, activeTab) || []).length;
-  const onDisk = isArchive() ? scopedArchive().filter((v) => v.path).length : 0;
-  const filters = isArchive()
-    ? `<div class="filters">
-         <button class="pill ${filter === "all" ? "active" : ""}" data-filter="all">All <span class="n">${total}</span></button>
-         <button class="pill ${filter === "on-disk" ? "active" : ""}" data-filter="on-disk">On disk <span class="n">${onDisk}</span></button>
-         <button class="pill ${filter === "missing" ? "active" : ""}" data-filter="missing">Not found <span class="n">${total - onDisk}</span></button>
-       </div>`
-    : `<div class="filters">
-         <button class="pill ${filter === "all" ? "active" : ""}" data-filter="all">All <span class="n">${ch.videos.length}</span></button>
-         <button class="pill ${filter === "public" ? "active" : ""}" data-filter="public">Public <span class="n">${pub}</span></button>
-         <button class="pill ${filter === "members" ? "active" : ""}" data-filter="members">Members <span class="n">${members}</span></button>
-       </div>`;
+  // One choice per group, like the tabs. Each number is what that choice
+  // would show, so the two selected ones always match the grid.
+  const group = (name, labels, counts) => `<div class="filters">${Object.entries(labels).map(([value, label]) =>
+    `<button class="pill ${filters[name] === value ? "active" : ""}" data-filter="${name}" data-value="${value}">${label} <span class="n">${counts[value]}</span></button>`).join("")}</div>`;
 
-  // The Archive tab always shows the channel selected at the top — the channel
-  // selector is the one picker in the app, and per-channel is the whole point.
+  // The filters and sort sit on one row; the download button rides the tab
+  // strip, where there is room, so the row doesn't wrap at the default width.
+  let bar = "";
+  if (now) {
+    const { jobs, locked } = downloadable(now.shown, archived, { cookies: !!state.cookies_browser, holds: queue.holds });
+    // With nothing to queue, say why instead of offering "Download 0".
+    const download = jobs.length ? `<button class="btn btn-primary" id="dlshown">↓ Download ${jobs.length} shown</button>`
+      : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
+      : `<button class="btn btn-primary" id="dlshown" disabled>Nothing to download</button>`;
+    bar = `
+      ${now.hasMembers ? group("access", ACCESS, now.counts.access) : ""}
+      ${group("have", HAVE, now.counts.have)}
+      <span class="tabs-spacer"></span>
+      <select id="sort">${Object.entries(SORTS).map(([value, label]) =>
+        `<option value="${value}"${filters.sort === value ? " selected" : ""}>${label}</option>`).join("")}</select>`;
+    tabs += `<span class="tabs-spacer"></span>${download}`;
+  }
 
-  controlsEl.innerHTML = `
-    <div class="controls">
-      <div class="tabs">${tabBtn("videos")}${tabBtn("shorts")}${tabBtn("streams")}${tabBtn("archive")}</div>
-      ${filters}
-      <select id="sort">
-        <option value="newest"${sort === "newest" ? " selected" : ""}>Newest</option>
-        <option value="oldest"${sort === "oldest" ? " selected" : ""}>Oldest</option>
-        <option value="popular"${sort === "popular" ? " selected" : ""}>Most popular</option>
-        <option value="shortest"${sort === "shortest" ? " selected" : ""}>Shortest</option>
-        <option value="longest"${sort === "longest" ? " selected" : ""}>Longest</option>
-      </select>
-      <span class="shown" id="shown"></span>
-    </div>`;
+  controlsEl.innerHTML = `<div class="tabs">${tabs}</div><div class="controls">${bar}</div>`;
 
   controlsEl.querySelectorAll("[data-tab]").forEach((b) =>
     b.addEventListener("click", () => switchTab(b.dataset.tab)));
   controlsEl.querySelectorAll("[data-filter]").forEach((b) =>
-    b.addEventListener("click", () => {
-      filter = b.dataset.filter;
-      localStorage.setItem("vault-filter", filter);
-      renderControls(); renderGrid();
-    }));
-  $("sort").addEventListener("change", (e) => {
-    sort = e.target.value;
-    localStorage.setItem("vault-sort", sort);
-    renderGrid();
-  });
+    b.addEventListener("click", () => setFilter(b.dataset.filter, b.dataset.value)));
+  $("sort")?.addEventListener("change", (e) => setFilter("sort", e.target.value));
+  $("dlshown")?.addEventListener("click", downloadShown);
+}
+
+function setFilter(name, value) {
+  filters[name] = value;
+  localStorage.setItem(`vault-${name}`, value);
+  renderList();
 }
 
 async function switchTab(tab) {
@@ -348,36 +370,11 @@ async function switchTab(tab) {
   if (!ch || tab === activeTab) return;
   activeTab = tab;
   localStorage.setItem("vault-tab", tab);
-  // The live/members filters only apply to a channel's own tabs. Passing them
-  // into the Archive would show "Nothing here" for an archive that isn't empty.
-  if (isArchive() ? filter === "public" || filter === "members" : filter === "on-disk" || filter === "missing") {
-    filter = "all";
-    localStorage.setItem("vault-filter", filter);
-  }
-
-  if (tab === "archive") {
-    // A channel's vault lives in its folder, so there is nothing to show until
-    // one is chosen. Ask the same way the first download does, rather than
-    // showing an empty archive that looks like a bug.
-    if (!ch.download_dir) {
-      renderControls();
-      controlsEl.innerHTML = `<div class="controls"><span class="shown">This channel has no folder yet.</span></div>`;
-      setEmpty(`<div class="mark">VAULT</div><h2>No folder yet</h2>
-        <p>${esc(ch.title)} downloads nowhere yet, so it has no archive. Choose a folder to start one.</p>
-        <div style="margin-top:18px"><button class="btn btn-primary" id="archive-pick">Choose folder</button></div>`);
-      $("archive-pick")?.addEventListener("click", async () => {
-        const dir = await ensureDir(ch);
-        if (dir) { await loadArchive(); showActive(); }
-      });
-      return;
-    }
-    controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Reading the archive…</span></div>`;
-    await loadArchive();
-  } else if (isLazyTab(tab) && !tabVideos(ch, tab)) {
+  if (isLazyTab(tab) && !tabVideos(ch, tab)) {
+    renderList(); // shows the tab as selected, and "Loading…" under it
     await loadTab(ch, tab);
   }
-  renderControls();
-  renderGrid();
+  renderList();
 }
 
 // Fetch the Shorts or Live list for a channel. A failure is recorded as a
@@ -388,7 +385,6 @@ async function loadTab(ch, tab) {
   if (tabLoading.has(key)) return;
   tabLoading.add(key);
   tabErrors.delete(key);
-  controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Loading ${TAB_LABEL[tab]}…</span></div>`;
   try {
     const info = await invoke("fetch_channel", { url: ch.url, tab, cookies: state.cookies_browser ?? null });
     const entry = tabCache.get(ch.url) || {};
@@ -401,147 +397,115 @@ async function loadTab(ch, tab) {
   }
 }
 
-function visibleVideos() {
-  const ch = activeChannel();
-  if (!ch) return [];
-  let list = tabVideos(ch, activeTab) || [];
-  list = list.slice();
-  if (isArchive()) {
-    if (filter === "on-disk") list = list.filter((v) => v.path);
-    else if (filter === "missing") list = list.filter((v) => !v.path);
-  } else if (filter === "members") list = list.filter(isMembers);
-  else if (filter === "public") list = list.filter((v) => !isMembers(v));
+// The videos behind the cards on screen, by id. Clicks resolve through this
+// rather than through one tab's list: the handler used to look only in the
+// Videos tab, so every button on Shorts and Live did nothing.
+let gridVideos = new Map();
 
-  // Ascending by duration, shortest first. Videos with no duration (shorts,
-  // which carry none in flat mode) go last either way.
-  switch (sort) {
-    case "oldest": list.reverse(); break;
-    case "popular": list.sort((a, b) => (b.view_count ?? -1) - (a.view_count ?? -1)); break;
-    case "shortest": list.sort((a, b) => (a.duration ?? Infinity) - (b.duration ?? Infinity)); break;
-    case "longest": list.sort((a, b) => (b.duration ?? -1) - (a.duration ?? -1)); break;
-    // "newest" is the order YouTube returns, which is already newest-first.
-    // No upload date is available in flat mode, so it can't be sorted on.
-  }
-  return list;
-}
-
-function renderGrid() {
+function renderGrid(now) {
   const ch = activeChannel();
   if (!ch) return;
-  const list = visibleVideos();
-  const total = (tabVideos(ch, activeTab) || []).length;
-  emptyEl.style.display = "none";
-  gridEl.style.display = "grid";
-  const shown = $("shown");
-  if (shown) shown.textContent = list.length === total ? `${total} shown` : `${list.length} of ${total} shown`;
+  const message = (title, body) => {
+    gridEl.style.display = "none";
+    emptyEl.style.display = "flex";
+    emptyEl.innerHTML = `<div class="mark">VAULT</div><h2>${title}</h2>${body}`;
+  };
 
   const failed = tabErrors.get(tabId(ch, activeTab));
   if (failed) {
-    gridEl.style.display = "none";
-    emptyEl.style.display = "flex";
-    emptyEl.innerHTML = `<div class="mark">VAULT</div><h2>Couldn't load ${TAB_LABEL[activeTab]}</h2><p>${esc(failed)}</p>
-      <div style="margin-top:18px"><button class="btn btn-primary" id="tab-retry">Try again</button></div>`;
+    message(`Couldn't load ${TABS[activeTab]}`, `<p>${esc(failed)}</p>
+      <div style="margin-top:18px"><button class="btn btn-primary" id="tab-retry">Try again</button></div>`);
     $("tab-retry").addEventListener("click", async () => {
       await loadTab(ch, activeTab);
-      renderControls(); renderGrid();
+      renderList();
     });
     return;
   }
-
-  if (!list.length) {
-    gridEl.style.display = "none";
-    emptyEl.style.display = "flex";
-    emptyEl.innerHTML = `<div class="mark">VAULT</div><h2>${tabVideos(ch, activeTab) === null ? "One moment" : "Nothing here"}</h2><p>${
-      tabVideos(ch, activeTab) === null ? `Loading ${TAB_LABEL[activeTab]}…`
-        : total === 0
-        ? isArchive() ? "Nothing archived yet. Download a video and it lands here." : `No ${TAB_LABEL[activeTab].toLowerCase()} on this channel.`
-        : "No videos match this filter."
-    }</p>`;
+  if (!now) {
+    message("One moment", `<p>Loading ${TABS[activeTab]}…</p><div class="spin"></div>`);
+    return;
+  }
+  if (!now.shown.length) {
+    const unfiltered = filters.access === "all" && filters.have === "all";
+    message("Nothing here", `<p>${unfiltered
+      ? `No ${TABS[activeTab].toLowerCase()} on this channel.`
+      : "No videos match these filters."}</p>`);
     return;
   }
 
-  gridVideos = isArchive() ? new Map() : new Map(list.map((v) => [v.id, v]));
-  gridEl.innerHTML = list.map((v) => isArchive() ? archiveCard(v) : videoCard(v)).join("");
+  emptyEl.style.display = "none";
+  gridEl.style.display = "grid";
+  gridVideos = new Map(now.shown.map((v) => [v.id, v]));
+  gridEl.innerHTML = now.shown.map(card).join("");
 }
 
-// The videos behind the cards on screen, by id. A Download click resolves
-// through this rather than through one tab's list: the handler used to look
-// only in the Videos tab, so every button on Shorts and Live did nothing.
-let gridVideos = new Map();
-
-// A card for the Videos / Shorts / Live tabs. `v` is a channel video.
-function videoCard(v) {
-  const done = downloaded.has(v.id);
-  const member = isMembers(v);
-  // Members-only downloads need cookies; with a browser set they're a normal
-  // download, without one they're a guaranteed failure so they stay disabled.
-  const memberUnlockable = member && !!state.cookies_browser;
-  const meta = [fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`, fmtDur(v.duration)]
-    .filter(Boolean).join(" · ");
-  const label = member && !memberUnlockable ? "Members only" : done ? "✓ In archive" : "↓ Download";
+function card(v) {
+  const entry = archived.get(v.id);
+  const have = archiveState(v.id, archived);
+  const playable = have === "have" && !!entry?.path;
+  const meta = [
+    fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`,
+    v.unlisted && "No longer on the channel",
+  ].filter(Boolean).join(" · ");
   return `
-    <div class="card">
-      <div class="thumb">
+    <div class="card" data-id="${esc(v.id)}">
+      <div class="thumb ${playable ? "playable" : ""}" ${playable ? `data-act="play" title="Play ${esc(v.title)}"` : ""}>
         <img loading="lazy" src="${thumb(v.id)}" alt="">
         ${fmtDur(v.duration) ? `<span class="dur">${fmtDur(v.duration)}</span>` : ""}
-        ${member ? `<span class="badge">Members only</span>` : ""}
+        ${isMembers(v) ? `<span class="badge">Members only</span>` : ""}
+        ${have === "missing" ? `<span class="badge gone">File missing</span>` : ""}
+        ${playable ? '<span class="play">▶</span>' : ""}
       </div>
       <div class="card-body">
         <h3>${esc(v.title)}</h3>
         <div class="sub">${meta || "&nbsp;"}</div>
-        <div class="card-foot">
-          <button class="dl ${done && !member ? "on" : ""}" data-id="${v.id}"
-            ${member && !memberUnlockable ? 'disabled title="This video is for channel members only — pick a browser in the cookie menu (top bar) to download it with your membership." ' : memberUnlockable ? 'title="Downloading with your membership cookies."' : ""}>
-            ${label}
-          </button>
-        </div>
+        <div class="card-foot">${cardButton(v)}</div>
       </div>
     </div>`;
 }
 
-// A card for the Archive tab. `e` is an archive entry. Thumbnails open the file
-// when it's on disk, so there's no need to print the path on the card.
-function archiveCard(e) {
-  const onDisk = !!e.path;
-  const meta = [e.channel, fmtViews(e.view_count) && `${fmtViews(e.view_count)} views`, fmtDur(e.duration)]
-    .filter(Boolean).join(" · ");
-  const thumbEl = `
-    <div class="thumb ${onDisk ? "playable" : "inert"}"
-         ${onDisk ? `data-open="${esc(e.path)}" title="Play ${esc(e.title)}"` : `title="${e.dir
-           ? `Not in ${esc(e.dir)} — re-download to restore it.`
-           : "This channel's folder isn't known to Vault, so the file can't be located."}"`}>
-      <img loading="lazy" src="${thumb(e.id)}" alt="">
-      ${fmtDur(e.duration) ? `<span class="dur">${fmtDur(e.duration)}</span>` : ""}
-      ${onDisk ? '<span class="play">▶</span>' : '<span class="badge gone">Not found</span>'}
-    </div>`;
-  const foot = onDisk
-    ? `<button class="dl on" data-open="${esc(e.path)}">▶ Play</button>`
-    // Re-download needs to know where to put the file, which only works when
-    // the owning channel's folder is known. The forced run ignores the archive
-    // (yt-dlp would skip an id it still records) and re-stamps it on success.
-    : e.dir
-      ? `<button class="dl" data-redl="${e.id}">↻ Download again</button>`
-      : `<button class="dl" disabled title="Vault doesn't know which folder held this file, so it can't be re-downloaded.">File not found</button>`;
-  return `
-    <div class="card">
-      ${thumbEl}
-      <div class="card-body">
-        <h3>${esc(e.title)}</h3>
-        <div class="sub">${meta || esc(e.id)}</div>
-        <div class="card-foot">${foot}</div>
-      </div>
-    </div>`;
+// The one button under a card, for whatever the video's state is. Drawn here
+// for a new card and again by syncCard when a download moves, so the two can't
+// disagree about what a state looks like.
+function cardButton(v) {
+  const id = esc(v.id);
+  const job = queue.jobs.get(v.id);
+  const have = archiveState(v.id, archived);
+  if (job?.status === "downloading") {
+    return `<button class="dl busy" data-id="${id}" style="--pct:${Math.round(job.pct)}%">↓ ${Math.round(job.pct)}%</button>`;
+  }
+  if (job?.status === "queued") return `<button class="dl on" data-id="${id}">• Queued</button>`;
+  if (have === "have") {
+    // Just finished: archived, but the file's path arrives with the next
+    // archive read a moment later.
+    return archived.get(v.id).path
+      ? `<button class="dl on" data-id="${id}" data-act="play">▶ Play</button>`
+      : `<button class="dl on" data-id="${id}">✓ Archived</button>`;
+  }
+  // Members-only downloads need cookies; with a browser set they're a normal
+  // download, without one they're a guaranteed failure so they stay disabled.
+  if (isMembers(v) && !state.cookies_browser) {
+    return `<button class="dl" data-id="${id}" disabled title="This video is for channel members only — pick a browser in the cookie menu (top bar) to download it with your membership.">Members only</button>`;
+  }
+  if (job?.status === "error") return `<button class="dl" data-id="${id}" data-act="dl" title="${esc(job.stat)}">↻ Retry</button>`;
+  if (have === "missing") {
+    return `<button class="dl" data-id="${id}" data-act="dl" title="The archive records this video but its file isn't in the folder.">↻ Download again</button>`;
+  }
+  return `<button class="dl" data-id="${id}" data-act="dl">↓ Download</button>`;
+}
+
+function syncCard(id) {
+  const b = gridEl.querySelector(`.dl[data-id="${CSS.escape(id)}"]`);
+  const v = gridVideos.get(id);
+  if (b && v) b.outerHTML = cardButton(v);
 }
 
 gridEl.addEventListener("click", (e) => {
-  const o = e.target.closest("[data-open]");
-  if (o) { openInPlayer(o.dataset.open); return; }
-  const r = e.target.closest("[data-redl]");
-  if (r) { redownload(r.dataset.redl); return; }
-  const b = e.target.closest(".dl");
-  if (!b || b.disabled) return;
-  const v = gridVideos.get(b.dataset.id);
-  if (v) enqueue(v);
+  const target = e.target.closest("[data-act]");
+  if (!target) return;
+  const id = target.closest(".card").dataset.id;
+  if (target.dataset.act === "play") openInPlayer(archived.get(id)?.path);
+  else if (gridVideos.has(id)) startDownload(gridVideos.get(id));
 });
 
 /* ---------------- playback ---------------- */
@@ -569,6 +533,9 @@ async function adoptDir(ch, dir) {
   await invoke("set_channel_dir", { url: ch.url, title: ch.title, dir })
     .catch((e) => console.error("Could not stamp the channel folder:", e));
   await persist();
+  // A different folder is a different archive.
+  await loadArchive();
+  if (activeChannel() === ch) { renderHeader(ch); renderList(); }
 }
 
 async function ensureDir(ch) {
@@ -585,7 +552,6 @@ async function ensureDir(ch) {
   });
   if (!picked) return null;
   await adoptDir(ch, picked);
-  renderHeader(ch);
   return picked;
 }
 
@@ -597,48 +563,46 @@ async function changeDir(ch) {
   const picked = await open({ directory: true, multiple: false, defaultPath, title: "Choose the download folder" });
   if (!picked) return;
   await adoptDir(ch, picked);
-  renderHeader(ch);
 }
 
 /* ---------------- queue engine (one at a time) ---------------- */
-async function enqueue(v) {
+// Where a video's file goes, and whether to force it. A file the archive
+// records but the disk has lost goes back to the folder that recorded it, in
+// force mode: yt-dlp skips it otherwise, since the archive still lists the id,
+// and the backend re-stamps the archive only after the file lands.
+function jobFor(v, dir) {
+  const missing = archiveState(v.id, archived) === "missing";
+  return { id: v.id, title: v.title, url: v.url, dir: (missing && archived.get(v.id).dir) || dir, force: missing };
+}
+
+async function startDownload(v) {
   const ch = activeChannel();
   if (!ch || queue.holds(v.id)) return;
   const dir = await ensureDir(ch);
   if (!dir) return;
-  if (!queue.add({ id: v.id, title: v.title, url: v.url, dir })) return;
+  if (!queue.add(jobFor(v, dir))) return;
   renderQueue();
   syncCard(v.id);
+  renderControls(currentView()); // one fewer for "Download N shown"
   pump();
 }
 
-async function downloadAll() {
+// Queues what the filters have narrowed to. With nothing but locked
+// members-only videos on screen, the button asks for cookies instead.
+async function downloadShown() {
   const ch = activeChannel();
-  if (!ch) return;
+  const now = currentView();
+  if (!ch || !now) return;
+  const { jobs, locked } = downloadable(now.shown, archived, { cookies: !!state.cookies_browser, holds: queue.holds });
+  if (!jobs.length) {
+    if (locked) setTimeout(() => cookieMenu.classList.add("open")); // after this click's own close-all
+    return;
+  }
   const dir = await ensureDir(ch);
   if (!dir) return;
-  let skipped = 0;
-  for (const v of ch.videos) {
-    // Members-only fails without cookies no matter what; with them it's an
-    // ordinary (membership-gated) download.
-    if (isMembers(v) && !state.cookies_browser) { skipped++; continue; }
-    if (downloaded.has(v.id)) continue;
-    if (queue.add({ id: v.id, title: v.title, url: v.url, dir })) syncCard(v.id);
-  }
-  if (skipped) console.info(`Skipped ${skipped} members-only video(s).`);
+  for (const { video } of jobs) queue.add(jobFor(video, dir));
   renderQueue();
-  pump();
-}
-
-// Re-fetch a file that the archive records but the disk doesn't. The job runs
-// in force mode: yt-dlp skips it otherwise, since the archive still lists the
-// id, and the backend re-stamps the archive only after the file lands. A
-// failure leaves the archive untouched, so the entry stays visible here.
-function redownload(id) {
-  const entry = (archive || []).find((e) => e.id === id);
-  if (!entry || !entry.dir) return;
-  if (!queue.add({ id, title: entry.title || id, url: entry.url, dir: entry.dir, force: true })) return;
-  renderQueue();
+  renderList();
   pump();
 }
 
@@ -662,51 +626,35 @@ function setJob(id, patch) {
 }
 function finish(id, ok, stat) {
   if (!queue.settle(id, ok, stat)) return;
-  // Marks the card immediately, but only when the file landed in the active
-  // channel's folder — the archive is per channel. A job that finished for a
-  // channel the user has already navigated away from is corrected by the
-  // archive reload below, which rebuilds the set from the files themselves.
+  // Marks the card at once, but only when the file landed in the channel on
+  // screen — the archive is per channel. The path isn't known here; the
+  // archive read below supplies it and turns the card into Play.
   if (ok) {
     const ch = activeChannel();
     const j = queue.jobs.get(id);
-    if (ch && j.dir && ch.download_dir === j.dir) downloaded.add(id);
+    if (ch && j.dir && ch.download_dir === j.dir && !archived.get(id)?.path) {
+      archived.set(id, { id, path: null, pending: true, dir: j.dir });
+    }
   }
   updateJobElement(id);
   renderSummary();
   syncCard(id);
   pump();
-  // A finished download joins the archive, so the tab would be stale. Refresh
-  // it lazily: only if it's showing, or the user is about to see it next time.
   if (ok) refreshArchiveSoon();
+  else if (activeChannel()) renderControls(currentView()); // a failed job can be queued again
 }
 
-// Coalesces the burst of archive reads that a `Download all` run would
-// otherwise trigger — one reload shortly after the last completion instead of
-// one per video.
+// Coalesces the burst of archive reads that a big batch would otherwise
+// trigger — one reload shortly after the last completion instead of one per
+// video.
 let archiveRefresh = null;
 function refreshArchiveSoon() {
   if (archiveRefresh) clearTimeout(archiveRefresh);
   archiveRefresh = setTimeout(async () => {
     archiveRefresh = null;
     await loadArchive();
-    // The header counts what's archived, so it changes with every download.
-    const ch = activeChannel();
-    if (ch) renderHeader(ch);
-    if (isArchive()) { renderControls(); renderGrid(); }
+    if (activeChannel()) renderList();
   }, 600);
-}
-
-function syncCard(id) {
-  const b = gridEl.querySelector(`.dl[data-id="${CSS.escape(id)}"]`);
-  if (!b || b.disabled) return;
-  const j = queue.jobs.get(id);
-  // Progress outranks the badge: a re-download of an id that is still in the
-  // archive must show its percentage, not "✓ In archive".
-  if (j && j.status === "downloading") { b.classList.add("on"); b.textContent = `↓ ${Math.round(j.pct)}%`; }
-  else if (j && j.status === "queued") { b.classList.add("on"); b.textContent = "• Queued"; }
-  else if (downloaded.has(id)) { b.classList.add("on"); b.textContent = "✓ In archive"; }
-  else if (j && j.status === "error") { b.classList.remove("on"); b.textContent = "↻ Retry"; }
-  else { b.classList.remove("on"); b.textContent = "↓ Download"; }
 }
 
 /* ---------------- queue rendering ---------------- */
@@ -786,7 +734,12 @@ queueEl.addEventListener("click", async (e) => {
   }
 
   const dismiss = e.target.closest("[data-dismiss]");
-  if (dismiss) { queue.remove(dismiss.dataset.dismiss); renderQueue(); return; }
+  if (dismiss) {
+    queue.remove(dismiss.dataset.dismiss);
+    renderQueue();
+    syncCard(dismiss.dataset.dismiss);
+    return;
+  }
 
   const retry = e.target.closest("[data-retry]");
   if (retry) retryJob(retry.dataset.retry);
@@ -802,6 +755,7 @@ function retryJob(id) {
 $("clear").addEventListener("click", () => {
   queue.clearFinished();
   renderQueue();
+  if (activeChannel()) renderList();
 });
 $("retryall").addEventListener("click", () => {
   Array.from(queue.jobs.entries())
@@ -847,6 +801,8 @@ cookieMenu.addEventListener("click", async (e) => {
   await persist();
   renderCookieState();
   cookieMenu.classList.remove("open");
+  // Members-only cards unlock or lock with this choice.
+  if (activeChannel()) renderList();
 });
 
 /* ---------------- tauri events ---------------- */

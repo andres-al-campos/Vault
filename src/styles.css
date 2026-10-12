@@ -155,21 +155,31 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* channel header */
-.chan { display: flex; align-items: center; gap: 18px; padding-bottom: 16px; }
-.avatar { width: 74px; height: 74px; border-radius: 50%; flex: none; display: grid; place-items: center;
-  font-weight: 800; font-size: 26px; color: #fff;
-  background: conic-gradient(from 210deg, #ffd76e, #ff8a5c, #6ec3ff, #b79bff, #ffd76e);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
-.chan-info h1 { font-size: 23px; letter-spacing: -0.02em; }
+/* Laid out like the channel's own page: a wide banner, then the round avatar
+   beside the name. The banner keeps YouTube's desktop crop, about 6.2:1. */
+.banner { display: block; width: 100%; aspect-ratio: 6.2 / 1; object-fit: cover; border-radius: 14px;
+  background: var(--chip); margin-bottom: 18px; }
+.chan { display: flex; align-items: center; gap: 20px; padding-bottom: 6px; }
+.avatar { width: 104px; height: 104px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  font-weight: 800; font-size: 34px; color: #fff; overflow: hidden;
+  background: conic-gradient(from 210deg, #ffd76e, #ff8a5c, #6ec3ff, #b79bff, #ffd76e); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.chan-info { min-width: 0; }
+.chan-info h1 { font-size: 28px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+.tick { width: 15px; height: 15px; border-radius: 50%; background: var(--muted); color: var(--bg);
+  font-size: 9.5px; font-weight: 800; display: grid; place-items: center; flex: none; }
 .chan-meta { color: var(--muted2); font-size: 13.5px; margin-top: 3px; }
 .chan-meta b { color: var(--text); font-weight: 600; }
 .chan-actions { margin-left: auto; display: flex; gap: 10px; }
 
 /* download-folder chip under the header */
-.dirmeta { display: flex; align-items: center; gap: 9px; margin: 0 0 20px;
+.dirmeta { display: flex; align-items: center; gap: 9px; margin-top: 9px;
   font-size: 12.5px; color: var(--muted2); }
+/* The path is the way into the folder: a link, underlined on hover. */
 .dirmeta .path { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch; }
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch;
+  color: var(--text); cursor: pointer; }
+.dirmeta .path:hover { text-decoration: underline; }
 .dirmeta .mini { border: 1px solid var(--line); background: var(--panel); color: var(--text);
   border-radius: 7px; padding: 4px 9px; font: 600 11.5px inherit; cursor: pointer; flex: none; }
 .dirmeta .mini:hover { background: var(--hover); }
@@ -197,6 +207,10 @@ body {
    flash in dark mode. */
 .dl:hover { background: var(--hover-strong); }
 .dl.on { background: var(--accent-soft); color: var(--accent-soft-fg); border-color: var(--accent-soft-line); }
+/* A download in progress fills the button from the left, so the card itself
+   shows how far along it is. */
+.dl.busy { background: linear-gradient(90deg, var(--accent-soft) var(--pct), var(--chip) var(--pct));
+  color: var(--accent-soft-fg); border-color: var(--accent-soft-line); cursor: default; }
 
 /* ---------- sidebar queue ---------- */
 .side { width: 372px; flex: none; background: var(--panel); border-left: 1px solid var(--line);
@@ -229,16 +243,16 @@ body {
 .qempty { padding: 30px 20px; text-align: center; color: var(--muted); font-size: 13px; }
 
 /* ---------- tabs / sort / filter bar ---------- */
-.controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 4px 0 20px; }
-.tabs { display: flex; gap: 2px; background: var(--chip); border: 1px solid var(--chip-line);
-  border-radius: 10px; padding: 3px; }
-.tab { border: 0; background: transparent; color: var(--muted2); font: 600 13px inherit;
-  padding: 6px 13px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 16px 0 20px; min-height: 35px; }
+/* The tab strip under the header, as on a channel page: plain labels on a
+   rule, the current one underlined. */
+.tabs { display: flex; gap: 26px; border-bottom: 1px solid var(--line); margin-top: 12px; }
+.tab { border: 0; background: transparent; color: var(--muted2); font: 600 14.5px inherit;
+  padding: 11px 2px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tab:hover { color: var(--text); }
-.tab.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  outline: 2px solid var(--sel-ring); outline-offset: -1px; }
-.tab .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
-.tab.active .n { color: var(--accent); }
+.tab.active { color: var(--text); border-bottom-color: var(--text); }
+.tabs { align-items: flex-end; }
+.tabs .btn { margin-bottom: 7px; }
 .tabs-spacer { flex: 1; }
 .filters { display: flex; gap: 2px; background: var(--chip); border: 1px solid var(--chip-line);
   border-radius: 10px; padding: 3px; }
@@ -282,7 +296,8 @@ body {
 .thumb .play { position: absolute; inset: 0; display: grid; place-items: center;
   color: #fff; font-size: 26px; opacity: 0; transition: 0.18s; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
 .thumb.playable:hover .play { opacity: 1; }
-.badge.gone { color: var(--muted); font-weight: 600; }
+/* Sits opposite the members badge, so a card can carry both. */
+.badge.gone { left: auto; right: 8px; color: #ff8f70; }
 .reason { color: var(--accent); font-size: 11.5px; }
 
 /* retry / dismiss buttons in the queue */
