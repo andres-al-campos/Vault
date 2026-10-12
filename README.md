@@ -69,8 +69,9 @@ channel and can be changed any time from the folder button in the top bar or the
 under the channel name. All of a channel's files land directly in its folder.
 
 A channel's **archive** lives in its folder, at `.vault/videos.json`: one object
-per archived video, with its title, real upload date, length, views and when it
-was downloaded. It is the only record of what's archived, and it sits next to a
+per archived video, with its real upload date, length, views and when it was
+downloaded. Titles aren't recorded, since a channel can rename a video: a card
+shows the listing's title, and a delisted video the one in its file's name. It is the only record of what's archived, and it sits next to a
 `.vault/channel.json` naming the channel. A folder from before it, with yt-dlp's
 `archive.txt`, is imported the first time it's read and that file is left as it
 was. The folder is self-describing: move it to

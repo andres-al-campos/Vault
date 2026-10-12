@@ -15,7 +15,9 @@ Type a channel and see its videos as cards.
 - Sync re-fetches the Videos list of the channel on screen and rescans its
   folder. A finished file there with no record in `.vault/videos.json` gets
   one, so a video copied in by hand shows as archived. Records also take the
-  title, length and views the listing has, so they outlive the listing. A record whose file is gone stays, and
+  length and views the listing has, so they outlive the listing. Titles are
+  not recorded: a delisted video is titled by its file's name, and one whose
+  file is also gone shows its id. A record whose file is gone stays, and
   its card says "File missing". The same rescan runs at launch, after each
   download and when the folder is changed.
 - After a Sync, archived videos with no upload date recorded (downloaded

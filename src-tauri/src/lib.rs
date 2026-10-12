@@ -184,14 +184,16 @@ fn records_path(dir: &std::path::Path) -> PathBuf {
 }
 
 /// One archived video. Everything but the id can be absent: a file copied in
-/// by hand starts with the title from its name and nothing else, and the rest
-/// is filled in from the channel listing or looked up on the next Sync. Kept
-/// here, a video YouTube has since removed still has all of it.
+/// by hand starts with nothing else, and the rest is filled in from the
+/// channel listing or looked up on the next Sync. Kept here, a video YouTube
+/// has since removed still has all of it.
+///
+/// There is no title: a channel can rename a video, so a recorded one would go
+/// stale. A card shows the listing's title, and once the video is delisted,
+/// the one in the file's name.
 #[derive(Serialize, Deserialize, Clone, Default, PartialEq, Debug)]
 struct Record {
     id: String,
-    #[serde(default)]
-    title: Option<String>,
     /// The real upload time, in Unix seconds, from the video's own page.
     #[serde(default)]
     timestamp: Option<i64>,
@@ -215,7 +217,6 @@ impl Record {
     /// anything changed.
     fn fill_from(&mut self, other: &Record) -> bool {
         let before = self.clone();
-        self.title = self.title.take().or_else(|| other.title.clone());
         self.timestamp = self.timestamp.or(other.timestamp);
         self.duration = self.duration.or(other.duration);
         self.view_count = self.view_count.or(other.view_count);
@@ -312,7 +313,7 @@ fn upsert(records: &mut Vec<Record>, new: Record) -> bool {
 }
 
 /// What yt-dlp is asked to print about a video, as one JSON object per line.
-const RECORD_FIELDS: &str = "%(.{id,title,timestamp,duration,view_count,availability})j";
+const RECORD_FIELDS: &str = "%(.{id,timestamp,duration,view_count,availability})j";
 
 /// The records in yt-dlp's printed lines. Lines that aren't one are skipped.
 fn printed_records(printed: &str) -> Vec<Record> {
@@ -322,7 +323,6 @@ fn printed_records(printed: &str) -> Vec<Record> {
             let v: serde_json::Value = serde_json::from_str(l.trim()).ok()?;
             Some(Record {
                 id: v.get("id")?.as_str()?.to_string(),
-                title: v.get("title").and_then(|t| t.as_str()).map(String::from),
                 timestamp: v.get("timestamp").and_then(|t| t.as_f64()).map(|t| t as i64),
                 duration: v.get("duration").and_then(|t| t.as_f64()),
                 view_count: v.get("view_count").and_then(|t| t.as_u64()),
@@ -341,7 +341,7 @@ fn undated(dir: &std::path::Path) -> Vec<String> {
 /// Looks up every archived video in `dir` that has no upload date: ones
 /// downloaded before dates were kept, or copied in by hand. One request per
 /// video, so this runs in the background after a Sync. Whatever else the page
-/// says that the record lacks (title, length, views) is taken too. Returns how
+/// says that the record lacks (length, views) is taken too. Returns how
 /// many dates it added. A video YouTube no longer has yields nothing and is
 /// asked for again next time.
 #[tauri::command]
@@ -935,7 +935,7 @@ fn record_download(dir: &std::path::Path, id: &str, landed: &std::path::Path) ->
     let mut record = match printed_records(&printed).into_iter().rev().find(|r| r.id == id) {
         Some(r) => r,
         None => match index_folder(dir).get(id) {
-            Some(file) => Record { title: title_in_name(file, id), ..Record::blank(id) },
+            Some(_) => Record::blank(id),
             None => return Err(format!(
                 "yt-dlp finished but no video file for {id} is in {}. Check the folder is writable and has space, then retry.",
                 dir.display()
@@ -1106,10 +1106,10 @@ const MEDIA_EXTS: [&str; 12] = [
 /// Brings each channel folder's records up to date with what is in it, and
 /// returns how many videos it newly recorded:
 ///
-/// - a finished file with no record gets one, titled from its name. This is
+/// - a finished file with no record gets one. This is
 ///   what lets a file copied in by hand, or a folder from another machine,
 ///   show as archived;
-/// - a record missing its title, length, views or members flag takes them
+/// - a record missing its length, views or members flag takes them
 ///   from the channel's saved list, so they are still there if YouTube later
 ///   drops the video. Not the date: the listing's is approximate.
 ///
@@ -1133,8 +1133,8 @@ fn adopt_untracked(state: &PersistedState) -> usize {
             let mut untracked: Vec<(&String, &PathBuf)> =
                 files.iter().filter(|(id, _)| !have.contains(*id) && is_video_id(id)).collect();
             untracked.sort();
-            for (id, file) in &untracked {
-                records.push(Record { title: title_in_name(file, id), ..Record::blank(id) });
+            for (id, _) in &untracked {
+                records.push(Record::blank(id));
             }
             new = untracked.len();
             let mut changed = new > 0;
@@ -1142,7 +1142,6 @@ fn adopt_untracked(state: &PersistedState) -> usize {
                 let Some(v) = listed.get(r.id.as_str()) else { continue };
                 changed |= r.fill_from(&Record {
                     id: v.id.clone(),
-                    title: Some(v.title.clone()),
                     duration: v.duration,
                     view_count: v.view_count,
                     availability: v.availability.clone(),
@@ -1238,7 +1237,7 @@ fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
             let title_on_disk = path.as_deref().and_then(|p| title_in_name(std::path::Path::new(p), &id));
             let timestamp = record.timestamp;
             ArchiveEntry {
-                title: v.as_ref().map(|v| v.title.clone()).or(record.title).or(title_on_disk).unwrap_or_else(|| id.clone()),
+                title: v.as_ref().map(|v| v.title.clone()).or(title_on_disk).unwrap_or_else(|| id.clone()),
                 id,
                 duration: v.as_ref().and_then(|v| v.duration).or(record.duration),
                 view_count: v.as_ref().and_then(|v| v.view_count).or(record.view_count),
@@ -1735,7 +1734,7 @@ mod tests {
             assert!(t > 1_100_000_000, "a real date, got {t}");
         }
         for r in load_records(&dir).unwrap() {
-            assert!(r.title.is_some() && r.duration.is_some() && r.downloaded_at.is_some(), "a full record: {r:?}");
+            assert!(r.duration.is_some() && r.downloaded_at.is_some(), "a full record: {r:?}");
         }
         assert!(!channel_archive_path(&dir).exists(), "yt-dlp's own archive is no longer written");
         let leftovers: Vec<_> = std::fs::read_dir(dir.join(".vault")).unwrap().flatten().map(|e| e.file_name()).collect();
@@ -2083,7 +2082,8 @@ mod tests {
         // The channel drops it. Length and views are still there.
         let entries = archive_entries(&channel_at(&dir, vec![]));
         assert_eq!((entries[0].duration, entries[0].view_count), (Some(61.0), Some(1000)));
-        assert_eq!(entries[0].title, "Name on disk", "the first title recorded stays");
+        assert_eq!(entries[0].title, "Name on disk", "a delisted video is titled by its file");
+        assert!(!std::fs::read_to_string(records_path(&dir)).unwrap().contains("title"), "no title is recorded");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -2099,7 +2099,7 @@ ERROR: [youtube] gone0000001: Video unavailable"#;
         assert_eq!(record_lookups(&dir, printed).unwrap(), 1);
         let records = load_records(&dir).unwrap();
         assert_eq!(records.len(), 2);
-        assert_eq!((records[0].title.as_deref(), records[0].timestamp, records[0].duration), (Some("Found"), Some(1600000000), Some(12.0)));
+        assert_eq!((records[0].timestamp, records[0].duration, records[0].view_count), (Some(1600000000), Some(12.0), Some(7)));
         assert_eq!(undated(&dir), vec!["gone0000001"]);
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -2119,8 +2119,8 @@ ERROR: [youtube] gone0000001: Video unavailable"#;
 
         let records = load_records(&dir).unwrap();
         assert_eq!(records.len(), 2);
-        assert_eq!((records[0].title.as_deref(), records[0].timestamp), (Some("Printed"), Some(1440470706)));
-        assert_eq!((records[1].title.as_deref(), records[1].timestamp), (Some("On disk"), None));
+        assert_eq!((records[0].timestamp, records[0].duration), (Some(1440470706), Some(9.0)));
+        assert_eq!((records[1].id.as_str(), records[1].timestamp), ("zzzzzzzzzzz", None));
         assert!(records.iter().all(|r| r.downloaded_at.is_some()));
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -21,8 +21,8 @@ Queue videos and watch them download one at a time in the sidebar.
   [browsing.md](browsing.md).
 
 - A finished download writes the video's record to the folder's
-  `.vault/videos.json`: title, real upload date, length, views, members flag
-  and when it was downloaded.
+  `.vault/videos.json`: real upload date, length, views, members flag and when
+  it was downloaded.
 
 ## How to get to it
 
