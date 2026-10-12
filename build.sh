@@ -90,11 +90,15 @@ case "${1:-}" in
     else
       (cd src-tauri && cargo test)
     fi
+    # Stop here. Falling out of the case runs the default path below, which is
+    # how `./build.sh test` used to end by installing and launching the app.
+    exit 0
     ;;
 
   clean)
     rm -rf dist src-tauri/target
     echo "Removed dist/ and src-tauri/target/."
+    exit 0
     ;;
 
   '') ;;  # the default: package and install, handled below
