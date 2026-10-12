@@ -276,8 +276,10 @@ body {
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22); padding: 6px; display: none;
 }
 .dl-menu.open { display: block; }
-.subscribe { position: relative; margin-left: auto; align-self: center; }
-.sub-menu { min-width: 250px; }
+.chan-title { display: flex; align-items: center; gap: 14px; }
+.subscribe { position: relative; }
+.subscribe > .btn { padding: 6px 13px; font-size: 13px; }
+.sub-menu { min-width: 250px; left: 0; right: auto; }
 .sub-opt { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 8px;
   font: 600 13px inherit; cursor: pointer; }
 .sub-opt:hover { background: var(--hover); }

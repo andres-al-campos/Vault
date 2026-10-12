@@ -23,7 +23,7 @@ A subscribed channel downloads its new uploads without being asked.
 
 ## How to get to it
 
-The Subscribe button at the right of the channel header.
+The Subscribe button beside the channel name.
 
 ## Driving it
 
