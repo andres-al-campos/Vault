@@ -11,9 +11,8 @@ videos sit in browser tabs through a day.
 - "Open videos N" in the top bar goes back to the player. It shows only while
   tabs are open.
 - Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
-  under the pointer). The line under a title is how far through it is. Resting
-  on a tab shows its whole title and its thumbnail, with the same line along the
-  thumbnail's bottom; once one such card is up, moving
+  under the pointer). Resting on a tab shows its whole title and its thumbnail,
+  with a line along the thumbnail's bottom for how far through it is; once one such card is up, moving
   to another tab shows its card at once. Closing the tab on screen moves to the one on its right, or its left
   from the last one, and that tab waits paused where it was left. Closing the
   last tab returns to the channel.

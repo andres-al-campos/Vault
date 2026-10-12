@@ -701,7 +701,6 @@ function renderTabs() {
     <div class="ptab ${t.id === tabs.activeId ? "active" : ""}" data-id="${esc(t.id)}">
       <span class="t">${esc(t.title)}</span>
       <button class="x" data-close title="Close this tab">✕</button>
-      <span class="prog"><i style="width:${(progress(t) * 100).toFixed(1)}%"></i></span>
     </div>`).join("");
   renderWatching();
 }
@@ -718,8 +717,6 @@ function renderTransport() {
     seekEl.max = Math.max(1, tab?.duration ?? 0);
     seekEl.value = tab?.position ?? 0;
   }
-  const bar = $("ptabs").querySelector(".ptab.active i");
-  if (bar) bar.style.width = `${(progress(tab) * 100).toFixed(1)}%`;
 }
 
 // Tells the backend where the hole is. Called whenever the stage moves.
