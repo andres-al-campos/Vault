@@ -21,12 +21,11 @@
           </div>
 
           <label class="search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
-            </svg>
-            <input id="url" placeholder="Paste a channel URL, or type @handle" spellcheck="false" autocomplete="off" />
+            <input id="url" placeholder="Add a channel: paste its URL, or type @handle" spellcheck="false" autocomplete="off" />
+            <button class="add" id="fetch" title="Add this channel (Enter)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
           </label>
-          <button class="btn btn-primary" id="fetch">Fetch</button>
           <button class="btn btn-icon btn-labelled" id="sync" title="Check YouTube for new videos and re-read this channel's folder" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>
             Sync

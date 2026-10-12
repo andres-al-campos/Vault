@@ -26,8 +26,9 @@ Type a channel and see its videos as cards.
 
 ## How to get to it
 
-The search field and Fetch in the top bar; the tabs under the channel header;
-the Sync button next to Fetch.
+The field in the top bar adds a channel, with Enter or the + inside it, and is
+empty otherwise. Sync, next to it, refreshes the channel on screen. The tabs
+are under the channel header.
 
 ## Driving it
 
