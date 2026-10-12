@@ -319,8 +319,13 @@ function currentView() {
 // derived from the same list the grid shows.
 function renderList() {
   const now = currentView();
+  // Rebuilding empties the page for a moment, which would drop the scroll
+  // position to the top: a filter or a download click keeps you where you were.
+  const main = document.querySelector(".main");
+  const at = main.scrollTop;
   renderControls(now);
   renderGrid(now);
+  main.scrollTop = at;
 }
 
 function renderControls(now) {
