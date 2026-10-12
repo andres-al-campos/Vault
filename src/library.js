@@ -108,13 +108,34 @@ export function ago(timestamp, now = Date.now() / 1000) {
 
 // Archived videos the channel no longer lists (deleted or made private on
 // YouTube) have no card of their own, and they are the ones an archive most
-// needs to keep showing. They go after the listed videos.
+// needs to keep showing.
+//
+// The list is in upload order, newest first, and that order is what Newest
+// and Oldest sort by. An unlisted video has no place in it, so one with a
+// recorded upload date goes in by date, ahead of the first listed video that
+// is older; without a date it goes after the listed ones.
 export function withUnlisted(list, entries, knownIds) {
   const extra = entries
     .filter((e) => !knownIds.has(e.id))
     .map((e) => ({
       id: e.id, title: e.title, duration: e.duration, view_count: e.view_count, url: e.url,
-      availability: null, unlisted: true,
+      availability: null, unlisted: true, timestamp: e.timestamp ?? null,
     }));
-  return extra.length ? list.concat(extra) : list;
+  if (!extra.length) return list;
+  // A listed video's date: the exact one when it's archived, else the
+  // listing's approximate one.
+  const exact = new Map(entries.filter((e) => e.timestamp).map((e) => [e.id, e.timestamp]));
+  const out = list.slice();
+  const dated = extra.filter((x) => x.timestamp).sort((a, b) => b.timestamp - a.timestamp);
+  let from = 0;
+  for (const x of dated) {
+    let at = out.length;
+    for (let i = from; i < out.length; i++) {
+      const t = out[i].unlisted ? out[i].timestamp : exact.get(out[i].id) ?? out[i].timestamp;
+      if (t && t < x.timestamp) { at = i; break; }
+    }
+    out.splice(at, 0, x);
+    from = at + 1;
+  }
+  return out.concat(extra.filter((x) => !x.timestamp));
 }

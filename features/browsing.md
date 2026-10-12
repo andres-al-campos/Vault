@@ -66,10 +66,12 @@ download filled its card button to 40%, read Archived when done, then Play.
   saved before they were fetched shows its initial until the next Sync.
 - An archived Short shows on the Videos tab as "Missing on YT" until
   Shorts has been opened once: that is when the app learns it is a Short.
-- The "3 weeks ago" under a card is approximate: it is YouTube's own wording
-  turned into a date and back. Newest and Oldest sort by the order of the
-  listing, which is exact, not by these dates. A "Missing on YT" video has
-  neither, so it sits after the listed ones under Newest.
+- The date under a card is the real upload date once the video is archived.
+  Until then it is approximate: YouTube's "3 weeks ago" turned into a date
+  and back.
+- Newest and Oldest sort by the order of the listing, which is upload order
+  and exact. A "Missing on YT" video isn't in the listing: with an upload date
+  it sits among the listed ones by date, without one it goes after them.
 - Shorts use the same 16:9 cards as videos.
 - Numbers on both filter groups, and the download button riding the tab strip,
   are an agent's guesses at the layout.

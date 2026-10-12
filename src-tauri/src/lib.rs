@@ -170,6 +170,86 @@ fn channel_archive_path(dir: &std::path::Path) -> PathBuf {
     dir.join(".vault").join("archive.txt")
 }
 
+/// The real upload date of each archived video, one "<id> <unix seconds>" per
+/// line. The channel listing only has YouTube's "3 weeks ago"; the exact date
+/// is on the video's own page, which a download loads anyway.
+fn channel_dates_path(dir: &std::path::Path) -> PathBuf {
+    dir.join(".vault").join("dates.txt")
+}
+
+fn read_dates(dir: &std::path::Path) -> HashMap<String, i64> {
+    let Ok(text) = std::fs::read_to_string(channel_dates_path(dir)) else { return HashMap::new() };
+    // yt-dlp writes "NA" for a video with no date; those lines don't parse
+    // and are skipped.
+    text.lines()
+        .filter_map(|l| {
+            let (id, t) = l.trim().split_once(' ')?;
+            Some((id.to_string(), t.trim().parse::<f64>().ok()? as i64))
+        })
+        .collect()
+}
+
+/// The archived ids in `dir` that have no upload date recorded yet.
+fn undated(dir: &std::path::Path) -> Vec<String> {
+    let dates = read_dates(dir);
+    read_archive(&channel_archive_path(dir)).into_iter().filter(|id| !dates.contains_key(id)).collect()
+}
+
+/// Looks up the upload date of every archived video in `dir` that has none,
+/// for videos downloaded before dates were recorded or copied in by hand.
+/// One request per video, so this runs in the background after a Sync.
+/// Returns how many dates it added. A video YouTube no longer has yields
+/// nothing and is asked for again next time.
+#[tauri::command]
+async fn fetch_dates(dir: String, cookies: Option<String>) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let dir = PathBuf::from(dir);
+        let ids = undated(&dir);
+        if ids.is_empty() {
+            return Ok(0);
+        }
+        let yt = ytdlp_path();
+        let mut args: Vec<String> = ["--skip-download", "--no-warnings", "--ignore-errors", "--print", "%(id)s %(timestamp)s"]
+            .map(String::from)
+            .to_vec();
+        args.extend(cookies_args(cookies.as_deref().unwrap_or("")).map_err(|e| format!("Cookies: {e}"))?);
+        args.extend(ids.iter().map(|id| format!("https://www.youtube.com/watch?v={id}")));
+        let out = Command::new(&yt)
+            .args(&args)
+            .output()
+            .map_err(|e| format!("Could not run yt-dlp ({yt}): {e}. Install it with `brew install yt-dlp`, then press Sync again."))?;
+        Ok(record_dates(&dir, &String::from_utf8_lossy(&out.stdout), &ids))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Appends the "<id> <seconds>" lines of `printed` that are for one of
+/// `wanted` and carry a real number. Returns how many it kept.
+fn record_dates(dir: &std::path::Path, printed: &str, wanted: &[String]) -> usize {
+    use std::io::Write;
+    let lines: Vec<String> = printed
+        .lines()
+        .filter_map(|l| {
+            let (id, t) = l.trim().split_once(' ')?;
+            let t = t.trim().parse::<f64>().ok()? as i64;
+            wanted.iter().any(|w| w == id).then(|| format!("{id} {t}\n"))
+        })
+        .collect();
+    if lines.is_empty() {
+        return 0;
+    }
+    let path = channel_dates_path(dir);
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) else { return 0 };
+    match f.write_all(lines.concat().as_bytes()) {
+        Ok(()) => lines.len(),
+        Err(_) => 0,
+    }
+}
+
 /// The meta file that makes a directory a Vault channel folder. Written next to
 /// the archive so a folder can be identified as one of ours without the app's
 /// state file — the pointer lives in `state.json`, the identity lives here.
@@ -652,6 +732,11 @@ fn start_download(req: DownloadRequest, emit: impl Fn(DownloadEvent) + Send + 's
         .arg("mp4")
         .arg("--progress-template")
         .arg("download:VAULTPROG|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s")
+        // The video's real upload date, kept beside the archive once the file
+        // is in place.
+        .arg("--print-to-file")
+        .arg("after_move:%(id)s %(timestamp)s")
+        .arg(channel_dates_path(&dir))
         .arg("-o")
         // A channel's directory holds flat files: the folder is already the
         // channel, so there is no uploader subfolder here.
@@ -778,6 +863,8 @@ struct ArchiveEntry {
     dir: Option<String>,
     /// The file on disk, when it can be found.
     path: Option<String>,
+    /// The real upload date, when it has been recorded.
+    timestamp: Option<i64>,
 }
 
 /// Read an archive file into ids, in file order (oldest download first).
@@ -926,6 +1013,7 @@ fn list_archive() -> Vec<ArchiveEntry> {
 fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
     // Each channel folder is read once, the first time one of its ids comes up.
     let mut folders: HashMap<String, HashMap<String, PathBuf>> = HashMap::new();
+    let mut dates: HashMap<String, HashMap<String, i64>> = HashMap::new();
     // id -> (channel title, video). Used only to enrich entries with metadata;
     // ownership is decided by the archive files, not by these lists.
     let mut known: HashMap<String, (String, Video)> = HashMap::new();
@@ -969,6 +1057,9 @@ fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
                 let title = name[..name.rfind(&format!("[{id}]"))?].trim();
                 (!title.is_empty()).then(|| title.to_string())
             });
+            let timestamp = owner_dir.as_ref().and_then(|d| {
+                dates.entry(d.clone()).or_insert_with(|| read_dates(std::path::Path::new(d))).get(&id).copied()
+            });
             ArchiveEntry {
                 title: v.as_ref().map(|v| v.title.clone()).or(title_on_disk).unwrap_or_else(|| id.clone()),
                 id,
@@ -977,6 +1068,7 @@ fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
                 url,
                 channel,
                 channel_url: Some(owner_url),
+                timestamp,
                 dir: owner_dir,
                 path,
             }
@@ -1477,6 +1569,10 @@ mod tests {
             assert!(path.ends_with(".mp4"), "merged into one mp4: {path}");
             assert_eq!(e.channel_url.as_deref(), Some(info.url.as_str()));
         }
+        for e in &entries {
+            let t = e.timestamp.expect("a download records the video's upload date");
+            assert!(t > 1_100_000_000, "a real date, got {t}");
+        }
         println!("downloaded: {:?}", entries.iter().map(|e| e.path.clone().unwrap()).collect::<Vec<_>>());
 
         // Lose one file. The archive still records it, so it reads as missing.
@@ -1738,6 +1834,36 @@ mod tests {
     }
 
     #[test]
+    fn upload_dates_are_recorded_and_read_back_per_folder() {
+        let dir = std::env::temp_dir().join(format!("vault-dates-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = channel_archive_path(&dir);
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "youtube dated000001\nyoutube undated0001\nyoutube nodate00001\n").unwrap();
+        // What a download leaves behind, including a video with no date.
+        std::fs::write(channel_dates_path(&dir), "dated000001 1700000000\nnodate00001 NA\n").unwrap();
+        assert_eq!(undated(&dir), vec!["undated0001", "nodate00001"]);
+
+        // A lookup's output: one good line, one that isn't ours, one failure.
+        let printed = "undated0001 1600000000.0\nstranger001 1\nnodate00001 NA\n";
+        assert_eq!(record_dates(&dir, printed, &undated(&dir)), 1);
+        assert_eq!(undated(&dir), vec!["nodate00001"]);
+
+        let mut s = PersistedState::default();
+        s.channels.push(SavedChannel {
+            url: "https://www.youtube.com/@foo".into(),
+            download_dir: Some(dir.to_string_lossy().into_owned()),
+            ..Default::default()
+        });
+        let entries = archive_entries(&s);
+        let date = |id: &str| entries.iter().find(|e| e.id == id).unwrap().timestamp;
+        assert_eq!(date("dated000001"), Some(1700000000));
+        assert_eq!(date("undated0001"), Some(1600000000));
+        assert_eq!(date("nodate00001"), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn append_to_archive_is_idempotent_and_creates_the_file() {
         let dir = std::env::temp_dir().join(format!("vault-append-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -1817,6 +1943,7 @@ pub fn run() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             fetch_channel,
+            fetch_dates,
             download_video,
             cancel_download,
             list_archive,

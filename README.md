@@ -112,8 +112,9 @@ the Videos tab, after the listed ones, marked "Missing on YT".
 Sorting: **Newest** (YouTube's own order), **Oldest** (reversed), **Most
 popular** (`view_count`), **Shortest** / **Longest** (`duration`). Newest and
 Oldest use the order YouTube returns, which is newest-first and exact. The
-"3 weeks ago" under a card is approximate: the listing only carries YouTube's
-own wording, which yt-dlp turns into a date.
+date under a card is approximate until the video is archived: the listing only
+carries YouTube's "3 weeks ago". A download records the real upload date in
+`.vault/dates.txt`, and Sync looks it up for archived videos that lack one.
 
 **Subscribe**, in the channel header, queues a channel's new uploads each time
 Vault opens or you press Sync: everything listed above the newest video you've

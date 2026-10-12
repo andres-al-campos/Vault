@@ -115,6 +115,19 @@ test("archived videos the channel no longer lists are added after the listed one
   assert.equal(withUnlisted(list, [{ id: "a" }], new Set(["a"])), list);
 });
 
+test("an unlisted video with an upload date sits among the listed ones by date", () => {
+  const l = [v("new", { timestamp: 300 }), v("mid", { timestamp: 200 }), v("old", { timestamp: 100 })];
+  const entries = [
+    { id: "gone-250", title: "g", timestamp: 250 },
+    { id: "gone-50", title: "g", timestamp: 50 },
+    { id: "gone-undated", title: "g" },
+    // An archived listed video's exact date overrides its approximate one.
+    { id: "mid", timestamp: 260 },
+  ];
+  const out = withUnlisted(l, entries, new Set(["new", "mid", "old"]));
+  assert.deepEqual(out.map((x) => x.id), ["new", "mid", "gone-250", "old", "gone-50", "gone-undated"]);
+});
+
 test("sorts", () => {
   const l = [v("x", { duration: 30, view_count: 5 }), v("y", { duration: null, view_count: 9 }), v("z", { duration: 3, view_count: 1 })];
   const order = (s) => sortVideos(l, s).map((x) => x.id).join("");

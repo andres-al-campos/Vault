@@ -210,6 +210,7 @@ async function doFetch(raw, { quiet = false } = {}) {
     renderSelector();
     showActive();
     await queueNew(ch, before);
+    fillDates(ch);
   } catch (e) {
     if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>Couldn't fetch that</h2><p>${esc(String(e))}</p>`);
     // Sync keeps the list on screen, so its failure has nowhere to show. Say
@@ -236,6 +237,27 @@ function takeListing(ch, info) {
   ch.verified = !!info.verified;
   ch.fetched_at = Math.floor(Date.now() / 1000);
   return before;
+}
+
+// Looks up the upload date of archived videos that have none: ones from
+// before dates were recorded, or copied in by hand. One request per video, so
+// it runs in the background and the cards update when it lands.
+const datesRunning = new Set();
+async function fillDates(ch) {
+  const dir = ch.download_dir;
+  if (!dir || datesRunning.has(dir)) return;
+  datesRunning.add(dir);
+  try {
+    const added = await invoke("fetch_dates", { dir, cookies: state.cookies_browser ?? null });
+    if (added) {
+      await loadArchive();
+      if (activeChannel() === ch) renderList();
+    }
+  } catch (e) {
+    console.error(`Couldn't look up upload dates for ${ch.url}:`, e);
+  } finally {
+    datesRunning.delete(dir);
+  }
 }
 
 /* ---------------- subscriptions ---------------- */
@@ -353,7 +375,7 @@ function renderHeader(ch) {
         <div class="chan-title">
           <h1>${esc(ch.title)}${ch.verified ? `<span class="tick" title="Verified">✓</span>` : ""}</h1>
       <div class="subscribe">
-        <button class="btn ${sub ? "btn-icon btn-labelled" : "btn-primary"}" id="sub-btn" title="Downloads new videos that haven't been archived yet, each time Vault opens or you press Sync.">${sub ? "✓ Subscribed" : "Subscribe"}</button>
+        <button class="btn ${sub ? "btn-icon btn-labelled" : "btn-on"}" id="sub-btn" title="Downloads new videos that haven't been archived yet, each time Vault opens or you press Sync.">${sub ? "✓ Subscribed" : "Subscribe"}</button>
         <div class="dl-menu sub-menu" id="sub-menu">
           <div class="cookie-hd">Download new uploads from</div>
           ${Object.entries(TABS).map(([tab, label]) =>
@@ -564,7 +586,9 @@ function card(v) {
   const playable = have === "have" && !!entry?.path;
   const meta = [
     fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`,
-    ago(v.timestamp),
+    // The exact upload date once the video is archived, the listing's
+    // approximate one until then.
+    ago(entry?.timestamp ?? v.timestamp),
     v.unlisted && "Missing on YT",
   ].filter(Boolean).join(" · ");
   return `

@@ -17,6 +17,10 @@ Type a channel and see its videos as cards.
   copied in by hand shows as archived. A record whose file is gone stays, and
   its card says "File missing". The same rescan runs at launch, after each
   download and when the folder is changed.
+- After a Sync, archived videos with no upload date recorded (downloaded
+  before dates were kept, or copied in by hand) get theirs looked up in the
+  background, one request each. A video YouTube no longer has gets none and
+  is asked for again on the next Sync.
 - The rescan takes only names ending in a YouTube id tag and one media
   extension, `Title [id].mp4`: not a part file, an unmerged `[id].f137.mp4`,
   a thumbnail, or "Song [Official Video].mp4".

@@ -17,6 +17,10 @@ Queue videos and watch them download one at a time in the sidebar.
 - Download N shown queues what the filters have narrowed to; see
   [browsing.md](browsing.md).
 
+- A finished download records the video's real upload date in the folder's
+  `.vault/dates.txt`. Checked by `./build.sh check net`, which downloads two
+  videos and reads their dates back.
+
 ## How to get to it
 
 A card's button on any tab; Download N shown on the tab strip. The queue is the

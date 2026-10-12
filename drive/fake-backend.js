@@ -99,6 +99,7 @@ const commands = {
     return structuredClone(state);
   },
   save_state({ state: next }) { state = structuredClone(next); return null; },
+  fetch_dates: () => 0,
   migrate_archives: () => ({ ran: false, channels: 0, moved: 0, unmatched: 0, meta_failed: 0 }),
   fetch_channel({ url, tab }) {
     if (/fail/i.test(url)) throw "ERROR: [youtube:tab] Sign in to confirm you're not a bot. Use --cookies-from-browser";
