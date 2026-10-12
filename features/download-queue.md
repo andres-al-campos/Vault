@@ -37,13 +37,22 @@ channel into a temp folder and walks them through every archive state — not
 archived, on disk, recorded but file lost, an ordinary download skipping the
 lost one, a forced one restoring it and recording the id once.
 
-By hand only: that each button reaches the queue, progress on screen, and
-cancelling a running download.
+By click against the stand-in backend (see the README's driving conventions):
+`?scenario=library&fail=<id>&speed=300` — Download on a Shorts card, Download
+again on a missing file, its failure, Retry. No script replays this yet.
+
+By hand only: cancelling a running download, and anything through the native
+folder picker.
 
 Last driven: 2026-10-12. The live download test passed against @billwurtz
-(12s on its own). The window itself has not been clicked through.
+(12s on its own). Against the stand-in: a Shorts download completed and its
+card read "In archive"; a failed Download again showed Retry, the retry was
+sent with force, and the Archive tab went from 1 not found to 0.
 
 ## Gotchas
+
+- A queue row's buttons depend on its status, so a status change redraws the
+  list. Patching the row in place once left a failed row with no Retry.
 
 - A file ending `.part` or `.ytdl` doesn't count as on disk: it is a download
   that never finished.

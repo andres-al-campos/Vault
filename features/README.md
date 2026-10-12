@@ -9,9 +9,9 @@ the Archive tab, cookies, sorting and filters have no file yet.
 
 | Feature | File | Platforms | Driveable headless? |
 |---|---|---|---|
-| Download queue | [download-queue.md](download-queue.md) | macOS | Tests only (2026-10-12) |
-| Channel listing | [channel-listing.md](channel-listing.md) | macOS | Tests only (2026-10-12) |
-| Remembered channels | [remembered-channels.md](remembered-channels.md) | macOS | Tests only (2026-10-12) |
+| Download queue | [download-queue.md](download-queue.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
+| Channel listing | [channel-listing.md](channel-listing.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
+| Remembered channels | [remembered-channels.md](remembered-channels.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 
 ## What counts as a feature
 
@@ -34,9 +34,17 @@ names a `./build.sh` command that doesn't exist.
 `node --test` and the Rust unit tests. It needs no network and no running app.
 `./build.sh check net` adds the live tests, which fetch real channels (~80s).
 
-Nothing drives the window itself. What only shows on screen — a button that
-does nothing, an error that reads as an empty list — is checked by hand, and
-each file says which parts those are.
+To click through the UI, start the `vault-drive` server from
+`.claude/launch.json` (`npx vite --port 1431 --strictPort`) and open
+`http://localhost:1431/?scenario=library` in a browser. Outside Tauri the page
+loads a stand-in backend, `drive/fake-backend.js`, which answers every command
+from a recorded channel listing and plays downloads on a timer. Its header
+lists the scenarios and switches (`fresh`, `library`, `corrupt`, `failtab=`,
+`fail=`, `speed=`), and `window.__drive.log` records every command the page
+sent. This proves the frontend only: the real yt-dlp path is the Rust tests.
+
+The packaged app's own window can't be driven; what the stand-in can't show
+(the native folder picker, opening a file in a player) is checked by hand.
 
 The app's own data is `~/.vault/state.json`. Tests write to temp directories
 and never touch it.

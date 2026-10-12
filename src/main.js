@@ -689,6 +689,9 @@ function refreshArchiveSoon() {
   archiveRefresh = setTimeout(async () => {
     archiveRefresh = null;
     await loadArchive();
+    // The header counts what's archived, so it changes with every download.
+    const ch = activeChannel();
+    if (ch) renderHeader(ch);
     if (isArchive()) { renderControls(); renderGrid(); }
   }, 600);
 }
