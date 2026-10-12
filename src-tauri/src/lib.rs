@@ -30,6 +30,24 @@ struct Video {
     /// come back with a null view_count in flat mode).
     #[serde(default)]
     availability: Option<String>,
+    /// Roughly when it was uploaded, in Unix seconds. YouTube's listing only
+    /// says "3 weeks ago", so this is good for showing that back and no
+    /// better: old videos are right to the month or year. The order of the
+    /// list, not this, is what Newest and Oldest sort by.
+    #[serde(default)]
+    timestamp: Option<i64>,
+}
+
+/// Which of a channel's tabs get their new uploads queued when the channel is
+/// refreshed. The frontend owns the rule for what counts as new.
+#[derive(Serialize, Deserialize, Clone, Default, PartialEq, Debug)]
+struct Subscription {
+    #[serde(default)]
+    videos: bool,
+    #[serde(default)]
+    shorts: bool,
+    #[serde(default)]
+    streams: bool,
 }
 
 impl Video {
@@ -93,6 +111,9 @@ struct SavedChannel {
     /// Absent in state files written before the header showed them.
     #[serde(flatten)]
     about: ChannelAbout,
+    /// None when the channel isn't subscribed.
+    #[serde(default)]
+    subscribe: Option<Subscription>,
 }
 
 /// Everything the app remembers, in one file. The frontend owns this object and
@@ -368,6 +389,8 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
     // Cookies ride along on listing too: the bot check gates the playlist
     // endpoints just as it gates video downloads.
     let mut args = vec!["--flat-playlist".to_string(), "-J".to_string(), "--no-warnings".to_string()];
+    // Has yt-dlp turn the page's "3 weeks ago" into a timestamp per video.
+    args.extend(["--extractor-args".to_string(), "youtubetab:approximate_date".to_string()]);
     args.extend(cookies_args(cookies.as_deref().unwrap_or("")).map_err(|e| format!("Cookies: {e}"))?);
     args.push(url);
 
@@ -411,8 +434,8 @@ fn parse_listing(root: &serde_json::Value, identity: String, tab: String) -> Cha
 
     // Entries may be nested one level (channel -> tab -> videos). Walk them
     // breadth-first, preserving the order yt-dlp returned: that order is
-    // newest-first, and it is the only thing the Newest/Oldest sort has to work
-    // with (flat mode gives a null `timestamp` for every entry). A stack would
+    // newest-first, and it is what the Newest/Oldest sort works with (the
+    // listing's `timestamp` is only approximate). A stack would
     // pop LIFO and silently reverse the list, which read as the sort options
     // being swapped.
     let mut videos: Vec<Video> = Vec::new();
@@ -435,7 +458,8 @@ fn parse_listing(root: &serde_json::Value, identity: String, tab: String) -> Cha
             Some(u) if u.starts_with("http") => u.to_string(),
             _ => format!("https://www.youtube.com/watch?v={id}"),
         };
-        videos.push(Video { id: id.to_string(), title, duration, view_count, url, availability });
+        let timestamp = e.get("timestamp").and_then(|v| v.as_f64()).map(|t| t as i64);
+        videos.push(Video { id: id.to_string(), title, duration, view_count, url, availability, timestamp });
     }
 
     // `title` on a tab URL carries the tab name ("Foo - Videos"), so prefer the
@@ -1749,14 +1773,40 @@ mod tests {
                 view_count: Some(1000),
                 url: "https://www.youtube.com/watch?v=abc12345678".into(),
                 availability: None,
+                timestamp: Some(1_700_000_000),
             }],
             ..Default::default()
         });
         let json = serde_json::to_string(&s).unwrap();
         let back: PersistedState = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.channels[0].videos[0].timestamp, Some(1_700_000_000));
         assert_eq!(back.active.as_deref(), Some("@kurzgesagt"));
         assert_eq!(back.channels[0].download_dir.as_deref(), Some("/tmp/videos"));
         assert_eq!(back.channels[0].videos[0].id, "abc12345678");
+    }
+
+    // The frontend sends the whole state back on every save, and a field this
+    // side doesn't know is dropped on the way through.
+    #[test]
+    fn a_subscription_survives_what_the_frontend_saves() {
+        let from_frontend = r#"{"active":null,"channels":[{"url":"u","title":"t","uploader":"t",
+            "subscribe":{"videos":true,"shorts":false,"streams":true}},
+            {"url":"v","title":"t","uploader":"t","subscribe":null}]}"#;
+        let s: PersistedState = serde_json::from_str(from_frontend).unwrap();
+        let back: PersistedState = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
+        assert_eq!(back.channels[0].subscribe, Some(Subscription { videos: true, shorts: false, streams: true }));
+        assert_eq!(back.channels[1].subscribe, None);
+    }
+
+    #[test]
+    fn the_listing_carries_each_videos_approximate_date() {
+        let root = serde_json::json!({ "entries": [
+            { "id": "abcdefghijk", "title": "dated", "timestamp": 1790035200 },
+            { "id": "zzzzzzzzzzz", "title": "undated" },
+        ]});
+        let info = parse_listing(&root, "u".into(), "videos".into());
+        assert_eq!(info.videos[0].timestamp, Some(1790035200));
+        assert_eq!(info.videos[1].timestamp, None);
     }
 }
 
