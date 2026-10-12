@@ -79,6 +79,7 @@ case "${1:-}" in
     ;;
 
   check|test)
+    ./laws/feature-map.sh
     # The frontend's pure modules run under node's own test runner. The glob is
     # quoted so node expands it; a bare directory argument is read as a module.
     node --test 'src/*.test.js'
