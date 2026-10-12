@@ -810,21 +810,72 @@ fn index_folder(dir: &std::path::Path) -> HashMap<String, PathBuf> {
         if name.starts_with('.') {
             continue;
         }
-        // A download still in progress, or abandoned, is not a file to play.
-        if name.ends_with(".part") || name.ends_with(".ytdl") {
-            continue;
-        }
-        // The tag closes the stem and the extension follows. `[id].mp4`
-        // matches, `[id]-extra.mp4` does not.
+        // The tag closes the stem and one media extension follows. `[id].mp4`
+        // matches, `[id]-extra.mp4` does not. Nor does a download in progress
+        // or abandoned (`[id].mp4.part`, `[id].f137.mp4`), which is not a file
+        // to play, or a thumbnail or subtitle saved beside the video.
         let Some(close) = name.rfind(']') else { continue };
-        let after = &name[close + 1..];
-        if !(after.is_empty() || after.starts_with('.')) {
+        let Some(ext) = name[close + 1..].strip_prefix('.') else { continue };
+        if !MEDIA_EXTS.contains(&ext.to_ascii_lowercase().as_str()) {
             continue;
         }
         let Some(open) = name[..close].rfind('[') else { continue };
         files.entry(name[open + 1..close].to_string()).or_insert_with(|| e.path());
     }
     files
+}
+
+/// What a finished download can be. yt-dlp merges to mp4 here, but files from
+/// before that setting, or copied in by hand, come in the others.
+const MEDIA_EXTS: [&str; 12] = [
+    "mp4", "mkv", "webm", "mov", "m4v", "flv", "m4a", "mp3", "opus", "ogg", "aac", "flac",
+];
+
+/// Records every finished file that sits in a channel folder without a line in
+/// its archive, and returns how many it added. This is what lets a file copied
+/// in by hand, or a folder from another machine, show as archived.
+///
+/// It only ever adds. A record whose file is gone stays, so the card can offer
+/// to download it again. Only tags shaped like a YouTube id are taken, so
+/// "Song [Official Video].mp4" isn't recorded as a video called that.
+fn adopt_untracked(state: &PersistedState) -> usize {
+    let mut seen = HashSet::new();
+    let mut added = 0;
+    for c in &state.channels {
+        let Some(dir) = c.download_dir.as_deref() else { continue };
+        if !seen.insert(dir) {
+            continue;
+        }
+        let dir = std::path::Path::new(dir);
+        let archive = channel_archive_path(dir);
+        let have: HashSet<String> = read_archive(&archive).into_iter().collect();
+        let mut new: Vec<String> = index_folder(dir)
+            .into_keys()
+            .filter(|id| !have.contains(id) && is_video_id(id))
+            .collect();
+        if new.is_empty() {
+            continue;
+        }
+        new.sort();
+        if let Some(parent) = archive.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let mut body = std::fs::read_to_string(&archive).unwrap_or_default();
+        if !body.is_empty() && !body.ends_with('\n') {
+            body.push('\n');
+        }
+        for id in &new {
+            body.push_str(&format!("youtube {id}\n"));
+        }
+        if std::fs::write(&archive, body).is_ok() {
+            added += new.len();
+        }
+    }
+    added
+}
+
+fn is_video_id(s: &str) -> bool {
+    s.len() == 11 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
 }
 
 /// The file for one id, when a single lookup is all that's needed.
@@ -843,7 +894,9 @@ fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
 /// other's copy.
 #[tauri::command]
 fn list_archive() -> Vec<ArchiveEntry> {
-    archive_entries(&state_or_default())
+    let state = state_or_default();
+    adopt_untracked(&state);
+    archive_entries(&state)
 }
 
 fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
@@ -1601,6 +1654,62 @@ mod tests {
         assert_eq!(owners[0].1, "https://www.youtube.com/@foo");
         assert_eq!(owners[0].2.as_deref(), Some(dir.to_string_lossy().as_ref()));
 
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_rescan_adopts_finished_files_and_nothing_else() {
+        let dir = std::env::temp_dir().join(format!("vault-adopt-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = channel_archive_path(&dir);
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        // One record whose file is gone: it stays, so the card can say so.
+        std::fs::write(&file, "youtube missing0001\n").unwrap();
+        std::fs::write(dir.join("Copied in by hand [copiedin001].mp4"), b"x").unwrap();
+        std::fs::write(dir.join("Audio only [audioonly01].m4a"), b"x").unwrap();
+        // Leftovers of a download that never merged, and things that only
+        // look tagged.
+        std::fs::write(dir.join("Half [fragment001].f137.mp4"), b"x").unwrap();
+        std::fs::write(dir.join("Half [partpartpar].mp4.part"), b"x").unwrap();
+        std::fs::write(dir.join("Cover [thumbnail01].jpg"), b"x").unwrap();
+        std::fs::write(dir.join("Song [Official Video].mp4"), b"x").unwrap();
+
+        let mut s = PersistedState::default();
+        s.channels.push(SavedChannel {
+            url: "https://www.youtube.com/@foo".into(),
+            title: "Foo".into(),
+            download_dir: Some(dir.to_string_lossy().into_owned()),
+            ..Default::default()
+        });
+        assert_eq!(adopt_untracked(&s), 2);
+        let want = "youtube missing0001\nyoutube audioonly01\nyoutube copiedin001\n";
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), want);
+        // Nothing new the second time.
+        assert_eq!(adopt_untracked(&s), 0);
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), want);
+
+        let entries = archive_entries(&s);
+        let by_id = |id: &str| entries.iter().find(|e| e.id == id).unwrap();
+        assert_eq!(by_id("copiedin001").title, "Copied in by hand");
+        assert!(by_id("missing0001").path.is_none());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_rescan_leaves_a_folder_with_nothing_to_adopt_untouched() {
+        let dir = std::env::temp_dir().join(format!("vault-adopt-empty-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("notes.txt"), b"x").unwrap();
+        let mut s = PersistedState::default();
+        s.channels.push(SavedChannel {
+            url: "https://www.youtube.com/@foo".into(),
+            download_dir: Some(dir.to_string_lossy().into_owned()),
+            ..Default::default()
+        });
+        assert_eq!(adopt_untracked(&s), 0);
+        assert!(!dir.join(".vault").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

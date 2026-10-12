@@ -57,7 +57,8 @@ folder choice). On launch it reloads that file and shows the channel you last ha
 straight from the cached video list — no re-fetch needed. The dropdown at the top-left
 switches between remembered channels, and each row has an ✕ to forget one. The
 **Sync** button refreshes the channel on screen: new uploads from YouTube, and
-the folder re-read for files added or removed outside the app.
+the folder rescanned. A video file copied into the folder with its `[id]` tag
+shows as archived; one deleted from it shows "File missing".
 
 ### Download folders
 
@@ -104,7 +105,7 @@ The number on each option is what choosing it would show. **Download N shown**
 queues everything on screen that isn't already on disk.
 
 Archived videos the channel no longer lists (deleted or made private) stay on
-the Videos tab, after the listed ones, marked "No longer on the channel".
+the Videos tab, after the listed ones, marked "Delisted".
 
 Sorting: **Newest** (YouTube's own order), **Oldest** (reversed), **Most
 popular** (`view_count`), **Shortest** / **Longest** (`duration`). There is no
@@ -138,9 +139,10 @@ out.
 - `csp` is `null` in `tauri.conf.json` (no Content-Security-Policy). Fine for a local
   app; tighten before distributing.
 - `Download N shown` has no cap. With no filter on a large channel that's a long queue.
-- Changing a channel's folder starts a fresh archive there: videos downloaded into
-  the old folder read as not archived until the folder is switched back.
-- An archived Short shows on the Videos tab as "No longer on the channel" until the
+- Changing a channel's folder reads that folder's archive: videos downloaded into
+  the old folder read as not archived until the folder is switched back or the
+  files are moved across.
+- An archived Short shows on the Videos tab as "Delisted" until the
   Shorts tab has been opened once, since that is when Vault learns it is a Short.
 
 ## Layout

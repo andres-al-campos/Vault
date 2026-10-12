@@ -12,8 +12,14 @@ Type a channel and see its videos as cards.
   time they're opened and kept in memory only.
 - The listing also brings the channel's avatar, banner, subscriber count and
   verified flag, when YouTube has them.
-- Sync re-fetches the Videos list of the channel on screen and re-reads its
-  folder, so files added, moved or deleted outside the app show up.
+- Sync re-fetches the Videos list of the channel on screen and rescans its
+  folder. A finished file there with no archive record gets one, so a video
+  copied in by hand shows as archived. A record whose file is gone stays, and
+  its card says "File missing". The same rescan runs at launch, after each
+  download and when the folder is changed.
+- The rescan takes only names ending in a YouTube id tag and one media
+  extension, `Title [id].mp4`: not a part file, an unmerged `[id].f137.mp4`,
+  a thumbnail, or "Song [Official Video].mp4".
 - A channel with no Shorts or Live tab shows that tab as empty.
 - A failed Shorts or Live fetch shows the error with Try again. A failed Sync
   shows an alert and leaves the saved list as it was.
@@ -28,7 +34,8 @@ the Sync button next to Fetch.
 Preconditions: none for the default run; network and yt-dlp for `net`.
 
 `./build.sh check` (~1s once built): URL forms and channel identity, entry
-order, and failure classification, in the Rust unit tests.
+order, failure classification, and what the folder rescan records and leaves
+alone, in the Rust unit tests.
 
 `./build.sh check net` (~80s): fetches two real channels and checks the
 members-only flag arrives in the listing.
