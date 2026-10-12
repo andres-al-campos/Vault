@@ -722,7 +722,7 @@ function renderQueue() {
         ? `<button class="qbtn retry" data-retry="${id}">⊘ Retry</button><button class="x" data-dismiss="${id}">✕</button>`
         : `<button class="x" data-cancel="${id}">✕</button>`;
     return `
-    <div class="qi" data-id="${id}">
+    <div class="qi" data-id="${id}" data-status="${j.status}">
       <img src="${thumb(id)}" alt="">
       <div class="m">
         <div class="t">${esc(j.title)}</div>
@@ -740,7 +740,11 @@ function renderQueue() {
 function updateJobElement(id) {
   const j = queue.jobs.get(id);
   const el = queueEl.querySelector(`.qi[data-id="${CSS.escape(id)}"]`);
-  if (!j || !el) return renderQueue();
+  // A row's buttons depend on its status (cancel while live, Retry and dismiss
+  // once failed, a tick once done), so a change of status redraws the list.
+  // Patching only the bar and text left a failed row with a dead ✕ and no
+  // Retry until something else happened to redraw it.
+  if (!j || !el || el.dataset.status !== j.status) return renderQueue();
   const bar = el.querySelector(".bar > i");
   bar.style.width = j.pct + "%";
   bar.className = j.status === "done" ? "done" : "";
