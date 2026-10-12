@@ -387,8 +387,10 @@ body {
 /* One height for both bars, with little above and below the tabs: the video
    gets the room, and the raised tab's edge reads as the end of its neighbour. */
 .ptop, .pbar { background: var(--panel); display: flex; align-items: center; gap: 10px;
-  height: 44px; padding: 0 12px; box-sizing: content-box; }
-.ptop .btn, .pbar .btn { padding: 6px 9px; }
+  height: 50px; padding: 0 12px; box-sizing: content-box; }
+/* Buttons are as tall as the tabs, so each bar has the same 8px above and
+   below everything in it. */
+.ptop .btn, .pbar .btn { padding: 8px 10px; }
 .ptop { border-bottom: 1px solid var(--line); }
 .pbar { border-top: 1px solid var(--line); }
 
@@ -401,7 +403,7 @@ body {
 .player.full.idle .ptop, .player.full.idle .pbar { opacity: 0; pointer-events: none; }
 .player.full.idle { cursor: none; }
 
-.ptabs { flex: 1; min-width: 0; display: flex; gap: 9px; overflow-x: auto; scrollbar-width: none; }
+.ptabs { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
 .ptabs::-webkit-scrollbar { display: none; }
 /* Tabs look and behave like a browser's: they shrink to share the row down to
    a floor where the row scrolls, the one on screen is a raised fill, and the
@@ -412,7 +414,7 @@ body {
   font: 500 13px inherit; cursor: pointer; }
 .ptab:hover { background: var(--hover); color: var(--text); }
 .ptab.active { background: var(--hover-strong); color: var(--text); }
-.ptab + .ptab::before { content: ""; position: absolute; left: -5px; top: 9px; bottom: 9px; width: 1px;
+.ptab + .ptab::before { content: ""; position: absolute; left: -4.5px; top: 9px; bottom: 9px; width: 1px;
   background: color-mix(in srgb, var(--muted) 50%, transparent); }
 .ptab.active::before, .ptab.active + .ptab::before, .ptab:hover::before, .ptab:hover + .ptab::before { display: none; }
 /* A long title fades out at the tab's edge instead of ending in dots. */
