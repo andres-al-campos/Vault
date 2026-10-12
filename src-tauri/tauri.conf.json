@@ -16,6 +16,7 @@
         "title": "Vault",
         "width": 1240,
         "height": 820,
+        "maximized": true,
         "minWidth": 940,
         "minHeight": 620
       }
