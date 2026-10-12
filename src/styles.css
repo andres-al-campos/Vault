@@ -402,6 +402,7 @@ body {
 .ptab i { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
 
 .stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; }
+.stage.loading { background: #000; }
 .stage-msg { max-width: 520px; margin: 24px; padding: 20px 22px; border-radius: 12px;
   background: var(--panel); border: 1px solid var(--line); }
 .stage-msg h3 { font-size: 15px; margin-bottom: 6px; }

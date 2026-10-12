@@ -736,6 +736,9 @@ async function loadActive() {
   try {
     if (loadedId === tab.id) await invoke("player_set", { action: "play" });
     else {
+      // Black until the new file reports in (tick lifts it), so the stage
+      // never shows through to whatever was there before the first frame.
+      stageEl.classList.add("loading");
       await invoke("player_load", { path: tab.path, start: resumeAt(tab) });
       loadedId = tab.id;
     }
@@ -755,6 +758,7 @@ async function tick() {
   // A report about another file crossed a tab switch, and one with no length
   // came before the file opened. Either would overwrite this tab's place.
   if (!tab || loadedId !== tab.id || s.path !== tab.path || !(s.duration > 0)) return;
+  stageEl.classList.remove("loading");
   tabs.note(tab.id, s.position, s.duration);
   playing = { paused: s.paused, ended: s.ended };
   renderTransport();
