@@ -2214,7 +2214,8 @@ pub fn run() {
             player::player_load,
             player::player_set,
             player::player_state,
-            player::player_place
+            player::player_place,
+            player::player_fullscreen
         ])
         .run(tauri::generate_context!())
         .expect("error while running Vault");

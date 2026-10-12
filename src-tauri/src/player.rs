@@ -166,6 +166,12 @@ pub fn init(window: &tauri::WebviewWindow) -> Result<(), String> {
         let _: () = msg_send![view, setLayer: layer];
         let _: () = msg_send![view, setWantsLayer: true];
         let _: () = msg_send![view, setHidden: true];
+        // Tauri's transparent window is clear all the way through. Only the
+        // web view needs to be: with a black window behind, a stage the video
+        // view hasn't caught up with yet (a resize, going fullscreen) shows
+        // black instead of the desktop.
+        let black: *mut AnyObject = msg_send![class!(NSColor), blackColor];
+        let _: () = msg_send![ns_window, setBackgroundColor: black];
         // NSWindowBelow: under the web view, which is transparent where the
         // page leaves its hole.
         let nil: *mut AnyObject = std::ptr::null_mut();
@@ -299,4 +305,19 @@ pub fn player_place(window: tauri::WebviewWindow, visible: bool, x: f64, top: f6
             let _: () = msg_send![view, setFrame: frame];
         }
     });
+}
+
+/// The player's fullscreen is the window's own. With `on` it switches the
+/// window; without, it answers whether the window is fullscreen now.
+#[tauri::command(async)]
+pub fn player_fullscreen(window: tauri::WebviewWindow, on: Option<bool>) -> Result<bool, String> {
+    match on {
+        Some(on) => window
+            .set_fullscreen(on)
+            .map(|_| on)
+            .map_err(|e| format!("Couldn't switch fullscreen: {e}. Use the green button in the window's title bar instead.")),
+        None => window
+            .is_fullscreen()
+            .map_err(|e| format!("Couldn't tell whether the window is fullscreen: {e}. Reopen Vault if the player's controls look wrong.")),
+    }
 }

@@ -18,6 +18,12 @@ videos sit in browser tabs through a day.
   file in the Mac's default player instead. Clicking the picture also toggles
   play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, Esc goes back to
   the channel.
+- Fullscreen: the button at the right of the controls, F, or a double-click on
+  the picture. The window goes fullscreen and the tabs and controls lie over
+  the picture, fading out with the pointer after 2.5 seconds without movement.
+  They stay while the video is paused or the pointer is on them. F or Esc
+  leaves; a second Esc goes back to the channel. A window that was already
+  fullscreen stays so on the way out.
 - A video that reaches its end stays on its last frame and the play button
   becomes "Play again".
 - Each tab resumes where it was left, across tab switches and relaunches. One
@@ -55,9 +61,11 @@ it from 0.
   instruction when it's missing. The installed app loads libmpv from
   Homebrew's folder at launch, so removing mpv afterwards stops Vault from
   opening at all, not only the player.
-- The window is transparent and the page is see-through over the stage. The
-  video view is moved to match the stage after the page resizes, so a fast
-  window resize can show the desktop at the stage's edge for a frame.
+- The web view is see-through over the stage, and the window behind it is
+  black. The video view is moved to match the stage after the page resizes,
+  so a fast resize can show black at the stage's edge for a frame.
+- The window leaving fullscreen by itself (green button, system shortcut) is
+  noticed a second after the resize settles, not at once.
 - While the player is shown the video layer redraws on every display refresh,
   paused or not.
 - Open tabs and their places live in the web view's local storage
@@ -70,7 +78,9 @@ it from 0.
 - Agent's guesses, never confirmed: pausing on the way back to the channel;
   ⌘-click for a background tab; starting over within 5
   seconds of the end; new tabs go at the right end; the stage is black while
-  a video loads; the tab's hover card shows time where a browser shows the site.
+  a video loads; the tab's hover card shows time where a browser shows the site; the
+  fullscreen keys and gestures, the 2.5-second fade, and keeping the tabs in
+  fullscreen.
 - The channel is hidden under the player with `visibility`, and the stage is
   see-through, so anything in the channel that is slow to hide shows over the
   video. A `transition: all` did exactly that to the clicked thumbnail;

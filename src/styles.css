@@ -388,6 +388,15 @@ body {
 .ptop { border-bottom: 1px solid var(--line); }
 .pbar { border-top: 1px solid var(--line); }
 
+/* Fullscreen: the stage takes the whole window and the bars lie over the
+   picture, fading out with the pointer once it has been still. */
+.player.full .ptop, .player.full .pbar { position: absolute; left: 0; right: 0; z-index: 2;
+  background: color-mix(in srgb, var(--panel) 86%, transparent); transition: opacity .2s; }
+.player.full .ptop { top: 0; }
+.player.full .pbar { bottom: 0; }
+.player.full.idle .ptop, .player.full.idle .pbar { opacity: 0; pointer-events: none; }
+.player.full.idle { cursor: none; }
+
 .ptabs { flex: 1; min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
 .ptabs::-webkit-scrollbar { display: none; }
 /* Tabs look and behave like a browser's: they shrink to share the row down to

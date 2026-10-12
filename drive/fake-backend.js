@@ -161,6 +161,7 @@ const commands = {
     return { position: film.position, duration: film.duration, paused: film.paused || ended, ended, path: film.path };
   },
   player_place: () => null,
+  player_fullscreen: ({ on }) => on ?? false,
   // The folder picker: there's no dialog to click, so it picks the suggestion.
   "plugin:dialog|open": ({ options }) => options?.defaultPath || DIR,
   // The "Queue N videos?" popup: answered yes unless ?confirm=no.

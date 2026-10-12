@@ -676,7 +676,13 @@ const PLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="current
 const PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/></svg>`;
 const REPLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></svg>`;
 
+const EXPAND_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>`;
+const SHRINK_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>`;
+
 const watching = () => !playerEl.hidden;
+let full = false;          // the picture has the whole screen, bars over it
+let windowWasFull = false; // the window was already fullscreen, so leaving keeps it
+let idle = null;
 let loadedId = null;   // the tab whose file mpv holds
 let playing = { paused: true, ended: false };
 let seeking = false;   // the seek bar is being dragged, so reports don't move it
@@ -701,6 +707,8 @@ function renderTabs() {
 
 function renderTransport() {
   const tab = tabs.active;
+  $("pfull").innerHTML = full ? SHRINK_ICON : EXPAND_ICON;
+  $("pfull").title = full ? "Leave fullscreen (F or Esc)" : "Fullscreen (F)";
   const btn = $("pplay");
   btn.innerHTML = playing.ended ? REPLAY_ICON : playing.paused ? PLAY_ICON : PAUSE_ICON;
   btn.title = playing.ended ? "Play again (Space)" : playing.paused ? "Play (Space)" : "Pause (Space)";
@@ -777,9 +785,51 @@ function showPlayer() {
   poll = setInterval(tick, 250);
 }
 
+// In fullscreen the bars lie over the picture and go away, with the pointer,
+// once it has been still for a moment. They stay while the video is paused or
+// the pointer is on one of them.
+function wake() {
+  playerEl.classList.remove("idle");
+  clearTimeout(idle);
+  if (!full) return;
+  idle = setTimeout(() => {
+    if (playing.paused || playerEl.querySelector(".ptop:hover, .pbar:hover")) return wake();
+    playerEl.classList.add("idle");
+    hideTip();
+  }, 2500);
+}
+
+// Fullscreen is the window's own fullscreen plus the bars moving onto the
+// picture. `window: false` is for when the window already left by itself.
+async function setFull(on, { window: switchWindow = true } = {}) {
+  if (on === full || (on && !watching())) return;
+  if (on) windowWasFull = await invoke("player_fullscreen", { on: null }).catch(() => false);
+  full = on;
+  playerEl.classList.toggle("full", on);
+  if (switchWindow && !windowWasFull) {
+    invoke("player_fullscreen", { on }).catch((e) => console.error(e));
+  }
+  wake();
+  renderTransport();
+}
+
+// The window can leave fullscreen without being asked (the green button, the
+// system's own shortcut). Checked once a resize has settled, since the answer
+// is in flux while the window animates.
+let resized = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resized);
+  resized = setTimeout(async () => {
+    if (!full || windowWasFull) return;
+    const still = await invoke("player_fullscreen", { on: null }).catch(() => true);
+    if (!still) setFull(false, { window: false });
+  }, 1000);
+});
+
 // Back to the channel. The video pauses: it would otherwise play on unseen.
 async function leavePlayer() {
   if (!watching()) return;
+  await setFull(false);
   clearInterval(poll);
   await tick();
   saveTabs();
@@ -832,7 +882,8 @@ async function togglePlay() {
     if (playing.ended) await invoke("player_set", { action: "seek", value: 0 });
     await invoke("player_set", { action: playing.paused || playing.ended ? "play" : "pause" });
   } catch (e) { stageError(e); }
-  tick();
+  await tick();
+  wake();
 }
 
 function seekTo(seconds) {
@@ -847,6 +898,9 @@ $("watching").addEventListener("click", showPlayer);
 $("pback").addEventListener("click", leavePlayer);
 $("pplay").addEventListener("click", togglePlay);
 stageEl.addEventListener("click", (e) => { if (e.target === stageEl) togglePlay(); });
+stageEl.addEventListener("dblclick", (e) => { if (e.target === stageEl) setFull(!full); });
+$("pfull").addEventListener("click", () => setFull(!full));
+playerEl.addEventListener("mousemove", wake);
 $("ptabs").addEventListener("click", (e) => {
   const tab = e.target.closest(".ptab");
   if (!tab) return;
@@ -895,10 +949,13 @@ document.addEventListener("keydown", (e) => {
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   const step = { ArrowLeft: -5, ArrowRight: 5, j: -10, l: 10 }[key];
   if (key === " " || key === "k") togglePlay();
-  else if (key === "Escape") leavePlayer();
+  else if (key === "f") setFull(!full);
+  // Esc steps out one level: out of fullscreen first, then back to the channel.
+  else if (key === "Escape") full ? setFull(false) : leavePlayer();
   else if (step) seekTo((tabs.active?.position ?? 0) + step);
   else return;
   e.preventDefault();
+  wake();
   // A focused slider or button would act on the same key a second time.
   document.activeElement?.blur?.();
 });
