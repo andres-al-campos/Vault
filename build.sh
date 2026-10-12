@@ -47,6 +47,14 @@ EOF
   exit 1
 }
 
+# The player is built on libmpv, and the Rust build links it from Homebrew.
+require_mpv() {
+  brew --prefix mpv >/dev/null 2>&1 && [ -d "$(brew --prefix mpv)/lib" ] && return
+  die "mpv is not installed, and Vault's player is built on it. Install it with:
+
+  brew install mpv"
+}
+
 [ -d node_modules ] || { echo "Installing dependencies…"; npm install; }
 
 # Kill a running copy before swapping the bundle underneath it. Replacing a live
@@ -79,6 +87,7 @@ case "${1:-}" in
     ;;
 
   check|test)
+    require_mpv
     ./laws/feature-map.sh
     # The frontend's pure modules run under node's own test runner. The glob is
     # quoted so node expands it; a bare directory argument is read as a module.
@@ -111,6 +120,7 @@ Usage: ./build.sh [dev|check [net]|clean]   (no argument packages and installs)"
 esac
 
 require_ytdlp
+require_mpv
 
 echo "Building ${APP_NAME}.app …"
 # --bundles app rather than the config default, so this never wanders into

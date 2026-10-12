@@ -14,6 +14,7 @@ and cookies have no file yet.
 | Browsing a channel | [browsing.md](browsing.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 | Remembered channels | [remembered-channels.md](remembered-channels.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 | Subscriptions | [subscriptions.md](subscriptions.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
+| Player | [player.md](player.md) | macOS | Tab rules by tests and the stand-in (2026-10-12); the picture by hand |
 
 ## What counts as a feature
 
@@ -46,7 +47,7 @@ lists the scenarios and switches (`fresh`, `library`, `corrupt`, `failtab=`,
 sent. This proves the frontend only: the real yt-dlp path is the Rust tests.
 
 The packaged app's own window can't be driven; what the stand-in can't show
-(the native folder picker, opening a file in a player) is checked by hand.
+(the native folder picker, the player's picture) is checked by hand.
 
 The app's own data is `~/.vault/state.json`. Tests write to temp directories
 and never touch it.

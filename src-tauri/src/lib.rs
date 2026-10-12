@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
+mod player;
+
 /// Downloads that are currently running, keyed by the app's own job id.
 /// We store the pid rather than the `Child` so the reader thread can own the
 /// child and call `wait()` on it while a cancel still has something to kill.
@@ -2182,6 +2184,19 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
+        .setup(|app| {
+            // Without the player the rest of Vault still works, and Play says
+            // why it can't.
+            match app.get_webview_window("main") {
+                Some(window) => {
+                    if let Err(e) = player::init(&window) {
+                        eprintln!("Player unavailable: {e}");
+                    }
+                }
+                None => eprintln!("Player unavailable: the main window wasn't there at setup."),
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             fetch_channel,
             fetch_dates,
@@ -2195,7 +2210,11 @@ pub fn run() {
             set_channel_dir,
             migrate_archives,
             reveal_folder,
-            open_file
+            open_file,
+            player::player_load,
+            player::player_set,
+            player::player_state,
+            player::player_place
         ])
         .run(tauri::generate_context!())
         .expect("error while running Vault");

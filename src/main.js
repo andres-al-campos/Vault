@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import { createQueue } from "./queue.js";
+import { createTabs, resumeAt, progress } from "./player.js";
 import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, ASK_ABOVE, newVideos, ago } from "./library.js";
 
 /* ---------------- theme ---------------- */
@@ -623,7 +624,7 @@ function cardButton(v) {
     // Just finished: archived, but the file's path arrives with the next
     // archive read a moment later.
     return archived.get(v.id).path
-      ? `<button class="dl on" data-id="${id}" data-act="play">▶ Play</button>`
+      ? `<button class="dl on" data-id="${id}" data-act="play" title="Play here. ⌘-click opens it in a tab without leaving the channel.">▶ Play</button>`
       : `<button class="dl on" data-id="${id}">✓ Archived</button>`;
   }
   // Members-only downloads need cookies; with a browser set they're a normal
@@ -648,26 +649,233 @@ gridEl.addEventListener("click", (e) => {
   const target = e.target.closest("[data-act]");
   if (!target) return;
   const id = target.closest(".card").dataset.id;
-  if (target.dataset.act === "play") openInPlayer(archived.get(id)?.path);
+  if (target.dataset.act === "play") openVideo(id, { background: e.metaKey });
   else if (gridVideos.has(id)) startDownload(gridVideos.get(id));
 });
 
 /* ---------------- playback ---------------- */
-// Playback is handed to the system: whatever app owns the extension opens it,
-// which on a Mac set up for archiving is VLC. An in-app <video> was tried and
-// removed — the webview can't be granted access to the volumes the library
-// lives on, and a player that can't read the file is worse than none.
+// Videos play inside Vault, each in a tab that keeps its place. mpv draws the
+// picture in a view under the page (src-tauri/src/player.rs) and the page
+// leaves a hole for it; the tabs and controls here are ordinary HTML.
 //
-// `open` resolves the app through LaunchServices, so this stays out of the
-// business of knowing which player is installed.
-function openInPlayer(path) {
-  if (!path) return;
-  invoke("open_file", { path }).catch((err) => {
-    console.error("Could not open:", err);
-    // A silent failure here is the worst outcome: the click looks ignored.
-    alert(`Could not open this file.\n\n${err}\n\nThe file is at:\n${path}`);
-  });
+// An in-page <video> can't do this job: the web view has no AV1 decoder on a
+// Mac without hardware AV1, which is most of what YouTube serves.
+//
+// The open tabs and their places are this window's own state, like the theme,
+// so they're kept in local storage and not in a channel's videos.json.
+const TABS_KEY = "vault-open";
+const savedTabs = () => { try { return JSON.parse(localStorage.getItem(TABS_KEY)); } catch { return null; } };
+const tabs = createTabs(savedTabs());
+const saveTabs = () => localStorage.setItem(TABS_KEY, JSON.stringify(tabs.snapshot()));
+
+const playerEl = $("player");
+const stageEl = $("stage");
+const stageMsg = $("stage-msg");
+const seekEl = $("pseek");
+const PLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>`;
+const PAUSE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/></svg>`;
+const REPLAY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></svg>`;
+
+const watching = () => !playerEl.hidden;
+let loadedId = null;   // the tab whose file mpv holds
+let playing = { paused: true, ended: false };
+let seeking = false;   // the seek bar is being dragged, so reports don't move it
+let poll = null;
+let lastSave = 0;
+
+function renderWatching() {
+  const n = tabs.tabs.length;
+  $("watching").hidden = n === 0;
+  $("watching").innerHTML = `${PLAY_ICON} Open videos <span class="n">${n}</span>`;
 }
+
+function renderTabs() {
+  $("ptabs").innerHTML = tabs.tabs.map((t) => `
+    <div class="ptab ${t.id === tabs.activeId ? "active" : ""}" data-id="${esc(t.id)}" title="${esc(t.title)}">
+      <span class="t">${esc(t.title)}</span>
+      <button class="x" data-close title="Close this tab">✕</button>
+      <i style="width:${(progress(t) * 100).toFixed(1)}%"></i>
+    </div>`).join("");
+  renderWatching();
+}
+
+function renderTransport() {
+  const tab = tabs.active;
+  const btn = $("pplay");
+  btn.innerHTML = playing.ended ? REPLAY_ICON : playing.paused ? PLAY_ICON : PAUSE_ICON;
+  btn.title = playing.ended ? "Play again (Space)" : playing.paused ? "Play (Space)" : "Pause (Space)";
+  $("ptime").textContent = `${fmtDur(tab?.position ?? 0)} / ${fmtDur(tab?.duration ?? 0)}`;
+  if (!seeking) {
+    seekEl.max = Math.max(1, tab?.duration ?? 0);
+    seekEl.value = tab?.position ?? 0;
+  }
+  const bar = $("ptabs").querySelector(".ptab.active i");
+  if (bar) bar.style.width = `${(progress(tab) * 100).toFixed(1)}%`;
+}
+
+// Tells the backend where the hole is. Called whenever the stage moves.
+function placeVideo() {
+  if (!watching()) return;
+  const r = stageEl.getBoundingClientRect();
+  invoke("player_place", { visible: true, x: r.left, top: r.top, w: r.width, h: r.height, winH: window.innerHeight })
+    .catch((e) => console.error("Could not place the video:", e));
+}
+new ResizeObserver(placeVideo).observe(stageEl);
+
+function stageError(err) {
+  // Drawn over the hole, so it has its own ground.
+  stageMsg.hidden = false;
+  stageMsg.innerHTML = `<h3>This video couldn't be played</h3><p>${esc(err)}</p>`;
+}
+
+// Puts the active tab's video on, from where it was left.
+async function loadActive() {
+  const tab = tabs.active;
+  if (!tab) return;
+  stageMsg.hidden = true;
+  try {
+    if (loadedId === tab.id) await invoke("player_set", { action: "play" });
+    else {
+      await invoke("player_load", { path: tab.path, start: resumeAt(tab) });
+      loadedId = tab.id;
+    }
+    playing = { paused: false, ended: false };
+  } catch (e) {
+    loadedId = null;
+    playing = { paused: true, ended: false };
+    stageError(e);
+  }
+  renderTransport();
+}
+
+async function tick() {
+  let s;
+  try { s = await invoke("player_state"); } catch { return; }
+  const tab = tabs.active;
+  // A report about another file crossed a tab switch, and one with no length
+  // came before the file opened. Either would overwrite this tab's place.
+  if (!tab || loadedId !== tab.id || s.path !== tab.path || !(s.duration > 0)) return;
+  tabs.note(tab.id, s.position, s.duration);
+  playing = { paused: s.paused, ended: s.ended };
+  renderTransport();
+  if (Date.now() - lastSave > 5000) { saveTabs(); lastSave = Date.now(); }
+}
+
+function showPlayer() {
+  if (!tabs.active) return;
+  playerEl.hidden = false;
+  root.classList.add("watching");
+  renderTabs();
+  placeVideo();
+  invoke("player_set", { action: "volume", value: Number($("pvol").value) }).catch(() => {});
+  loadActive();
+  clearInterval(poll);
+  poll = setInterval(tick, 250);
+}
+
+// Back to the channel. The video pauses: it would otherwise play on unseen.
+async function leavePlayer() {
+  if (!watching()) return;
+  clearInterval(poll);
+  await tick();
+  saveTabs();
+  playerEl.hidden = true;
+  root.classList.remove("watching");
+  invoke("player_set", { action: "pause" }).catch(() => {});
+  invoke("player_place", { visible: false, x: 0, top: 0, w: 0, h: 0, winH: 0 }).catch(() => {});
+  renderWatching();
+}
+
+async function selectTab(id) {
+  if (id === tabs.activeId) return;
+  await tick();
+  tabs.select(id);
+  saveTabs();
+  renderTabs();
+  loadActive();
+}
+
+async function closeTab(id) {
+  const wasActive = id === tabs.activeId;
+  tabs.close(id);
+  saveTabs();
+  if (wasActive) {
+    loadedId = null;
+    await invoke("player_set", { action: "stop" }).catch(() => {});
+  }
+  if (!tabs.active) { await leavePlayer(); renderWatching(); return; }
+  renderTabs();
+  if (wasActive && watching()) loadActive();
+}
+
+// Play on a card. With ⌘ held the video opens in a tab without leaving the
+// channel, the way a browser opens a link in the background.
+async function openVideo(id, { background = false } = {}) {
+  const entry = archived.get(id);
+  if (!entry?.path) return;
+  if (watching()) await tick();
+  tabs.open({ id, path: entry.path, title: gridVideos.get(id)?.title ?? entry.title ?? id }, { background });
+  saveTabs();
+  if (background) { renderWatching(); return; }
+  if (watching()) { renderTabs(); loadActive(); } else showPlayer();
+}
+
+async function togglePlay() {
+  const tab = tabs.active;
+  if (!tab) return;
+  if (loadedId !== tab.id) return loadActive();
+  try {
+    if (playing.ended) await invoke("player_set", { action: "seek", value: 0 });
+    await invoke("player_set", { action: playing.paused || playing.ended ? "play" : "pause" });
+  } catch (e) { stageError(e); }
+  tick();
+}
+
+function seekTo(seconds) {
+  const tab = tabs.active;
+  if (!tab || loadedId !== tab.id) return;
+  const to = Math.min(Math.max(0, seconds), Math.max(0, tab.duration - 0.5));
+  tabs.note(tab.id, to, tab.duration);
+  invoke("player_set", { action: "seek", value: to }).catch((e) => stageError(e));
+}
+
+$("watching").addEventListener("click", showPlayer);
+$("pback").addEventListener("click", leavePlayer);
+$("pplay").addEventListener("click", togglePlay);
+stageEl.addEventListener("click", (e) => { if (e.target === stageEl) togglePlay(); });
+$("ptabs").addEventListener("click", (e) => {
+  const tab = e.target.closest(".ptab");
+  if (!tab) return;
+  if (e.target.closest("[data-close]")) closeTab(tab.dataset.id);
+  else selectTab(tab.dataset.id);
+});
+seekEl.addEventListener("pointerdown", () => { seeking = true; });
+seekEl.addEventListener("input", () => { seekTo(Number(seekEl.value)); $("ptime").textContent = `${fmtDur(Number(seekEl.value))} / ${fmtDur(tabs.active?.duration ?? 0)}`; });
+seekEl.addEventListener("change", () => { seeking = false; });
+$("pvol").value = localStorage.getItem("vault-volume") ?? 100;
+$("pvol").addEventListener("input", (e) => {
+  localStorage.setItem("vault-volume", e.target.value);
+  invoke("player_set", { action: "volume", value: Number(e.target.value) }).catch(() => {});
+});
+// The way out when mpv can't play something: whatever app owns the file type.
+$("pext").addEventListener("click", () => {
+  const tab = tabs.active;
+  if (!tab) return;
+  invoke("player_set", { action: "pause" }).catch(() => {});
+  invoke("open_file", { path: tab.path }).catch((err) => stageError(`${err} The file is at ${tab.path}.`));
+});
+document.addEventListener("keydown", (e) => {
+  if (!watching() || e.metaKey || e.ctrlKey || e.altKey) return;
+  const step = { ArrowLeft: -5, ArrowRight: 5 }[e.key];
+  if (e.key === " ") togglePlay();
+  else if (e.key === "Escape") leavePlayer();
+  else if (step) seekTo((tabs.active?.position ?? 0) + step);
+  else return;
+  e.preventDefault();
+  // A focused slider or button would act on the same key a second time.
+  document.activeElement?.blur?.();
+});
+window.addEventListener("beforeunload", saveTabs);
 
 /* ---------------- download folder ---------------- */
 // Pointing a channel at a folder also stamps that folder with the channel's
@@ -1002,6 +1210,7 @@ async function boot() {
   renderCookieState();
   showActive();
   renderQueue();
+  renderWatching();
   checkSubscriptions();
 }
 boot();

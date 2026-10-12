@@ -20,6 +20,11 @@ subprocess, and a plain HTML/CSS/JS frontend laid out like a YouTube channel pag
   ```sh
   brew install ffmpeg
   ```
+- **mpv** — the in-app player is built on its library, which plays what the
+  system's own player can't (AV1 on a Mac without hardware AV1).
+  ```sh
+  brew install mpv
+  ```
 - **Rust** and **Node 18+** to build.
 
 ## Build and run
@@ -42,10 +47,12 @@ signs it, and launches it — so a rebuild is the copy that opens, never last bu
 | Piece | Where | What it does |
 |---|---|---|
 | `fetch_channel` | `src-tauri/src/lib.rs` | Runs `yt-dlp --flat-playlist -J <url>` and parses the JSON into a video list (id, title, duration, views) plus the channel's avatar, banner and subscriber count. One request gets the whole channel. |
-| `download_video` | `src-tauri/src/lib.rs` | Spawns yt-dlp with `--download-archive` and a `--progress-template`, then streams parsed progress back as a Tauri event. |
+| `download_video` | `src-tauri/src/lib.rs` | Spawns yt-dlp with a `--progress-template`, streams parsed progress back as a Tauri event, and records the finished video in the folder's `.vault/videos.json`. |
 | `cancel_download` | `src-tauri/src/lib.rs` | Sends `SIGTERM` to the running yt-dlp process. The partial `.part` file stays, so re-queuing resumes. |
 | `list_archive` | `src-tauri/src/lib.rs` | Reads each channel folder's archive file and matches every recorded id to its file on disk. |
 | `load_state` / `save_state` | `src-tauri/src/lib.rs` | Reads and writes `~/.vault/state.json` — the remembered channels, which one is active, and each channel's download folder. |
+| player | `src-tauri/src/player.rs` | Runs libmpv and draws its picture in a view under the web view, which is transparent where the page leaves a hole for it. |
+| open tabs | `src/player.js` | Which videos are open, which is on screen, and where each was left. |
 | queue | `src/queue.js` | Which jobs exist and which runs next. Downloads strictly one at a time. |
 | filters | `src/library.js` | Which videos the grid shows, in what order, and each one's archive state. |
 | screen | `src/main.js` | Draws the header, tabs, filters, cards and queue, and wires them to the backend. |
@@ -168,9 +175,11 @@ youtube-vault/
 │   ├── main.js           the screen: header, tabs, filters, cards, queue
 │   ├── queue.js          download queue rules (+ queue.test.js)
 │   ├── library.js        filter, sort and archive-state rules (+ library.test.js)
+│   ├── player.js         open-video tabs and resume rules (+ player.test.js)
 │   └── styles.css        light & dark themes (CSS variables)
 ├── src-tauri/
 │   ├── src/lib.rs        yt-dlp integration, archive, saved state
+│   ├── src/player.rs     the in-app player: libmpv under the web view
 │   ├── tauri.conf.json
 │   └── icons/
 ├── drive/                stand-in backend for clicking through the UI in a browser

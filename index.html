@@ -31,6 +31,8 @@
             Sync
           </button>
 
+          <button class="btn btn-on btn-labelled" id="watching" title="Back to the videos you have open" hidden></button>
+
           <button class="btn btn-icon" id="folder" title="Choose the download folder" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           </button>
@@ -69,6 +71,29 @@
         </div>
         <div class="queue" id="queue"></div>
       </aside>
+    </div>
+
+    <!-- The player. Its stage is a hole: the video is drawn by mpv in a view
+         underneath the page, and everything around it is ordinary HTML. -->
+    <div class="player" id="player" hidden>
+      <div class="ptop">
+        <button class="btn btn-icon btn-labelled" id="pback" title="Back to the channel (Esc)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6"/></svg>
+          Channel
+        </button>
+        <div class="ptabs" id="ptabs"></div>
+      </div>
+      <div class="stage" id="stage"><div class="stage-msg" id="stage-msg" hidden></div></div>
+      <div class="pbar">
+        <button class="btn btn-icon" id="pplay" title="Play / pause (Space)"></button>
+        <span class="ptime" id="ptime">0:00 / 0:00</span>
+        <input class="pseek" id="pseek" type="range" min="0" max="1" step="0.1" value="0" aria-label="Position" />
+        <svg class="pvol-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+        <input class="pvol" id="pvol" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" />
+        <button class="btn btn-icon" id="pext" title="Open this file in the Mac's default player instead">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+        </button>
+      </div>
     </div>
 
     <script type="module" src="/src/boot.js"></script>

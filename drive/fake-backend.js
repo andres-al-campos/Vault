@@ -61,6 +61,14 @@ if (scenario === "library") {
   archive.set(UNLISTED.id, `${DIR}/${UNLISTED.title} [${UNLISTED.id}].mp4`);
 }
 
+// What the stand-in player has on: every video is 40 seconds long.
+const film = { path: null, position: 0, duration: 40, paused: true, at: 0 };
+function filmNow() {
+  const now = Date.now();
+  if (film.path && !film.paused) film.position = Math.min(film.duration, film.position + (now - film.at) / 1000);
+  film.at = now;
+}
+
 const running = new Map(); // id -> interval
 const log = [];            // every command, for a drive to assert on
 window.__drive = { log, archive, get state() { return state; } };
@@ -133,6 +141,26 @@ const commands = {
   set_channel_dir: () => null,
   reveal_folder: () => null,
   open_file: () => null,
+  // The player: no picture here, only a clock that runs while it's playing.
+  player_load({ path, start }) {
+    if (/unplayable/.test(path)) throw `The file isn't there: ${path}. If it's on an external drive, connect it; otherwise press Sync and download it again.`;
+    Object.assign(film, { path, position: start, paused: false, at: Date.now() });
+    return null;
+  },
+  player_set({ action, value }) {
+    filmNow();
+    if (action === "play") film.paused = false;
+    if (action === "pause") film.paused = true;
+    if (action === "seek") film.position = value;
+    if (action === "stop") film.path = null;
+    return null;
+  },
+  player_state() {
+    filmNow();
+    const ended = film.position >= film.duration;
+    return { position: film.position, duration: film.duration, paused: film.paused || ended, ended, path: film.path };
+  },
+  player_place: () => null,
   // The folder picker: there's no dialog to click, so it picks the suggestion.
   "plugin:dialog|open": ({ options }) => options?.defaultPath || DIR,
   // The "Queue N videos?" popup: answered yes unless ?confirm=no.
