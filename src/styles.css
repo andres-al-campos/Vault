@@ -384,7 +384,11 @@ body {
 .watching .app * { transition: none !important; }
 
 .player { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; }
-.ptop, .pbar { background: var(--panel); display: flex; align-items: center; gap: 10px; padding: 9px 14px; }
+/* One height for both bars, with little above and below the tabs: the video
+   gets the room, and the raised tab's edge reads as the end of its neighbour. */
+.ptop, .pbar { background: var(--panel); display: flex; align-items: center; gap: 10px;
+  height: 44px; padding: 0 12px; box-sizing: content-box; }
+.ptop .btn, .pbar .btn { padding: 6px 9px; }
 .ptop { border-bottom: 1px solid var(--line); }
 .pbar { border-top: 1px solid var(--line); }
 
@@ -401,9 +405,8 @@ body {
 .ptabs::-webkit-scrollbar { display: none; }
 /* Tabs look and behave like a browser's: they shrink to share the row down to
    a floor where the row scrolls, the one on screen is a raised fill, and the
-   rest are plain text. A hairline sits in every gap, beside the raised tab
-   too: unlike a browser's, it floats in a taller bar, so its edge alone
-   doesn't show where its neighbour ends. */
+   rest are plain text with a hairline centred in the gap between them, and
+   none beside the raised or hovered tab. */
 .ptab { position: relative; flex: 0 1 230px; min-width: 110px; height: 34px; display: flex; align-items: center;
   gap: 4px; padding: 0 7px 0 12px; border-radius: 10px; color: var(--muted2);
   font: 500 13px inherit; cursor: pointer; }
@@ -411,6 +414,7 @@ body {
 .ptab.active { background: var(--hover-strong); color: var(--text); }
 .ptab + .ptab::before { content: ""; position: absolute; left: -5px; top: 9px; bottom: 9px; width: 1px;
   background: color-mix(in srgb, var(--muted) 50%, transparent); }
+.ptab.active::before, .ptab.active + .ptab::before, .ptab:hover::before, .ptab:hover + .ptab::before { display: none; }
 /* A long title fades out at the tab's edge instead of ending in dots. */
 .ptab .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
