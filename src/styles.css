@@ -29,7 +29,8 @@
   --sel-ring: #8a8f9c;
   /* The chosen filter: a solid fill, easier to spot in a row than an outline. */
   --on: #2b2e36;
-  --hover-line: #a9adb8;
+  /* One pixel, so it has to contrast with a thumbnail right beside it. */
+  --hover-line: #5d626e;
   --on-fg: #ffffff;
   --sb-thumb: #cfcfc7;
   --sb-thumb-hover: #b4b4ab;
@@ -60,7 +61,7 @@
   --sel-ring: #7c8494;
   /* Near white: a mid grey left the count beside the label hard to read. */
   --on: #eceef2;
-  --hover-line: #6f7786;
+  --hover-line: #c2c7d2;
   --on-fg: #14161b;
   --sb-thumb: #3a3f4d;
   --sb-thumb-hover: #4c5364;
@@ -206,9 +207,7 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); transition: 0.18s; display: flex; flex-direction: column; }
 /* Hover lights the border, on cards and bordered buttons alike. Cards used
    to lift with a shadow; that was dropped as a look-and-feel call. */
-/* The ring doubles the 1px border: one pixel alone disappears against a
-   bright thumbnail, which runs right up to the card's edge. */
-.card:hover { border-color: var(--hover-line); box-shadow: 0 0 0 1px var(--hover-line); }
+.card:hover { border-color: var(--hover-line); }
 .thumb { position: relative; aspect-ratio: 16/9; background: var(--chip); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, 0.82); color: #fff;
