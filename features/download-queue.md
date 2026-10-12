@@ -32,13 +32,21 @@ order, one at a time, no double-queuing, force surviving a retry and a re-queue
 from a card, a second completion report changing nothing, cancelling a waiting
 job.
 
-By hand only: that each button reaches the queue, progress, and cancelling a
-running download.
+`./build.sh check net` (~100s): really downloads two short videos from a live
+channel into a temp folder and walks them through every archive state — not
+archived, on disk, recorded but file lost, an ordinary download skipping the
+lost one, a forced one restoring it and recording the id once.
 
-Last driven: 2026-10-12, tests only. Not run in the app since the queue moved
-into its own module.
+By hand only: that each button reaches the queue, progress on screen, and
+cancelling a running download.
+
+Last driven: 2026-10-12. The live download test passed against @billwurtz
+(12s on its own). The window itself has not been clicked through.
 
 ## Gotchas
+
+- A file ending `.part` or `.ytdl` doesn't count as on disk: it is a download
+  that never finished.
 
 - A download yt-dlp skips reports twice, the skip line and then the process
   exit. The first report wins.

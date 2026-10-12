@@ -452,16 +452,78 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
     })
 }
 
+/// One download, as the frontend asks for it.
+struct DownloadRequest {
+    id: String,
+    url: String,
+    dir: PathBuf,
+    /// Run without the archive, for a file the archive records but the disk
+    /// has lost: yt-dlp would otherwise skip the id.
+    force: bool,
+    cookies: Option<String>,
+}
+
+/// What a running download reports. `Done` is always the last event.
+enum DownloadEvent {
+    Progress(Progress),
+    /// yt-dlp found the id in the archive and downloaded nothing.
+    Skipped,
+    Done { ok: bool, reason: Option<String> },
+}
+
 #[tauri::command]
 fn download_video(app: AppHandle, id: String, url: String, dir: String, force: Option<bool>, cookies: Option<String>) -> Result<(), String> {
+    let request = DownloadRequest {
+        id: id.clone(),
+        url,
+        dir: PathBuf::from(&dir),
+        force: force.unwrap_or(false),
+        cookies,
+    };
+    let handle = app.clone();
+    let job = id.clone();
+    let st = app.state::<AppState>();
+    // Held across the spawn so the pid is recorded before `Done` can remove
+    // it: a download that fails at once would otherwise leave its pid behind.
+    let mut pids = st.pids.lock().unwrap();
+    let pid = start_download(request, move |event| match event {
+        DownloadEvent::Progress(p) => {
+            let _ = handle.emit("download-progress", p);
+        }
+        DownloadEvent::Skipped => {
+            let _ = handle.emit("download-skipped", serde_json::json!({ "id": job }));
+        }
+        DownloadEvent::Done { ok, reason } => {
+            let st = handle.state::<AppState>();
+            let was_cancelled = st.cancelled.lock().unwrap().remove(&job);
+            st.pids.lock().unwrap().remove(&job);
+            let _ = handle.emit(
+                "download-done",
+                serde_json::json!({
+                    "id": job,
+                    "ok": ok && !was_cancelled,
+                    "cancelled": was_cancelled,
+                    "reason": if ok || was_cancelled { None } else { reason },
+                }),
+            );
+        }
+    })?;
+    pids.insert(id, pid);
+    Ok(())
+}
+
+/// Spawn yt-dlp for one video and report on it through `emit`, from background
+/// threads. Returns the process id once it is running. Nothing here knows about
+/// Tauri, so the live test can run a real download without a window.
+fn start_download(req: DownloadRequest, emit: impl Fn(DownloadEvent) + Send + 'static) -> Result<u32, String> {
     let yt = ytdlp_path();
-    let dir = PathBuf::from(&dir);
+    let dir = req.dir.clone();
     std::fs::create_dir_all(&dir).map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
     // The archive lives inside this channel's folder, so it follows the videos.
     // A forced re-download runs without it — the archive still says this video
     // is present, and letting yt-dlp read it would skip the job — and the
     // record is re-stamped by hand only once the download succeeds.
-    let force = force.unwrap_or(false);
+    let force = req.force;
     let archive = channel_archive_path(&dir);
     if let Some(parent) = archive.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -472,7 +534,8 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
         .arg("--no-warnings");
     // Cookies ride along here too: they clear the IP bot check and they are
     // the only way members-only videos download at all.
-    let cookie_flags = cookies
+    let cookie_flags = req
+        .cookies
         .as_deref()
         .map(cookies_args)
         .transpose()
@@ -508,7 +571,7 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
         // A channel's directory holds flat files: the folder is already the
         // channel, so there is no uploader subfolder here.
         .arg(format!("{}/%(title)s [%(id)s].%(ext)s", dir.display()))
-        .arg(&url);
+        .arg(&req.url);
     let mut child: Child = cmd
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -518,46 +581,20 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
     let stdout = child.stdout.take().ok_or("yt-dlp produced no output stream")?;
     let stderr = child.stderr.take().ok_or("yt-dlp produced no error stream")?;
     let pid = child.id();
-    {
-        let st = app.state::<AppState>();
-        st.pids.lock().unwrap().insert(id.clone(), pid);
-    }
+
+    // Why the download failed, read off yt-dlp's output by both threads.
+    let failure = Arc::new(Mutex::new(FailureNotes::default()));
 
     // stderr is drained on its own thread. Leaving it piped and unread is a real
     // hazard: a verbose failure fills the pipe buffer and blocks yt-dlp forever.
-    let reason: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-    let reason_err = reason.clone();
-    // The raw `ERROR:` line, for failures classify_failure doesn't know. Without
-    // this an unmapped failure reports as just "Failed", which tells the user
-    // nothing — the line usually names the real cause ("The page needs to be
-    // reloaded", format problems, etc.).
-    let raw_reason: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-    let raw_err = raw_reason.clone();
+    let failure_err = failure.clone();
     let err_thread = std::thread::spawn(move || {
         for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-            if line.trim_start().starts_with("ERROR:") {
-                let mut r = raw_err.lock().unwrap();
-                if r.is_none() {
-                    let mut text = line.trim().strip_prefix("ERROR:").unwrap_or(&line).trim().to_string();
-                    text.truncate(200);
-                    *r = Some(text);
-                }
-            }
-            if let Some(r) = classify_failure(&line) {
-                let mut g = reason_err.lock().unwrap();
-                if g.is_none() {
-                    *g = Some(r.to_string());
-                }
-            }
+            failure_err.lock().unwrap().read(&line);
         }
     });
 
-    let handle = app.clone();
-    let job = id.clone();
-    let reason_out = reason.clone();
-    let raw_out = raw_reason.clone();
-    let forced = force;
-    let archive_out = archive.clone();
+    let job = req.id;
     std::thread::spawn(move || {
         for line in BufReader::new(stdout).lines().map_while(Result::ok) {
             if let Some(rest) = line.strip_prefix("VAULTPROG|") {
@@ -565,28 +602,12 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
                 let num = |i: usize| p.get(i).and_then(|s| s.trim().parse::<f64>().ok()).unwrap_or(0.0);
                 let downloaded = num(0);
                 let total = if num(1) > 0.0 { num(1) } else { num(2) };
-                let _ = handle.emit(
-                    "download-progress",
-                    Progress { id: job.clone(), downloaded, total, speed: num(3), eta: num(4) },
-                );
+                emit(DownloadEvent::Progress(Progress { id: job.clone(), downloaded, total, speed: num(3), eta: num(4) }));
             } else if line.contains("already been recorded in the archive") {
-                let _ = handle.emit("download-skipped", serde_json::json!({ "id": job }));
+                emit(DownloadEvent::Skipped);
             } else {
-                if line.trim_start().starts_with("ERROR:") {
-                    let mut r = raw_out.lock().unwrap();
-                    if r.is_none() {
-                        let mut text = line.trim().strip_prefix("ERROR:").unwrap_or(&line).trim().to_string();
-                        text.truncate(200);
-                        *r = Some(text);
-                    }
-                }
-                if let Some(r) = classify_failure(&line) {
-                    // Some failures print on stdout rather than stderr.
-                    let mut g = reason_out.lock().unwrap();
-                    if g.is_none() {
-                        *g = Some(r.to_string());
-                    }
-                }
+                // Some failures print on stdout rather than stderr.
+                failure.lock().unwrap().read(&line);
             }
         }
         let status = child.wait();
@@ -594,33 +615,42 @@ fn download_video(app: AppHandle, id: String, url: String, dir: String, force: O
         let _ = err_thread.join();
         // A forced re-download runs without the archive, so yt-dlp wrote no
         // record; stamp it here, only when the download actually landed.
-        if ok && forced {
-            append_to_archive(&archive_out, &job);
+        if ok && force {
+            append_to_archive(&archive, &job);
         }
-        let was_cancelled = {
-            let st = handle.state::<AppState>();
-            let removed = st.cancelled.lock().unwrap().remove(&job);
-            removed
-        };
-        {
-            let st = handle.state::<AppState>();
-            st.pids.lock().unwrap().remove(&job);
-        }
-        let fail_reason = reason.lock().unwrap().clone();
-        let raw_fail = raw_reason.lock().unwrap().clone();
-        let _ = handle.emit(
-            "download-done",
-            serde_json::json!({
-                "id": job,
-                "ok": ok && !was_cancelled,
-                "cancelled": was_cancelled,
-                "reason": if ok || was_cancelled { serde_json::Value::Null }
-                          else { serde_json::json!(fail_reason.or(raw_fail).unwrap_or_else(|| "Failed".into())) },
-            }),
-        );
+        let reason = if ok { None } else { Some(failure.lock().unwrap().reason()) };
+        emit(DownloadEvent::Done { ok, reason });
     });
 
-    Ok(())
+    Ok(pid)
+}
+
+/// What yt-dlp's output said about a failure: the first line that classifies,
+/// and the first raw `ERROR:` line for failures classify_failure doesn't know.
+/// Without the raw line an unmapped failure reports as just "Failed", which
+/// tells the user nothing — the line usually names the real cause ("The page
+/// needs to be reloaded", format problems, etc.).
+#[derive(Default)]
+struct FailureNotes {
+    classified: Option<String>,
+    raw: Option<String>,
+}
+
+impl FailureNotes {
+    fn read(&mut self, line: &str) {
+        if self.raw.is_none() && line.trim_start().starts_with("ERROR:") {
+            let text = line.trim().strip_prefix("ERROR:").unwrap_or(line).trim();
+            // Cut on a character boundary; a byte cut can land inside one.
+            self.raw = Some(text.chars().take(200).collect());
+        }
+        if self.classified.is_none() {
+            self.classified = classify_failure(line).map(|r| r.to_string());
+        }
+    }
+
+    fn reason(&self) -> String {
+        self.classified.clone().or_else(|| self.raw.clone()).unwrap_or_else(|| "Failed".into())
+    }
 }
 
 /// Sends SIGTERM to a running download. Returns whether a live process was
@@ -710,12 +740,15 @@ fn archive_owners(state: &PersistedState) -> Vec<(String, String, Option<String>
     out
 }
 
-/// Look up a file by the `[<id>]` tag yt-dlp puts in every name it writes.
-/// Only levels directly under `dir` are searched: the download template is
-/// flat, so a recursive walk would just be wasted time on a big library.
-fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
-    let tag = format!("[{id}]");
-    let entries = std::fs::read_dir(dir).ok()?;
+/// Every downloaded file directly under `dir`, by the `[<id>]` tag yt-dlp puts
+/// at the end of each name it writes. One directory read answers for every id
+/// in the folder; reading it once per id was quadratic, and on a channel of
+/// thousands on an external drive that ran after every finished download.
+///
+/// Only `dir` itself is read: the download template is flat.
+fn index_folder(dir: &std::path::Path) -> HashMap<String, PathBuf> {
+    let mut files = HashMap::new();
+    let Ok(entries) = std::fs::read_dir(dir) else { return files };
     for e in entries.flatten() {
         let name = e.file_name();
         let name = name.to_string_lossy();
@@ -727,15 +760,27 @@ fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
         if name.starts_with('.') {
             continue;
         }
-        // Stems carry the tag; the extension follows. `[id].mp4` matches,
-        // `[id]-extra.mp4` does not.
-        if let Some(rest) = name.rsplit_once(&tag) {
-            if rest.1.is_empty() || rest.1.starts_with('.') {
-                return Some(e.path());
-            }
+        // A download still in progress, or abandoned, is not a file to play.
+        if name.ends_with(".part") || name.ends_with(".ytdl") {
+            continue;
         }
+        // The tag closes the stem and the extension follows. `[id].mp4`
+        // matches, `[id]-extra.mp4` does not.
+        let Some(close) = name.rfind(']') else { continue };
+        let after = &name[close + 1..];
+        if !(after.is_empty() || after.starts_with('.')) {
+            continue;
+        }
+        let Some(open) = name[..close].rfind('[') else { continue };
+        files.entry(name[open + 1..close].to_string()).or_insert_with(|| e.path());
     }
-    None
+    files
+}
+
+/// The file for one id, when a single lookup is all that's needed.
+#[cfg(test)]
+fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
+    index_folder(dir).remove(id)
 }
 
 /// The archive, resolved against the channels the app remembers. An id is
@@ -748,7 +793,12 @@ fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
 /// other's copy.
 #[tauri::command]
 fn list_archive() -> Vec<ArchiveEntry> {
-    let state = state_or_default();
+    archive_entries(&state_or_default())
+}
+
+fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
+    // Each channel folder is read once, the first time one of its ids comes up.
+    let mut folders: HashMap<String, HashMap<String, PathBuf>> = HashMap::new();
     // id -> (channel title, video). Used only to enrich entries with metadata;
     // ownership is decided by the archive files, not by these lists.
     let mut known: HashMap<String, (String, Video)> = HashMap::new();
@@ -763,12 +813,17 @@ fn list_archive() -> Vec<ArchiveEntry> {
         .map(|c| (c.url.as_str(), c.title.as_str()))
         .collect();
 
-    archive_owners(&state)
+    archive_owners(state)
         .into_iter()
         .map(|(id, owner_url, owner_dir)| {
             let path = owner_dir
                 .as_ref()
-                .and_then(|d| find_file(std::path::Path::new(d), &id))
+                .and_then(|d| {
+                    folders
+                        .entry(d.clone())
+                        .or_insert_with(|| index_folder(std::path::Path::new(d)))
+                        .get(&id)
+                })
                 .map(|p| p.to_string_lossy().into_owned());
             let (list_channel, v) = match known.remove(&id) {
                 Some((ch, v)) => (Some(ch), Some(v)),
@@ -1271,6 +1326,107 @@ mod tests {
         assert!(shorts.videos.is_empty());
     }
 
+    // Network test: real downloads. Walks a video through every archive state
+    // the UI tells apart — not archived, on disk, recorded but missing — and
+    // the forced run that restores a missing one.
+    #[test]
+    #[ignore]
+    fn downloads_move_videos_through_the_archive_states() {
+        use std::sync::mpsc;
+
+        // Returns (finished ok, yt-dlp skipped it).
+        fn run(v: &Video, dir: &std::path::Path, force: bool) -> (bool, bool) {
+            let (tx, rx) = mpsc::channel();
+            let req = DownloadRequest { id: v.id.clone(), url: v.url.clone(), dir: dir.to_path_buf(), force, cookies: None };
+            start_download(req, move |e| {
+                let _ = tx.send(e);
+            })
+            .expect("yt-dlp should start");
+            let mut skipped = false;
+            loop {
+                match rx.recv_timeout(std::time::Duration::from_secs(300)).expect("download timed out") {
+                    DownloadEvent::Skipped => skipped = true,
+                    DownloadEvent::Done { ok, reason } => {
+                        assert!(ok, "download of {} failed: {reason:?}", v.id);
+                        return (ok, skipped);
+                    }
+                    DownloadEvent::Progress(_) => {}
+                }
+            }
+        }
+
+        let info = fetch_channel_blocking("@billwurtz".to_string(), "videos".to_string(), None).expect("listing");
+        assert!(info.video_count > 5, "need a channel with several videos");
+        // The two shortest, so the test moves little data.
+        let mut by_length: Vec<&Video> = info.videos.iter().filter(|v| v.duration.is_some()).collect();
+        by_length.sort_by(|a, b| a.duration.partial_cmp(&b.duration).unwrap());
+        let (first, second) = (by_length[0], by_length[1]);
+
+        let dir = std::env::temp_dir().join(format!("vault-live-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut state = PersistedState::default();
+        state.channels.push(SavedChannel {
+            url: info.url.clone(),
+            title: info.title.clone(),
+            download_dir: Some(dir.to_string_lossy().into_owned()),
+            videos: info.videos.clone(),
+            ..Default::default()
+        });
+
+        assert!(archive_entries(&state).is_empty(), "nothing is archived before the first download");
+
+        assert_eq!(run(first, &dir, false), (true, false));
+        assert_eq!(run(second, &dir, false), (true, false));
+        let entries = archive_entries(&state);
+        assert_eq!(entries.len(), 2, "only the two downloaded videos are archived");
+        for e in &entries {
+            let path = e.path.as_deref().expect("a downloaded video is on disk");
+            assert!(path.ends_with(".mp4"), "merged into one mp4: {path}");
+            assert_eq!(e.channel_url.as_deref(), Some(info.url.as_str()));
+        }
+        println!("downloaded: {:?}", entries.iter().map(|e| e.path.clone().unwrap()).collect::<Vec<_>>());
+
+        // Lose one file. The archive still records it, so it reads as missing.
+        let lost = entries.iter().find(|e| e.id == first.id).unwrap().path.clone().unwrap();
+        std::fs::remove_file(&lost).unwrap();
+        let entries = archive_entries(&state);
+        let missing = entries.iter().find(|e| e.id == first.id).unwrap();
+        assert!(missing.path.is_none() && missing.dir.is_some());
+        assert!(entries.iter().find(|e| e.id == second.id).unwrap().path.is_some());
+
+        // An ordinary download can't bring it back: yt-dlp trusts the archive.
+        assert_eq!(run(first, &dir, false), (true, true));
+        assert!(archive_entries(&state).iter().find(|e| e.id == first.id).unwrap().path.is_none());
+
+        // A forced one does, and records the id once.
+        assert_eq!(run(first, &dir, true), (true, false));
+        assert!(archive_entries(&state).iter().find(|e| e.id == first.id).unwrap().path.is_some());
+        let recorded = read_archive(&channel_archive_path(&dir));
+        assert_eq!(recorded.iter().filter(|id| **id == first.id).count(), 1);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn failure_notes_prefer_the_classified_reason() {
+        let mut known = FailureNotes::default();
+        known.read("[youtube] Extracting URL");
+        known.read("ERROR: [youtube] abc: Private video. Sign in if you've been granted access");
+        assert_eq!(known.reason(), "Private");
+
+        let mut unknown = FailureNotes::default();
+        unknown.read("ERROR: [youtube] abc: The page needs to be reloaded.");
+        unknown.read("ERROR: something later");
+        assert_eq!(unknown.reason(), "[youtube] abc: The page needs to be reloaded.");
+
+        // 200 characters, not bytes: a cut inside a multi-byte one would panic.
+        let mut long = FailureNotes::default();
+        long.read(&format!("ERROR: {}", "é".repeat(300)));
+        assert_eq!(long.reason().chars().count(), 200);
+
+        assert_eq!(FailureNotes::default().reason(), "Failed");
+    }
+
     #[test]
     fn channel_url_detection() {
         assert!(is_channel_url("https://www.youtube.com/@foo"));
@@ -1317,6 +1473,9 @@ mod tests {
         // exFAT AppleDouble companion: same tag as the real file, must never
         // win — opening it in a player shows a 0:00 metadata stub.
         std::fs::write(dir.join("._Some Title [abcdefghijk].mp4"), b"x").unwrap();
+        // A download that never finished is not a file to play.
+        std::fs::write(dir.join("Half [partpartpar].mp4.part"), b"x").unwrap();
+        assert!(find_file(&dir, "partpartpar").is_none());
 
         let hit = find_file(&dir, "abcdefghijk").expect("should find the tagged file");
         assert_eq!(hit.file_name().unwrap().to_string_lossy(), "Some Title [abcdefghijk].mp4");
