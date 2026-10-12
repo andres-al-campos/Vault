@@ -317,6 +317,10 @@ pub fn player_place(window: tauri::WebviewWindow, visible: bool, x: f64, top: f6
         // hidden.
         let _: () = msg_send![layer, setAsynchronous: visible];
         if visible {
+            // Core Animation eases a layer to its new size over a quarter of
+            // a second unless told not to, and the picture wobbles with it.
+            let _: () = msg_send![class!(CATransaction), begin];
+            let _: () = msg_send![class!(CATransaction), setDisableActions: true];
             let frame = NSRect::new(NSPoint::new(x, win_h - top - h), NSSize::new(w, h));
             let _: () = msg_send![view, setFrame: frame];
             // The layer follows its view, but say so outright and ask for a
@@ -324,6 +328,7 @@ pub fn player_place(window: tauri::WebviewWindow, visible: bool, x: f64, top: f6
             let bounds = NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(w, h));
             let _: () = msg_send![layer, setBounds: bounds];
             let _: () = msg_send![layer, setNeedsDisplay];
+            let _: () = msg_send![class!(CATransaction), commit];
         }
     });
 }
