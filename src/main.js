@@ -96,7 +96,13 @@ function scopedArchive() {
   return (archive || []).filter((e) => e.channel_url === state.active);
 }
 
+// Set when the state file exists but couldn't be read. Nothing is saved while
+// it is: the in-memory state is empty, and writing it would replace the real
+// channel list. The backend refuses the write too.
+let stateError = null;
+
 async function persist() {
+  if (stateError) return;
   try { await invoke("save_state", { state }); }
   catch (e) { console.error("Could not save state:", e); }
 }
@@ -816,7 +822,14 @@ $("fetch").addEventListener("click", () => doFetch($("url").value));
 $("url").addEventListener("keydown", (e) => { if (e.key === "Enter") doFetch($("url").value); });
 
 async function boot() {
-  try { state = await invoke("load_state"); } catch { state = { active: null, channels: [] }; }
+  try { state = await invoke("load_state"); }
+  catch (e) {
+    stateError = String(e);
+    setEmpty(`<div class="mark">VAULT</div><h2>Your saved channels couldn't be read</h2><p>${esc(stateError)}</p>`);
+    $("url").disabled = true;
+    $("fetch").disabled = true;
+    return;
+  }
   // Splits the old global archive into per-channel ones. Idempotent and
   // guarded on the Rust side, so it's safe to call on every launch.
   try {

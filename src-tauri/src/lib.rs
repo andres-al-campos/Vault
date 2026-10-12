@@ -44,8 +44,9 @@ impl Video {
 
 #[derive(Serialize, Clone)]
 struct ChannelInfo {
-    /// The normalized channel URL. This is the channel's identity in the saved
-    /// state, so "@foo" and "https://youtube.com/@foo" don't become two entries.
+    /// The channel's identity in the saved state: `canonical_channel_url` of
+    /// whatever was typed, so "@foo" and "https://youtube.com/@foo" don't
+    /// become two entries.
     url: String,
     title: String,
     uploader: String,
@@ -225,6 +226,37 @@ fn normalize_input(raw: &str) -> String {
     format!("https://www.youtube.com/@{s}")
 }
 
+/// A channel's identity: one spelling per channel, whatever was typed or
+/// pasted. `@foo`, `youtube.com/@foo`, `m.youtube.com/@foo/videos?view=0` and
+/// `https://www.youtube.com/@foo/` are all `https://www.youtube.com/@foo`.
+/// The tab is dropped because the fetch appends its own.
+///
+/// Anything that isn't a YouTube channel URL (a single video, a playlist,
+/// another site) comes back as `normalize_input` left it.
+fn canonical_channel_url(raw: &str) -> String {
+    let url = normalize_input(raw);
+    if !is_channel_url(&url) {
+        return url;
+    }
+    let Some((_, rest)) = url.split_once("://") else { return url };
+    let (host, path) = rest.split_once('/').unwrap_or((rest, ""));
+    let host = host.to_lowercase();
+    if host != "youtube.com" && !host.ends_with(".youtube.com") {
+        return url;
+    }
+    let path = path.split(['?', '#']).next().unwrap_or("");
+    let mut segments = path.split('/').filter(|s| !s.is_empty());
+    let channel = match segments.next() {
+        Some(handle) if handle.starts_with('@') => handle.to_string(),
+        Some(kind @ ("channel" | "c" | "user")) => match segments.next() {
+            Some(name) => format!("{kind}/{name}"),
+            None => return url,
+        },
+        _ => return url,
+    };
+    format!("https://www.youtube.com/{channel}")
+}
+
 /// Whether the URL points at a channel (so a tab path can be appended) rather
 /// than a single video.
 fn is_channel_url(u: &str) -> bool {
@@ -296,7 +328,8 @@ async fn fetch_channel(url: String, tab: String, cookies: Option<String>) -> Res
 
 fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> Result<ChannelInfo, String> {
     let yt = ytdlp_path();
-    let mut url = normalize_input(&raw);
+    let identity = canonical_channel_url(&raw);
+    let mut url = identity.clone();
     // `/videos` excludes both shorts and past livestreams, which is exactly the
     // default view. The other tabs are appended the same way when asked for.
     if is_channel_url(&url) {
@@ -387,7 +420,7 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
         .to_string();
 
     Ok(ChannelInfo {
-        url: normalize_input(&raw),
+        url: identity,
         title,
         uploader,
         tab,
@@ -692,7 +725,7 @@ fn find_file(dir: &std::path::Path, id: &str) -> Option<PathBuf> {
 /// other's copy.
 #[tauri::command]
 fn list_archive() -> Vec<ArchiveEntry> {
-    let state = load_state();
+    let state = state_or_default();
     // id -> (channel title, video). Used only to enrich entries with metadata;
     // ownership is decided by the archive files, not by these lists.
     let mut known: HashMap<String, (String, Video)> = HashMap::new();
@@ -744,7 +777,7 @@ fn list_archive() -> Vec<ArchiveEntry> {
 /// channel's folder can't be read — an unmounted drive is the usual reason.
 #[tauri::command]
 fn channel_vaults() -> Vec<ChannelVault> {
-    let state = load_state();
+    let state = state_or_default();
     state
         .channels
         .iter()
@@ -772,7 +805,7 @@ fn channel_vaults() -> Vec<ChannelVault> {
 /// "downloaded" on load without re-checking the filesystem.
 #[tauri::command]
 fn downloaded_ids() -> Vec<String> {
-    archive_owners(&load_state()).into_iter().map(|(id, _, _)| id).collect()
+    archive_owners(&state_or_default()).into_iter().map(|(id, _, _)| id).collect()
 }
 
 /// Record an id in an archive file, creating the file if needed. The line
@@ -819,25 +852,82 @@ fn set_channel_dir(url: String, title: String, dir: String) -> Result<(), String
     write_channel_meta(&dir, &url, &title)
 }
 
+/// Read the state file. A file that isn't there (or is empty) is a first run
+/// and yields the default. A file that is there but can't be read or parsed is
+/// an error, never the default: the frontend saves the whole state back after
+/// any change, so answering "empty" here is what lets the next save replace a
+/// real channel list with nothing.
+fn read_state_at(path: &std::path::Path) -> Result<PersistedState, String> {
+    let unreadable = |why: String| {
+        format!(
+            "Couldn't read {}: {why}. Vault left the file alone and won't save over it. \
+             Fix the JSON, or move the file aside to start fresh, then reopen Vault.",
+            path.display()
+        )
+    };
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(PersistedState::default()),
+        Err(e) => return Err(unreadable(e.to_string())),
+    };
+    if text.trim().is_empty() {
+        return Ok(PersistedState::default());
+    }
+    let mut state: PersistedState = serde_json::from_str(&text).map_err(|e| unreadable(e.to_string()))?;
+    canonicalize_channels(&mut state);
+    Ok(state)
+}
+
+/// Bring saved channel URLs to their canonical form, so a channel saved under
+/// an older spelling is the same channel a fetch returns today. Entries that
+/// turn out to be one channel merge into the first, which keeps a download
+/// folder if either had one.
+fn canonicalize_channels(state: &mut PersistedState) {
+    state.active = state.active.take().map(|u| canonical_channel_url(&u));
+    let mut merged: Vec<SavedChannel> = Vec::new();
+    for mut c in std::mem::take(&mut state.channels) {
+        c.url = canonical_channel_url(&c.url);
+        match merged.iter_mut().find(|m| m.url == c.url) {
+            Some(first) => {
+                if first.download_dir.is_none() {
+                    first.download_dir = c.download_dir;
+                }
+            }
+            None => merged.push(c),
+        }
+    }
+    state.channels = merged;
+}
+
+/// The saved state for the commands that only read it. They degrade to "no
+/// channels" when the file is unreadable; `load_state` is where that surfaces.
+fn state_or_default() -> PersistedState {
+    read_state_at(&state_path()).unwrap_or_default()
+}
+
 #[tauri::command]
-fn load_state() -> PersistedState {
-    let path = state_path();
-    let Ok(text) = std::fs::read_to_string(&path) else { return PersistedState::default() };
-    serde_json::from_str(&text).unwrap_or_default()
+fn load_state() -> Result<PersistedState, String> {
+    read_state_at(&state_path())
 }
 
 #[tauri::command]
 fn save_state(state: PersistedState) -> Result<(), String> {
-    let path = state_path();
+    write_state_at(&state_path(), &state)
+}
+
+fn write_state_at(path: &std::path::Path, state: &PersistedState) -> Result<(), String> {
+    // Refuse to replace a file we couldn't have loaded. Whatever is in it is
+    // the only copy of the user's channel list.
+    read_state_at(path)?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    let json = serde_json::to_string_pretty(&state).map_err(|e| e.to_string())?;
+    let json = serde_json::to_string_pretty(state).map_err(|e| e.to_string())?;
     // Write beside the target and rename, so a crash mid-write can't leave a
     // truncated state file where the real one was.
     let tmp = path.with_extension("json.tmp");
     std::fs::write(&tmp, json).map_err(|e| e.to_string())?;
-    std::fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, path).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -882,7 +972,7 @@ fn migrate_archives() -> Result<MigrateReport, String> {
         return Ok(MigrateReport { ran: true, ..Default::default() });
     }
 
-    let state = load_state();
+    let state = load_state()?;
     let mut report = MigrateReport { ran: true, ..Default::default() };
     let mut claimed: HashSet<String> = HashSet::new();
 
@@ -1046,6 +1136,92 @@ mod tests {
             "https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw"
         );
         assert_eq!(normalize_input("https://youtu.be/abc"), "https://youtu.be/abc");
+    }
+
+    #[test]
+    fn every_spelling_of_a_channel_is_one_identity() {
+        let want = "https://www.youtube.com/@foo";
+        for raw in [
+            "@foo",
+            "foo",
+            "https://www.youtube.com/@foo",
+            "https://youtube.com/@foo",
+            "http://m.youtube.com/@foo/",
+            "https://www.youtube.com/@foo/videos",
+            "https://www.YouTube.com/@foo/shorts?view=0",
+            "https://www.youtube.com/@foo/streams#x",
+        ] {
+            assert_eq!(canonical_channel_url(raw), want, "from {raw}");
+        }
+        assert_eq!(
+            canonical_channel_url("https://youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw/videos"),
+            "https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw"
+        );
+        assert_eq!(canonical_channel_url("https://youtube.com/c/Foo/about"), "https://www.youtube.com/c/Foo");
+        // Not a channel: left exactly as typed.
+        for raw in [
+            "https://www.youtube.com/watch?v=abc12345678",
+            "https://youtu.be/abc12345678",
+            "https://www.youtube.com/playlist?list=PLabc",
+            "https://example.com/@foo/videos",
+        ] {
+            assert_eq!(canonical_channel_url(raw), raw);
+        }
+    }
+
+    fn temp_state_file(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("vault-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join("state.json")
+    }
+
+    #[test]
+    fn a_missing_state_file_is_a_first_run() {
+        let file = temp_state_file("state-missing");
+        let state = read_state_at(&file).expect("no file is not an error");
+        assert!(state.channels.is_empty());
+        write_state_at(&file, &state).expect("a first save creates the file");
+        assert!(file.is_file());
+        let _ = std::fs::remove_dir_all(file.parent().unwrap());
+    }
+
+    #[test]
+    fn an_unreadable_state_file_is_never_saved_over() {
+        // The frontend saves the whole state back after any change. If a file
+        // that fails to parse loaded as "no channels", the next save would
+        // replace the user's channel list with an empty one.
+        let file = temp_state_file("state-corrupt");
+        let damaged = r#"{"active":"https://www.youtube.com/@foo","channels":[{"url":"#;
+        std::fs::write(&file, damaged).unwrap();
+
+        let err = read_state_at(&file).err().expect("a damaged file must not load as empty");
+        assert!(err.contains("move the file aside"), "the error should say how to recover: {err}");
+        assert!(write_state_at(&file, &PersistedState::default()).is_err());
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), damaged, "the file must be left as it was");
+        let _ = std::fs::remove_dir_all(file.parent().unwrap());
+    }
+
+    #[test]
+    fn saved_channels_load_under_their_canonical_url() {
+        // A channel saved under an older spelling has to be the channel a
+        // fetch returns today, or Sync adds a second entry with no folder.
+        let file = temp_state_file("state-canonical");
+        std::fs::write(
+            &file,
+            r#"{"active":"https://youtube.com/@foo/videos","channels":[
+                {"url":"https://youtube.com/@foo/videos","title":"Foo","uploader":"Foo"},
+                {"url":"https://www.youtube.com/@foo","title":"Foo","uploader":"Foo","download_dir":"/tmp/foo"},
+                {"url":"https://www.youtube.com/@bar","title":"Bar","uploader":"Bar"}
+            ]}"#,
+        )
+        .unwrap();
+        let state = read_state_at(&file).unwrap();
+        assert_eq!(state.active.as_deref(), Some("https://www.youtube.com/@foo"));
+        let urls: Vec<&str> = state.channels.iter().map(|c| c.url.as_str()).collect();
+        assert_eq!(urls, ["https://www.youtube.com/@foo", "https://www.youtube.com/@bar"]);
+        assert_eq!(state.channels[0].download_dir.as_deref(), Some("/tmp/foo"));
+        let _ = std::fs::remove_dir_all(file.parent().unwrap());
     }
 
     #[test]
