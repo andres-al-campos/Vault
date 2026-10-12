@@ -152,14 +152,17 @@ const commands = {
     if (action === "pause") film.paused = true;
     if (action === "seek") film.position = value;
     if (action === "stop") film.path = null;
+    if (action === "mute") film.muted = !film.muted;
     return null;
   },
   player_state() {
     filmNow();
     const ended = film.position >= film.duration;
-    return { position: film.position, duration: film.duration, paused: film.paused || ended, ended, path: film.path };
+    return { position: film.position, duration: film.duration, paused: film.paused || ended, ended, path: film.path, muted: !!film.muted };
   },
   player_place: () => null,
+  // No picture to save here.
+  player_still: () => null,
   player_fullscreen: ({ on }) => on ?? false,
   // The folder picker: there's no dialog to click, so it picks the suggestion.
   "plugin:dialog|open": ({ options }) => options?.defaultPath || DIR,

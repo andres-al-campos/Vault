@@ -273,8 +273,9 @@ pub fn player_set(action: String, value: Option<f64>) -> Result<(), String> {
         "pause" => command(&["set", "pause", "yes"]),
         "seek" => command(&["seek", &v, "absolute"]),
         "volume" => command(&["set", "volume", &v]),
+        "mute" => command(&["cycle", "mute"]),
         "stop" => command(&["stop"]),
-        other => Err(format!("The player has no \"{other}\" action. It takes play, pause, seek, volume and stop.")),
+        other => Err(format!("The player has no \"{other}\" action. It takes play, pause, seek, volume, mute and stop.")),
     }
 }
 
@@ -283,6 +284,7 @@ pub struct PlayerState {
     position: f64,
     duration: f64,
     paused: bool,
+    muted: bool,
     /// The video reached its end and is sitting on the last frame.
     ended: bool,
     /// The file these numbers are about, so a report that crosses a tab
@@ -298,6 +300,7 @@ pub fn player_state() -> PlayerState {
         position: num("time-pos").unwrap_or(0.0),
         duration: num("duration").unwrap_or(0.0),
         paused: yes("pause"),
+        muted: yes("mute"),
         ended: yes("eof-reached"),
         path: property("path"),
     }
@@ -346,4 +349,35 @@ pub fn player_fullscreen(window: tauri::WebviewWindow, on: Option<bool>) -> Resu
             .is_fullscreen()
             .map_err(|e| format!("Couldn't tell whether the window is fullscreen: {e}. Reopen Vault if the player's controls look wrong.")),
     }
+}
+
+/// Saves the frame on screen to a file and answers its path. The page shows
+/// it over the stage while this video loads again, so switching tabs goes from
+/// picture to picture instead of through black.
+#[tauri::command(async)]
+pub fn player_still(id: String) -> Result<String, String> {
+    // The id becomes a file name.
+    if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+        return Err(format!("\"{id}\" isn't a video id, so no picture was saved for it."));
+    }
+    let dir = std::env::temp_dir().join("vault-stills");
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| format!("Couldn't create {}: {e}. Check the disk has space.", dir.display()))?;
+    // A new name each time, so the page never shows a cached older frame.
+    let prefix = format!("{id}-");
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for old in entries.flatten() {
+            if old.file_name().to_string_lossy().starts_with(&prefix) {
+                let _ = std::fs::remove_file(old.path());
+            }
+        }
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let path = dir.join(format!("{prefix}{stamp}.jpg"));
+    let path = path.to_string_lossy().into_owned();
+    command(&["screenshot-to-file", &path, "video"])?;
+    Ok(path)
 }

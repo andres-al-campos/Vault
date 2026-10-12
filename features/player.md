@@ -12,6 +12,9 @@ videos sit in browser tabs through a day.
   tabs are open.
 - Switching to a tab, or coming back through "Open videos", brings the video
   up paused where it was left; only Play on a card starts a video playing.
+- While a video loads, the stage shows the frame that tab was left on, or its
+  thumbnail if it hasn't been played yet, and fades to the video's first
+  frame. The frame is saved when the tab is left.
 - Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
   under the pointer). Resting on a tab shows its whole title and its thumbnail,
   with a line along the thumbnail's bottom for how far through it is; once one such card is up, moving
@@ -19,8 +22,8 @@ videos sit in browser tabs through a day.
   from the last one, and that tab waits paused where it was left. Closing the
   last tab returns to the channel.
 - Controls: play/pause, time, a seek bar, volume and fullscreen. Clicking the picture also toggles
-  play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, Esc goes back to
-  the channel.
+  play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, M or the speaker
+  mutes, Esc goes back to the channel.
 - Fullscreen: the button at the right of the controls, F, or a double-click on
   the picture. The window goes fullscreen and the tabs and controls lie over
   the picture, fading out with the pointer after 2.5 seconds without movement.
@@ -95,5 +98,10 @@ it from 0.
 - The media key reaches mpv whether or not the player is on screen, so it can
   start the paused video's sound while the channel is showing. Its place is
   picked up again when the player is next opened.
+- The saved frames are JPEGs in the system's temporary folder
+  (`vault-stills/`), one per tab, replaced on each save. A closed tab's file
+  is left for the system to clear.
+- There is one player. Switching tabs unloads one file and loads the other,
+  so the cover hides a real load; two videos are never live at once.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.

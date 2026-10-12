@@ -436,7 +436,11 @@ body {
 .ptip i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
 
 .stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; }
-.stage.loading { background: #000; }
+/* Over the stage while a video loads: the frame it was left on, or its
+   thumbnail. It goes up at once and fades away over the first frame. */
+.cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000;
+  opacity: 0; pointer-events: none; transition: opacity .2s; }
+.stage.loading .cover { opacity: 1; transition: none; }
 .bezel { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px;
   border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; display: grid; place-items: center;
   opacity: 0; pointer-events: none; }
@@ -454,6 +458,15 @@ body {
 .stage-msg p { color: var(--muted2); font-size: 13px; overflow-wrap: anywhere; }
 
 .ptime { font: 600 12px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); white-space: nowrap; }
-.pseek { flex: 1; min-width: 0; accent-color: var(--accent); cursor: pointer; }
-.pvol-icon { color: var(--muted2); flex: none; }
-.pvol { width: 96px; accent-color: var(--muted2); cursor: pointer; }
+/* The two sliders are drawn here, not by the system: a thin track filled up
+   to a round handle. */
+.pseek, .pvol { -webkit-appearance: none; appearance: none; height: 18px; background: transparent; cursor: pointer; --fill: 0%; }
+.pseek { flex: 1; min-width: 0; --bar: var(--accent); }
+.pvol { width: 96px; --bar: var(--muted2); }
+.pseek::-webkit-slider-runnable-track, .pvol::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--bar) var(--fill), var(--track) var(--fill)); }
+.pseek::-webkit-slider-thumb, .pvol::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
+  width: 13px; height: 13px; margin-top: -4.5px; border: 0; border-radius: 50%; background: var(--bar); }
+.pmute { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--muted2); cursor: pointer; }
+.pmute:hover { color: var(--text); background: var(--hover); }

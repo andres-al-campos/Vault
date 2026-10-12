@@ -13,6 +13,7 @@ export function createTabs(saved) {
   const tabs = (Array.isArray(saved?.tabs) ? saved.tabs : []).filter(usable).map((t) => ({
     id: t.id, path: t.path, title: String(t.title ?? t.id),
     position: Number(t.position) || 0, duration: Number(t.duration) || 0,
+    still: typeof t.still === "string" ? t.still : null,
   }));
   let activeId = tabs.some((t) => t.id === saved?.activeId) ? saved.activeId : tabs[0]?.id ?? null;
 
@@ -23,7 +24,7 @@ export function createTabs(saved) {
   function open({ id, path, title }, { background = false } = {}) {
     let tab = find(id);
     if (!tab) {
-      tab = { id, path, title, position: 0, duration: 0 };
+      tab = { id, path, title, position: 0, duration: 0, still: null };
       tabs.push(tab);
     } else {
       // The file may have moved since the tab was opened.
@@ -55,8 +56,15 @@ export function createTabs(saved) {
     if (duration > 0) tab.duration = duration;
   }
 
+  // The picture a tab was left on: a file holding that frame, shown while the
+  // video loads again so a switch goes picture to picture.
+  function keep(id, still) {
+    const tab = find(id);
+    if (tab && still) tab.still = still;
+  }
+
   return {
-    tabs, find, open, close, select, note,
+    tabs, find, open, close, select, note, keep,
     get activeId() { return activeId; },
     get active() { return find(activeId); },
     snapshot: () => ({ activeId, tabs: tabs.map((t) => ({ ...t })) }),

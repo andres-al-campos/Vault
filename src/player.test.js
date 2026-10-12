@@ -88,3 +88,14 @@ test("damaged saved tabs are dropped instead of breaking the player", () => {
   assert.equal(back.find("a").position, 0);
   assert.equal(createTabs("nonsense").tabs.length, 0);
 });
+
+test("a tab keeps the picture it was left on, through a save, and a failed capture keeps the last one", () => {
+  const t = createTabs();
+  t.open(vid("a"));
+  t.keep("a", "/tmp/a-1.jpg");
+  t.keep("a", null);
+  assert.equal(t.find("a").still, "/tmp/a-1.jpg");
+  const back = createTabs(JSON.parse(JSON.stringify(t.snapshot())));
+  assert.equal(back.find("a").still, "/tmp/a-1.jpg");
+  assert.equal(createTabs({ tabs: [{ id: "b", path: "/d/b.mp4", still: 7 }] }).find("b").still, null);
+});

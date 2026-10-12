@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import { createQueue } from "./queue.js";
@@ -685,6 +685,13 @@ let windowWasFull = false; // the window was already fullscreen, so leaving keep
 let idle = null;
 let loadedId = null;   // the tab whose file mpv holds
 let reported = false;  // the loaded file has reported in at least once
+let loads = 0;         // counts loads, so one overtaken by a newer one stops
+let muted = false;
+const coverEl = $("cover");
+const VOLUME_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`;
+const MUTED_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>`;
+// A slider's track is filled up to its handle.
+const fill = (el) => el.style.setProperty("--fill", `${((el.value - el.min) / ((el.max - el.min) || 1)) * 100}%`);
 let playing = { paused: true, ended: false };
 let seeking = false;   // the seek bar is being dragged, so reports don't move it
 let poll = null;
@@ -709,6 +716,8 @@ function renderTransport() {
   const tab = tabs.active;
   $("pfull").innerHTML = full ? SHRINK_ICON : EXPAND_ICON;
   $("pfull").title = full ? "Leave fullscreen (F or Esc)" : "Fullscreen (F)";
+  $("pmute").innerHTML = muted ? MUTED_ICON : VOLUME_ICON;
+  $("pmute").title = muted ? "Unmute (M)" : "Mute (M)";
   const btn = $("pplay");
   btn.innerHTML = playing.ended ? REPLAY_ICON : playing.paused ? PLAY_ICON : PAUSE_ICON;
   btn.title = playing.ended ? "Play again (Space)" : playing.paused ? "Play (Space)" : "Pause (Space)";
@@ -716,6 +725,7 @@ function renderTransport() {
   if (!seeking) {
     seekEl.max = Math.max(1, tab?.duration ?? 0);
     seekEl.value = tab?.position ?? 0;
+    fill(seekEl);
   }
 }
 
@@ -749,19 +759,27 @@ function stageError(err) {
 async function loadActive({ paused = false } = {}) {
   const tab = tabs.active;
   if (!tab) return;
+  const mine = ++loads;
   stageMsg.hidden = true;
   try {
     if (loadedId === tab.id) await invoke("player_set", { action: paused ? "pause" : "play" });
     else {
-      // Black until the new file reports in (tick lifts it), so the stage
-      // never shows through to whatever was there before the first frame.
+      // The stage is covered until the new file reports in (tick lifts it),
+      // with the frame this tab was left on, or its thumbnail before it has
+      // one. The cover goes up only once its picture is ready, so the switch
+      // goes from picture to picture and never through black.
+      const left = tab.still && resumeAt(tab) === tab.position;
+      await showCover(left ? convertFileSrc(tab.still) : thumb(tab.id), thumb(tab.id));
+      if (mine !== loads) return;
       stageEl.classList.add("loading");
       reported = false;
       await invoke("player_load", { path: tab.path, start: resumeAt(tab), paused });
+      if (mine !== loads) return;
       loadedId = tab.id;
     }
     playing = { paused, ended: false };
   } catch (e) {
+    if (mine !== loads) return;
     loadedId = null;
     playing = { paused: true, ended: false };
     stageError(e);
@@ -769,9 +787,30 @@ async function loadActive({ paused = false } = {}) {
   renderTransport();
 }
 
+// Readies the cover's picture. A still that's gone (the system clears its
+// temporary files) falls back to the thumbnail, and that to plain black.
+async function showCover(src, fallback) {
+  for (const url of new Set([src, fallback])) {
+    coverEl.src = url;
+    // A thumbnail comes over the network; a slow one mustn't hold the video.
+    const slow = new Promise((_, no) => setTimeout(no, 400));
+    try { await Promise.race([coverEl.decode(), slow]); return; } catch { /* try the next */ }
+  }
+  coverEl.removeAttribute("src");
+}
+
+// Saves the frame on screen as the active tab's still, for its next cover.
+async function keepStill() {
+  const tab = tabs.active;
+  if (!tab || loadedId !== tab.id || !reported) return;
+  try { tabs.keep(tab.id, await invoke("player_still", { id: tab.id })); }
+  catch (e) { console.warn("No still saved:", e); }
+}
+
 async function tick() {
   let s;
   try { s = await invoke("player_state"); } catch { return; }
+  muted = !!s.muted;
   const tab = tabs.active;
   // A report about another file crossed a tab switch, and one with no length
   // came before the file opened. Either would overwrite this tab's place.
@@ -847,6 +886,7 @@ async function leavePlayer() {
   await setFull(false);
   clearInterval(poll);
   await tick();
+  await keepStill();
   saveTabs();
   playerEl.hidden = true;
   root.classList.remove("watching");
@@ -860,6 +900,7 @@ async function leavePlayer() {
 async function selectTab(id) {
   if (id === tabs.activeId) return;
   await tick();
+  await keepStill();
   tabs.select(id);
   saveTabs();
   renderTabs();
@@ -884,7 +925,7 @@ async function closeTab(id) {
 async function openVideo(id, { background = false } = {}) {
   const entry = archived.get(id);
   if (!entry?.path) return;
-  if (watching()) await tick();
+  if (watching() && !background) { await tick(); await keepStill(); }
   tabs.open({ id, path: entry.path, title: gridVideos.get(id)?.title ?? entry.title ?? id }, { background });
   saveTabs();
   if (background) { renderWatching(); return; }
@@ -901,6 +942,14 @@ async function togglePlay() {
   } catch (e) { stageError(e); }
   await tick();
   wake();
+}
+
+async function toggleMute() {
+  try {
+    await invoke("player_set", { action: "mute" });
+    muted = !!(await invoke("player_state")).muted;
+  } catch (e) { console.error("Could not mute:", e); }
+  renderTransport();
 }
 
 function seekTo(seconds) {
@@ -957,10 +1006,13 @@ $("ptabs").addEventListener("mouseleave", hideTip);
 $("ptabs").addEventListener("mousedown", hideTip);
 
 seekEl.addEventListener("pointerdown", () => { seeking = true; });
-seekEl.addEventListener("input", () => { seekTo(Number(seekEl.value)); $("ptime").textContent = `${fmtDur(Number(seekEl.value))} / ${fmtDur(tabs.active?.duration ?? 0)}`; });
+seekEl.addEventListener("input", () => { fill(seekEl); seekTo(Number(seekEl.value)); $("ptime").textContent = `${fmtDur(Number(seekEl.value))} / ${fmtDur(tabs.active?.duration ?? 0)}`; });
 seekEl.addEventListener("change", () => { seeking = false; });
 $("pvol").value = localStorage.getItem("vault-volume") ?? 100;
+fill($("pvol"));
+$("pmute").addEventListener("click", toggleMute);
 $("pvol").addEventListener("input", (e) => {
+  fill(e.target);
   localStorage.setItem("vault-volume", e.target.value);
   invoke("player_set", { action: "volume", value: Number(e.target.value) }).catch(() => {});
 });
@@ -971,6 +1023,7 @@ document.addEventListener("keydown", (e) => {
   const step = { ArrowLeft: -5, ArrowRight: 5, j: -10, l: 10 }[key];
   if (key === " " || key === "k") togglePlay();
   else if (key === "f") setFull(!full);
+  else if (key === "m") toggleMute();
   // Esc steps out one level: out of fullscreen first, then back to the channel.
   else if (key === "Escape") full ? setFull(false) : leavePlayer();
   else if (step) seekTo((tabs.active?.position ?? 0) + step);
