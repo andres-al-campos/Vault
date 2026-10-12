@@ -68,8 +68,12 @@ suggested `~/Downloads/Vault/<channel>` and creates it. The choice is remembered
 channel and can be changed any time from the folder button in the top bar or the chip
 under the channel name. All of a channel's files land directly in its folder.
 
-A channel's **archive** lives in its folder, at `.vault/archive.txt`, next to a
-`.vault/channel.json` naming the channel. The folder is self-describing: move it to
+A channel's **archive** lives in its folder, at `.vault/videos.json`: one object
+per archived video, with its title, real upload date, length, views and when it
+was downloaded. It is the only record of what's archived, and it sits next to a
+`.vault/channel.json` naming the channel. A folder from before it, with yt-dlp's
+`archive.txt`, is imported the first time it's read and that file is left as it
+was. The folder is self-describing: move it to
 another drive, point the channel at it again, and Vault knows what it holds. A video
 counts as archived only for the channel whose folder records it.
 
@@ -113,8 +117,8 @@ Sorting: **Newest** (YouTube's own order), **Oldest** (reversed), **Most
 popular** (`view_count`), **Shortest** / **Longest** (`duration`). Newest and
 Oldest use the order YouTube returns, which is newest-first and exact. The
 date under a card is approximate until the video is archived: the listing only
-carries YouTube's "3 weeks ago". A download records the real upload date in
-`.vault/dates.txt`, and Sync looks it up for archived videos that lack one.
+carries YouTube's "3 weeks ago". A download records the real upload date, and
+Sync looks it up for archived videos that lack one.
 
 **Subscribe**, in the channel header, queues a channel's new uploads each time
 Vault opens or you press Sync: everything listed above the newest video you've

@@ -13,8 +13,9 @@ Type a channel and see its videos as cards.
 - The listing also brings the channel's avatar, banner, subscriber count and
   verified flag, when YouTube has them.
 - Sync re-fetches the Videos list of the channel on screen and rescans its
-  folder. A finished file there with no archive record gets one, so a video
-  copied in by hand shows as archived. A record whose file is gone stays, and
+  folder. A finished file there with no record in `.vault/videos.json` gets
+  one, so a video copied in by hand shows as archived. Records also take the
+  title, length and views the listing has, so they outlive the listing. A record whose file is gone stays, and
   its card says "File missing". The same rescan runs at launch, after each
   download and when the folder is changed.
 - After a Sync, archived videos with no upload date recorded (downloaded
@@ -39,8 +40,9 @@ are under the channel header.
 Preconditions: none for the default run; network and yt-dlp for `net`.
 
 `./build.sh check` (~1s once built): URL forms and channel identity, entry
-order, failure classification, and what the folder rescan records and leaves
-alone, in the Rust unit tests.
+order, failure classification, what the folder rescan records and leaves
+alone, the import of a folder that still has `archive.txt`, and a damaged
+`videos.json` never being replaced, in the Rust unit tests.
 
 `./build.sh check net` (~80s): fetches two real channels and checks the
 members-only flag arrives in the listing.
@@ -51,6 +53,11 @@ Last driven: 2026-10-12, tests only. The `net` tests were not run that day.
 
 ## Gotchas
 
+- `.vault/videos.json` is the only record of what a folder has archived.
+  `archive.txt` and `dates.txt` in an older folder are read once to build it
+  and never written again; deleting `videos.json` redoes that import.
+- A `videos.json` that can't be parsed makes the folder read as holding
+  nothing, and the reason only reaches the log. Nothing is written over it.
 - The tab is remembered across launches but Shorts and Live aren't saved, so a
   remembered tab is fetched on arrival.
 - The alert on a failed Sync is an agent's guess at where that message belongs.

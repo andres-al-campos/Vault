@@ -11,15 +11,18 @@ Queue videos and watch them download one at a time in the sidebar.
   cancelled download resumes its partial file.
 - A failed row shows why and gets Retry; Retry failed re-queues every failed row.
 - Clear finished removes done and failed rows.
-- Download again, on a card whose file is missing, runs forced: yt-dlp
-  ignores the archive record for that run and the record is re-stamped once the
-  file lands. The job stays forced through any retry.
+- Download again, on a card whose file is missing, is an ordinary download
+  into the folder that recorded it.
+- A download that ends with the file already in the folder reads "Already in
+  archive": yt-dlp leaves a finished file alone.
+- A download only counts once its file is in the folder. If yt-dlp reports
+  success and no file is there, the row fails and says so.
 - Download N shown queues what the filters have narrowed to; see
   [browsing.md](browsing.md).
 
-- A finished download records the video's real upload date in the folder's
-  `.vault/dates.txt`. Checked by `./build.sh check net`, which downloads two
-  videos and reads their dates back.
+- A finished download writes the video's record to the folder's
+  `.vault/videos.json`: title, real upload date, length, views, members flag
+  and when it was downloaded.
 
 ## How to get to it
 
@@ -31,14 +34,14 @@ right-hand sidebar.
 Preconditions: none.
 
 `./build.sh check` (~1s once built): the queue's rules in `src/queue.test.js` —
-order, one at a time, no double-queuing, force surviving a retry and a re-queue
-from a card, a second completion report changing nothing, cancelling a waiting
-job.
+order, one at a time, no double-queuing, retry and re-queue of a failed job, a
+second completion report changing nothing, cancelling a waiting job. How a
+finished download becomes a record, in the Rust unit tests.
 
 `./build.sh check net` (~100s): really downloads two short videos from a live
 channel into a temp folder and walks them through every archive state — not
-archived, on disk, recorded but file lost, an ordinary download skipping the
-lost one, a forced one restoring it and recording the id once.
+archived, on disk with a full record, recorded but file lost, downloaded again
+with one record kept, and skipped when the file is already there.
 
 By click against the stand-in backend (see the README's driving conventions):
 `?scenario=library&fail=<id>&speed=300` — Download on a Shorts card, Download
@@ -48,9 +51,8 @@ By hand only: cancelling a running download, and anything through the native
 folder picker.
 
 Last driven: 2026-10-12. The live download test passed against @billwurtz
-(12s on its own). Against the stand-in: a Shorts download completed and its
-card read "In archive"; a failed Download again showed Retry, the retry was
-sent with force, and the Archive tab went from 1 not found to 0.
+(12s on its own) after the move to `videos.json`. The stand-in has not been
+clicked through since.
 
 ## Gotchas
 
