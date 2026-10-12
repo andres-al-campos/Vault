@@ -412,8 +412,14 @@ function renderGrid() {
     return;
   }
 
+  gridVideos = isArchive() ? new Map() : new Map(list.map((v) => [v.id, v]));
   gridEl.innerHTML = list.map((v) => isArchive() ? archiveCard(v) : videoCard(v)).join("");
 }
+
+// The videos behind the cards on screen, by id. A Download click resolves
+// through this rather than through one tab's list: the handler used to look
+// only in the Videos tab, so every button on Shorts and Live did nothing.
+let gridVideos = new Map();
 
 // A card for the Videos / Shorts / Live tabs. `v` is a channel video.
 function videoCard(v) {
@@ -486,8 +492,7 @@ gridEl.addEventListener("click", (e) => {
   if (r) { redownload(r.dataset.redl); return; }
   const b = e.target.closest(".dl");
   if (!b || b.disabled) return;
-  const ch = activeChannel();
-  const v = ch?.videos.find((x) => x.id === b.dataset.id);
+  const v = gridVideos.get(b.dataset.id);
   if (v) enqueue(v);
 });
 
