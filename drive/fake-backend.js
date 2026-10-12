@@ -140,7 +140,6 @@ const commands = {
   ensure_dir: () => null,
   set_channel_dir: () => null,
   reveal_folder: () => null,
-  open_file: () => null,
   // The player: no picture here, only a clock that runs while it's playing.
   player_load({ path, start, paused }) {
     if (/unplayable/.test(path)) throw `The file isn't there: ${path}. If it's on an external drive, connect it; otherwise press Sync and download it again.`;

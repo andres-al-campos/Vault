@@ -10,14 +10,15 @@ videos sit in browser tabs through a day.
   ⌘-click opens the tab without leaving the channel.
 - "Open videos N" in the top bar goes back to the player. It shows only while
   tabs are open.
+- Switching to a tab brings its video up paused where it was left; only Play
+  on a card starts a video playing.
 - Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
   under the pointer). Resting on a tab shows its whole title and its thumbnail,
   with a line along the thumbnail's bottom for how far through it is; once one such card is up, moving
   to another tab shows its card at once. Closing the tab on screen moves to the one on its right, or its left
   from the last one, and that tab waits paused where it was left. Closing the
   last tab returns to the channel.
-- Controls: play/pause, time, a seek bar, volume, and a button that opens the
-  file in the Mac's default player instead. Clicking the picture also toggles
+- Controls: play/pause, time, a seek bar, volume and fullscreen. Clicking the picture also toggles
   play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, Esc goes back to
   the channel.
 - Fullscreen: the button at the right of the controls, F, or a double-click on

@@ -1494,39 +1494,6 @@ fn reveal_folder(dir: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Opens a downloaded file with the system's default app, so VLC (or whatever
-/// handles the extension) plays it.
-///
-/// There is deliberately no `exists()` guard. On macOS a `stat` against a path
-/// the process can't reach fails the same way a missing file does, so guarding
-/// on it turns "the folder is on a drive this build can't see" into "no longer
-/// there" and refuses to launch — the user sees nothing at all. Letting
-/// LaunchServices be the judge means the file opens when it can and the error
-/// we surface is the real one.
-///
-/// `open` is also passed the path as its own argv entry, never through a shell,
-/// so spaces, parentheses, brackets and non-ASCII names survive intact.
-#[tauri::command]
-fn open_file(path: String) -> Result<(), String> {
-    if path.trim().is_empty() {
-        return Err("No file to open.".into());
-    }
-    let out = Command::new("open")
-        .arg(&path)
-        .output()
-        .map_err(|e| format!("Could not run `open`: {e}"))?;
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr);
-        let msg = err.trim();
-        return Err(if msg.is_empty() {
-            format!("`open` failed on {path}")
-        } else {
-            msg.to_string()
-        });
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2210,7 +2177,6 @@ pub fn run() {
             set_channel_dir,
             migrate_archives,
             reveal_folder,
-            open_file,
             player::player_load,
             player::player_set,
             player::player_state,

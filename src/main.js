@@ -745,8 +745,7 @@ function stageError(err) {
 }
 
 // Puts the active tab's video on, from where it was left. `paused` holds it
-// on that frame: a tab that only came forward because its neighbour was closed
-// wasn't asked to play.
+// on that frame, for a tab that came forward without being asked to play.
 async function loadActive({ paused = false } = {}) {
   const tab = tabs.active;
   if (!tab) return;
@@ -855,13 +854,15 @@ async function leavePlayer() {
   renderWatching();
 }
 
+// Switching tabs brings the video up paused where it was left. Only Play on a
+// card starts one playing unasked.
 async function selectTab(id) {
   if (id === tabs.activeId) return;
   await tick();
   tabs.select(id);
   saveTabs();
   renderTabs();
-  loadActive();
+  loadActive({ paused: true });
 }
 
 async function closeTab(id) {
@@ -961,13 +962,6 @@ $("pvol").value = localStorage.getItem("vault-volume") ?? 100;
 $("pvol").addEventListener("input", (e) => {
   localStorage.setItem("vault-volume", e.target.value);
   invoke("player_set", { action: "volume", value: Number(e.target.value) }).catch(() => {});
-});
-// The way out when mpv can't play something: whatever app owns the file type.
-$("pext").addEventListener("click", () => {
-  const tab = tabs.active;
-  if (!tab) return;
-  invoke("player_set", { action: "pause" }).catch(() => {});
-  invoke("open_file", { path: tab.path }).catch((err) => stageError(`${err} The file is at ${tab.path}.`));
 });
 document.addEventListener("keydown", (e) => {
   if (!watching() || e.metaKey || e.ctrlKey || e.altKey) return;
