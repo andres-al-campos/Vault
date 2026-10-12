@@ -29,6 +29,7 @@
   --sel-ring: #8a8f9c;
   /* The chosen filter: a solid fill, easier to spot in a row than an outline. */
   --on: #2b2e36;
+  --hover-line: #a9adb8;
   --on-fg: #ffffff;
   --sb-thumb: #cfcfc7;
   --sb-thumb-hover: #b4b4ab;
@@ -59,6 +60,7 @@
   --sel-ring: #7c8494;
   /* Near white: a mid grey left the count beside the label hard to read. */
   --on: #eceef2;
+  --hover-line: #6f7786;
   --on-fg: #14161b;
   --sb-thumb: #3a3f4d;
   --sb-thumb-hover: #4c5364;
@@ -104,7 +106,7 @@ body {
 .btn-primary:not(:disabled):hover { background: var(--btn-bg-hover); }
 .btn-icon { background: var(--panel); border: 1px solid var(--line); color: var(--text); padding: 9px 11px; display: grid; place-items: center; }
 .btn-labelled { display: flex; align-items: center; gap: 7px; }
-.btn-icon:not(:disabled):hover { background: var(--hover); }
+.btn-icon:not(:disabled):hover { background: var(--hover); border-color: var(--hover-line); }
 .btn-icon:disabled { color: var(--muted); }
 
 /* ---------- channel selector ---------- */
@@ -194,7 +196,7 @@ body {
 .dirmeta .path:hover { text-decoration: underline; }
 .dirmeta .mini { border: 1px solid var(--line); background: var(--panel); color: var(--text);
   border-radius: 7px; padding: 4px 9px; font: 600 11.5px inherit; cursor: pointer; flex: none; }
-.dirmeta .mini:hover { background: var(--hover); }
+.dirmeta .mini:hover { background: var(--hover); border-color: var(--hover-line); }
 .dirmeta .mini.accent { border-color: var(--accent); color: var(--accent); }
 .dirmeta svg { flex: none; }
 
@@ -202,7 +204,9 @@ body {
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
 .card { background: var(--card); border: 1px solid var(--line2); border-radius: 16px; overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); transition: 0.18s; display: flex; flex-direction: column; }
-.card:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.09); }
+/* Hover lights the border, on cards and bordered buttons alike. Cards used
+   to lift with a shadow; that was dropped as a look-and-feel call. */
+.card:hover { border-color: var(--hover-line); }
 .thumb { position: relative; aspect-ratio: 16/9; background: var(--chip); }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0, 0, 0, 0.82); color: #fff;
@@ -217,8 +221,9 @@ body {
   font: 600 13px inherit; cursor: pointer; color: var(--text); transition: 0.15s; }
 /* Lifts on hover rather than inverting: inverting to --text was a near-white
    flash in dark mode. */
-.dl:hover { background: var(--hover-strong); }
+.dl:hover { background: var(--hover-strong); border-color: var(--hover-line); }
 .dl.on { background: var(--accent-soft); color: var(--accent-soft-fg); border-color: var(--accent-soft-line); }
+.dl.on:hover { border-color: var(--accent-soft-fg); }
 /* A download in progress fills the button from the left, so the card itself
    shows how far along it is. */
 .dl.busy { background: linear-gradient(90deg, var(--accent-soft) var(--pct), var(--chip) var(--pct));
@@ -319,7 +324,7 @@ body {
   font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   padding: 5px 7px; border-radius: 5px; }
 .dl:disabled { cursor: default; color: var(--muted); background: var(--chip); opacity: 0.75; }
-.dl:disabled:hover { background: var(--chip); }
+.dl:disabled:hover { background: var(--chip); border-color: var(--chip-line); }
 /* Archive thumbnails are the play affordance: the whole image is the target.
    A file that couldn't be located stays inert rather than looking clickable. */
 .thumb.playable { cursor: pointer; }
