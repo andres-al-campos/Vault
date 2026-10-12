@@ -6,8 +6,9 @@
 #
 #   ./build.sh              package the .app and install it, the default
 #   ./build.sh dev          dev run with a hot-reload window
-#   ./build.sh test         run the Rust unit tests (fast, no network)
-#   ./build.sh test net     also run the live tests that fetch real channels
+#   ./build.sh check        run every check: the JS and Rust unit tests (fast, no network)
+#   ./build.sh check net    also run the live tests that fetch real channels
+#   ./build.sh test [net]   the same thing under its old name
 #   ./build.sh clean        drop build output
 #
 # Vault is a Tauri app: `npm run tauri build` compiles the Rust side and the
@@ -77,8 +78,11 @@ case "${1:-}" in
     exec npm run tauri dev
     ;;
 
-  test)
-    # Plain `test` runs the fast unit tests. The live network tests really do
+  check|test)
+    # The frontend's pure modules run under node's own test runner. The glob is
+    # quoted so node expands it; a bare directory argument is read as a module.
+    node --test 'src/*.test.js'
+    # Plain `check` runs the fast unit tests. The live network tests really do
     # fetch whole channels (the members-only check pulls all 7k+ LTT videos),
     # so they are behind an explicit argument rather than in the default path.
     if [ "${2:-}" = "net" ]; then
@@ -97,7 +101,7 @@ case "${1:-}" in
 
   *)
     die "Unknown argument: $1
-Usage: ./build.sh [dev|test [net]|clean]   (no argument packages and installs)"
+Usage: ./build.sh [dev|check [net]|clean]   (no argument packages and installs)"
     ;;
 esac
 

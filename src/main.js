@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import { createQueue } from "./queue.js";
 
 /* ---------------- theme ---------------- */
 const root = document.documentElement;
@@ -48,9 +49,7 @@ const isMembers = (v) => v.availability === "subscriber_only";
 /* ---------------- state ---------------- */
 let state = { active: null, channels: [] };
 let downloaded = new Set(); // ids archived in the ACTIVE channel's vault
-const jobs = new Map();   // id -> { title, thumb, url, dir, pct, status, stat, reason }
-let pending = [];         // queued { id, url, dir }
-let activeId = null;      // the job currently downloading (concurrency = 1)
+const queue = createQueue(); // the download jobs and their order — see queue.js
 
 // yt-dlp reads cookies straight from the chosen browser's profile, so
 // members-only videos and the bot check are handled without ever handling
@@ -549,15 +548,14 @@ async function changeDir(ch) {
 }
 
 /* ---------------- queue engine (one at a time) ---------------- */
-const queuedOrRunning = (id) => jobs.has(id) && jobs.get(id).status !== "error";
-
 async function enqueue(v) {
   const ch = activeChannel();
-  if (!ch || queuedOrRunning(v.id) || pending.some((p) => p.id === v.id)) return;
+  if (!ch || queue.holds(v.id)) return;
   const dir = await ensureDir(ch);
   if (!dir) return;
-  pending.push({ id: v.id, url: v.url, dir, title: v.title });
-  addJob(v.id, v.title, v.url, dir, "queued", "Queued");
+  if (!queue.add({ id: v.id, title: v.title, url: v.url, dir })) return;
+  renderQueue();
+  syncCard(v.id);
   pump();
 }
 
@@ -571,11 +569,11 @@ async function downloadAll() {
     // Members-only fails without cookies no matter what; with them it's an
     // ordinary (membership-gated) download.
     if (isMembers(v) && !state.cookies_browser) { skipped++; continue; }
-    if (downloaded.has(v.id) || queuedOrRunning(v.id) || pending.some((p) => p.id === v.id)) continue;
-    pending.push({ id: v.id, url: v.url, dir, title: v.title });
-    addJob(v.id, v.title, v.url, dir, "queued", "Queued");
+    if (downloaded.has(v.id)) continue;
+    if (queue.add({ id: v.id, title: v.title, url: v.url, dir })) syncCard(v.id);
   }
   if (skipped) console.info(`Skipped ${skipped} members-only video(s).`);
+  renderQueue();
   pump();
 }
 
@@ -586,28 +584,23 @@ async function downloadAll() {
 function redownload(id) {
   const entry = (archive || []).find((e) => e.id === id);
   if (!entry || !entry.dir) return;
-  if (queuedOrRunning(id) || pending.some((p) => p.id === id)) return;
-  const title = entry.title || id;
-  pending.push({ id, url: entry.url, dir: entry.dir, title, force: true });
-  addJob(id, title, entry.url, entry.dir, "queued", "Queued");
+  if (!queue.add({ id, title: entry.title || id, url: entry.url, dir: entry.dir, force: true })) return;
+  renderQueue();
   pump();
 }
 
 function pump() {
-  if (activeId || pending.length === 0) return;
-  const next = pending.shift();
-  activeId = next.id;
-  setJob(next.id, { status: "downloading", stat: "Starting…", pct: 0 });
-  invoke("download_video", { id: next.id, url: next.url, dir: next.dir, force: next.force || null, cookies: state.cookies_browser ?? null })
-    .catch((e) => finish(next.id, false, `Error: ${e}`));
+  const job = queue.next();
+  if (!job) return;
+  updateJobElement(job.id);
+  renderSummary();
+  syncCard(job.id);
+  invoke("download_video", { id: job.id, url: job.url, dir: job.dir, force: job.force, cookies: state.cookies_browser ?? null })
+    .catch((e) => finish(job.id, false, `Error: ${e}`));
 }
 
-function addJob(id, title, url, dir, status, stat, force = false) {
-  if (!jobs.has(id)) jobs.set(id, { title, thumb: thumb(id), url, dir, pct: 0, status, stat, reason: null, force });
-  renderQueue();
-}
 function setJob(id, patch) {
-  const j = jobs.get(id);
+  const j = queue.jobs.get(id);
   if (!j) return;
   Object.assign(j, patch);
   updateJobElement(id);
@@ -615,21 +608,16 @@ function setJob(id, patch) {
   syncCard(id);
 }
 function finish(id, ok, stat) {
-  const j = jobs.get(id);
-  if (!j) return;
-  j.status = ok ? "done" : "error";
-  j.pct = ok ? 100 : j.pct;
-  j.stat = stat || (ok ? "Complete" : "Failed");
-  j.reason = ok ? null : stat;
+  if (!queue.settle(id, ok, stat)) return;
   // Marks the card immediately, but only when the file landed in the active
   // channel's folder — the archive is per channel. A job that finished for a
   // channel the user has already navigated away from is corrected by the
   // archive reload below, which rebuilds the set from the files themselves.
   if (ok) {
     const ch = activeChannel();
+    const j = queue.jobs.get(id);
     if (ch && j.dir && ch.download_dir === j.dir) downloaded.add(id);
   }
-  if (activeId === id) activeId = null;
   updateJobElement(id);
   renderSummary();
   syncCard(id);
@@ -655,7 +643,7 @@ function refreshArchiveSoon() {
 function syncCard(id) {
   const b = gridEl.querySelector(`.dl[data-id="${CSS.escape(id)}"]`);
   if (!b || b.disabled) return;
-  const j = jobs.get(id);
+  const j = queue.jobs.get(id);
   // Progress outranks the badge: a re-download of an id that is still in the
   // archive must show its percentage, not "✓ In archive".
   if (j && j.status === "downloading") { b.classList.add("on"); b.textContent = `↓ ${Math.round(j.pct)}%`; }
@@ -669,12 +657,12 @@ function syncCard(id) {
 const queueEl = $("queue");
 
 function renderQueue() {
-  if (jobs.size === 0) {
+  if (queue.jobs.size === 0) {
     queueEl.innerHTML = `<div class="qempty">Nothing queued yet.</div>`;
     renderSummary();
     return;
   }
-  queueEl.innerHTML = Array.from(jobs.entries()).map(([id, j]) => {
+  queueEl.innerHTML = Array.from(queue.jobs.entries()).map(([id, j]) => {
     const controls =
       j.status === "done" ? '<span class="okmark">✓</span>'
       : j.status === "error"
@@ -682,7 +670,7 @@ function renderQueue() {
         : `<button class="x" data-cancel="${id}">✕</button>`;
     return `
     <div class="qi" data-id="${id}">
-      <img src="${j.thumb}" alt="">
+      <img src="${thumb(id)}" alt="">
       <div class="m">
         <div class="t">${esc(j.title)}</div>
         <div class="bar"><i class="${j.status === "done" ? "done" : ""}" style="width:${j.pct}%"></i></div>
@@ -697,7 +685,7 @@ function renderQueue() {
 }
 
 function updateJobElement(id) {
-  const j = jobs.get(id);
+  const j = queue.jobs.get(id);
   const el = queueEl.querySelector(`.qi[data-id="${CSS.escape(id)}"]`);
   if (!j || !el) return renderQueue();
   const bar = el.querySelector(".bar > i");
@@ -710,12 +698,12 @@ function updateJobElement(id) {
 }
 
 function renderSummary() {
-  const list = Array.from(jobs.values());
+  const list = Array.from(queue.jobs.values());
   const down = list.filter((j) => j.status === "downloading").length;
   const q = list.filter((j) => j.status === "queued").length;
   const done = list.filter((j) => j.status === "done").length;
   const err = list.filter((j) => j.status === "error").length;
-  $("qsum").textContent = jobs.size === 0
+  $("qsum").textContent = queue.jobs.size === 0
     ? "Idle"
     : [`${down} downloading`, `${q} queued`, done && `${done} done`, err && `${err} failed`]
         .filter(Boolean).join(" · ");
@@ -726,8 +714,7 @@ queueEl.addEventListener("click", async (e) => {
   if (cancel) {
     const id = cancel.dataset.cancel;
     // Not started yet: it has no process, so just drop it from our own queue.
-    if (pending.some((p) => p.id === id)) {
-      pending = pending.filter((p) => p.id !== id);
+    if (queue.isWaiting(id)) {
       finish(id, false, "Cancelled");
       return;
     }
@@ -739,33 +726,25 @@ queueEl.addEventListener("click", async (e) => {
   }
 
   const dismiss = e.target.closest("[data-dismiss]");
-  if (dismiss) { jobs.delete(dismiss.dataset.dismiss); renderQueue(); return; }
+  if (dismiss) { queue.remove(dismiss.dataset.dismiss); renderQueue(); return; }
 
   const retry = e.target.closest("[data-retry]");
   if (retry) retryJob(retry.dataset.retry);
 });
 
 function retryJob(id) {
-  const j = jobs.get(id);
-  if (!j) return;
-  j.status = "queued";
-  j.pct = 0;
-  j.stat = "Queued";
-  j.reason = null;
-  pending.push({ id, url: j.url, dir: j.dir, title: j.title, force: j.force || null });
-  updateJobElement(id);
+  if (!queue.retry(id)) return;
   renderQueue();
+  syncCard(id);
   pump();
 }
 
 $("clear").addEventListener("click", () => {
-  for (const [id, j] of Array.from(jobs.entries())) {
-    if (j.status === "done" || j.status === "error") jobs.delete(id);
-  }
+  queue.clearFinished();
   renderQueue();
 });
 $("retryall").addEventListener("click", () => {
-  Array.from(jobs.entries())
+  Array.from(queue.jobs.entries())
     .filter(([, j]) => j.status === "error")
     .forEach(([id]) => retryJob(id));
 });
