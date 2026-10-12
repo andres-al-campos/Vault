@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { archiveState, view, downloadable, withUnlisted, sortVideos, batchSizes } from "./library.js";
+import { archiveState, view, downloadable, withUnlisted, sortVideos, batchSizes, newVideos, ago } from "./library.js";
 
 const v = (id, extra = {}) => ({ id, title: id, duration: 10, view_count: 1, url: `u/${id}`, availability: null, ...extra });
 const member = (id, extra = {}) => v(id, { availability: "subscriber_only", ...extra });
@@ -79,6 +79,31 @@ test("a batch is the first downloadable videos in the order shown", () => {
   const oldest = view(list, { access: "all", have: "all", sort: "oldest" }, archived).shown;
   const { jobs } = downloadable(oldest, archived, { cookies: true, holds: () => false });
   assert.deepEqual(jobs.slice(0, 2).map((j) => j.video.id), ["e", "d"]);
+});
+
+test("a subscription takes what is listed above the newest archived video", () => {
+  const l = [v("n2"), v("n1"), v("kept"), v("skipped"), v("old")];
+  const have = new Map([["kept", { id: "kept", path: "/d/k.mp4" }], ["old", { id: "old", path: "/d/o.mp4" }]]);
+  assert.deepEqual(newVideos(l, have, null).map((x) => x.id), ["n2", "n1"]);
+  // A record whose file is gone still marks the line.
+  assert.deepEqual(newVideos(l, new Map([["n1", { id: "n1", path: null }]]), null).map((x) => x.id), ["n2"]);
+  // The newest is already archived: nothing to do.
+  assert.deepEqual(newVideos(l, new Map([["n2", { id: "n2" }]]), new Set()), []);
+});
+
+test("with nothing archived, a subscription takes only what appeared since the last list", () => {
+  const l = [v("n1"), v("b"), v("a")];
+  assert.deepEqual(newVideos(l, new Map(), new Set(["a", "b"])).map((x) => x.id), ["n1"]);
+  assert.deepEqual(newVideos(l, new Map(), null), [], "no earlier list: never the back catalogue");
+});
+
+test("dates read back the way YouTube words them", () => {
+  const now = 1_000_000_000;
+  assert.equal(ago(now - 3 * 604800, now), "3 weeks ago");
+  assert.equal(ago(now - 86400, now), "1 day ago");
+  assert.equal(ago(now - 400 * 86400, now), "1 year ago");
+  assert.equal(ago(now - 60, now), "just now");
+  assert.equal(ago(null, now), "");
 });
 
 test("archived videos the channel no longer lists are added after the listed ones", () => {

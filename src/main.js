@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import { createQueue } from "./queue.js";
-import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, ASK_ABOVE } from "./library.js";
+import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, ASK_ABOVE, newVideos, ago } from "./library.js";
 
 /* ---------------- theme ---------------- */
 const root = document.documentElement;
@@ -198,16 +198,7 @@ async function doFetch(raw, { quiet = false } = {}) {
       ch = { url: info.url, title: info.title, uploader: info.uploader, video_count: 0, fetched_at: 0, download_dir: null, videos: [] };
       state.channels.unshift(ch);
     }
-    ch.title = info.title;
-    ch.uploader = info.uploader;
-    ch.video_count = info.video_count;
-    ch.videos = info.videos;
-    // What the header draws. Saved with the channel so it's there on launch.
-    ch.avatar = info.avatar ?? null;
-    ch.banner = info.banner ?? null;
-    ch.followers = info.followers ?? null;
-    ch.verified = !!info.verified;
-    ch.fetched_at = Math.floor(Date.now() / 1000);
+    const before = takeListing(ch, info);
     state.active = info.url;
     tabCache.delete(info.url); // tab caches are stale after a re-fetch
     for (const k of Array.from(tabErrors.keys())) if (k.startsWith(`${info.url}|`)) tabErrors.delete(k);
@@ -218,6 +209,7 @@ async function doFetch(raw, { quiet = false } = {}) {
     await loadArchive();
     renderSelector();
     showActive();
+    await queueNew(ch, before);
   } catch (e) {
     if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>Couldn't fetch that</h2><p>${esc(String(e))}</p>`);
     // Sync keeps the list on screen, so its failure has nowhere to show. Say
@@ -226,6 +218,83 @@ async function doFetch(raw, { quiet = false } = {}) {
   } finally {
     $("fetch").disabled = false;
   }
+}
+
+// Puts a fresh Videos listing on a channel. Returns the ids it had before, or
+// null when it had no list, which is what a subscription with nothing
+// archived yet measures "new" against.
+function takeListing(ch, info) {
+  const before = ch.videos.length ? new Set(ch.videos.map((v) => v.id)) : null;
+  ch.title = info.title;
+  ch.uploader = info.uploader;
+  ch.video_count = info.video_count;
+  ch.videos = info.videos;
+  // What the header draws. Saved with the channel so it's there on launch.
+  ch.avatar = info.avatar ?? null;
+  ch.banner = info.banner ?? null;
+  ch.followers = info.followers ?? null;
+  ch.verified = !!info.verified;
+  ch.fetched_at = Math.floor(Date.now() / 1000);
+  return before;
+}
+
+/* ---------------- subscriptions ---------------- */
+// Queues a subscribed channel's new uploads, tab by tab. Called after its
+// Videos list has just been refreshed; Shorts and Live are fetched here when
+// the subscription includes them. Returns how many were queued.
+async function queueNew(ch, before) {
+  const sub = ch.subscribe;
+  if (!sub || !ch.download_dir) return 0;
+  const mine = new Map(archive.filter((e) => e.channel_url === ch.url).map((e) => [e.id, e]));
+  const lists = [];
+  if (sub.videos) lists.push([ch.videos, before]);
+  for (const tab of ["shorts", "streams"]) {
+    if (!sub[tab]) continue;
+    await loadTab(ch, tab);
+    const list = (tabCache.get(ch.url) || {})[tabKey(tab)];
+    if (list) lists.push([list, null]);
+  }
+  let queued = 0;
+  for (const [list, was] of lists) {
+    // Members-only videos come along when cookies are set, and wait for a
+    // later refresh when they aren't.
+    const { jobs } = downloadable(newVideos(list, mine, was), mine, { cookies: !!state.cookies_browser, holds: queue.holds });
+    for (const { video } of jobs) {
+      if (queue.add({ id: video.id, title: video.title, url: video.url, dir: ch.download_dir, force: false })) queued++;
+    }
+  }
+  if (queued) {
+    renderQueue();
+    if (activeChannel() === ch) renderList();
+    pump();
+  }
+  return queued;
+}
+
+// At launch: refresh every subscribed channel and queue what's new. One at a
+// time, in the background; the saved lists are on screen meanwhile.
+async function checkSubscriptions() {
+  for (const ch of state.channels.filter((c) => c.subscribe)) {
+    try {
+      const info = await invoke("fetch_channel", { url: ch.url, tab: "videos", cookies: state.cookies_browser ?? null });
+      if (!info.videos?.length) continue;
+      const before = takeListing(ch, info);
+      await persist();
+      if (activeChannel() === ch) { renderHeader(ch); renderList(); }
+      await queueNew(ch, before);
+    } catch (e) {
+      // The saved list stays as it was; Sync on the channel shows the reason.
+      console.error(`Subscription check failed for ${ch.url}:`, e);
+    }
+  }
+  renderSelector();
+}
+
+async function setSubscription(ch, sub) {
+  if (sub && !(await ensureDir(ch))) return; // new uploads need somewhere to go
+  ch.subscribe = sub;
+  await persist();
+  if (activeChannel() === ch) renderHeader(ch);
 }
 
 function showActive() {
@@ -259,6 +328,7 @@ const FOLDER_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
 // their next Sync, and fall back to the initial.
 function renderHeader(ch) {
   const initial = (ch.title || "?").trim().charAt(0).toUpperCase();
+  const sub = ch.subscribe;
   const handle = ch.url.split("/").pop();
   const meta = [
     handle.startsWith("@") && esc(handle),
@@ -284,7 +354,27 @@ function renderHeader(ch) {
         <div class="chan-meta">${meta}</div>
         ${dir}
       </div>
+      <div class="subscribe">
+        <button class="btn ${sub ? "btn-icon btn-labelled" : "btn-primary"}" id="sub-btn" title="Downloads new videos that haven't been archived yet, each time Vault opens or you press Sync.">${sub ? "✓ Subscribed" : "Subscribe"}</button>
+        <div class="dl-menu sub-menu" id="sub-menu">
+          <div class="cookie-hd">Download new uploads from</div>
+          ${Object.entries(TABS).map(([tab, label]) =>
+            `<label class="sub-opt"><input type="checkbox" data-sub="${tab}"${(sub ? sub[tab] : tab === "videos") ? " checked" : ""}> ${label}</label>`).join("")}
+          <div class="cookie-note">New means listed above the newest video you've archived. Members-only videos are included when cookies are set.</div>
+          <button class="btn btn-primary" id="sub-go">${sub ? "Unsubscribe" : "Subscribe"}</button>
+        </div>
+      </div>
     </div>`;
+
+  const picked = () => Object.fromEntries(
+    [...headEl.querySelectorAll("[data-sub]")].map((b) => [b.dataset.sub, b.checked]));
+  $("sub-btn").addEventListener("click", (e) => { e.stopPropagation(); $("sub-menu").classList.toggle("open"); });
+  $("sub-menu").addEventListener("click", (e) => e.stopPropagation());
+  // Once subscribed, a tick takes effect as it's made.
+  headEl.querySelectorAll("[data-sub]").forEach((b) => b.addEventListener("change", () => {
+    if (ch.subscribe) { ch.subscribe = picked(); persist(); }
+  }));
+  $("sub-go").addEventListener("click", () => setSubscription(ch, ch.subscribe ? null : picked()));
 
   // Art that fails to load steps aside: the initial for the avatar, nothing
   // for the banner. A broken-image box is worse than either.
@@ -381,7 +471,10 @@ function renderControls(now) {
   controlsEl.querySelectorAll("[data-first]").forEach((b) =>
     b.addEventListener("click", () => downloadShown(Number(b.dataset.first))));
 }
-document.addEventListener("click", () => $("dlmenu")?.classList.remove("open"));
+document.addEventListener("click", () => {
+  $("dlmenu")?.classList.remove("open");
+  $("sub-menu")?.classList.remove("open");
+});
 
 function setFilter(name, value) {
   filters[name] = value;
@@ -469,6 +562,7 @@ function card(v) {
   const playable = have === "have" && !!entry?.path;
   const meta = [
     fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`,
+    ago(v.timestamp),
     v.unlisted && "Missing on YT",
   ].filter(Boolean).join(" · ");
   return `
@@ -884,5 +978,6 @@ async function boot() {
   renderCookieState();
   showActive();
   renderQueue();
+  checkSubscriptions();
 }
 boot();

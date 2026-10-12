@@ -11,6 +11,8 @@
 //   ?scenario=fresh     nothing saved (the default)
 //   ?scenario=library   one channel with a folder; some videos archived, one
 //                       with its file missing, some marked members-only
+//   &subscribed=1       the library channel is subscribed (Videos only), so
+//                       launch queues what is listed above its newest archived
 //   &confirm=no         the "Queue N videos?" popup is answered Cancel
 //   ?scenario=corrupt   the state file can't be read
 //   &failtab=shorts     the first fetch of that tab fails
@@ -30,7 +32,8 @@ const URL_ = "https://www.youtube.com/@billwurtz";
 const DIR = "/Volumes/Archive/bill wurtz";
 // The recorded listing has no members-only videos, so the library scenario
 // marks a few. That flag is the one invented thing in the fixture.
-const videos = recorded.videos.map((v, i) =>
+// The recording predates dates in the listing: space them three weeks apart.
+const videos = recorded.videos.map((v, i) => ({ ...v, timestamp: Math.floor(Date.now() / 1000) - (i * 21 + 2) * 86400 })).map((v, i) =>
   scenario === "library" && [2, 6, 10].includes(i) ? { ...v, availability: "subscriber_only" } : v);
 const shorts = recorded.videos.slice(40, 48).map((v) => ({ ...v, id: v.id, duration: null }));
 
@@ -50,7 +53,8 @@ const archive = new Map();
 if (scenario === "library") {
   state = {
     active: URL_, cookies_browser: null,
-    channels: [{ url: URL_, title: recorded.title, uploader: recorded.uploader, video_count: videos.length, fetched_at: 0, download_dir: DIR, videos, ...about }],
+    channels: [{ url: URL_, title: recorded.title, uploader: recorded.uploader, video_count: videos.length, fetched_at: 0, download_dir: DIR, videos, ...about,
+      subscribe: q.get("subscribed") ? { videos: true, shorts: false, streams: false } : null }],
   };
   for (const i of [1, 3, 5, 6, 9]) archive.set(videos[i].id, `${DIR}/${videos[i].title} [${videos[i].id}].mp4`);
   archive.set(videos[7].id, null);

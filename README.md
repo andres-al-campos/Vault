@@ -110,9 +110,14 @@ Archived videos the channel no longer lists (deleted or made private) stay on
 the Videos tab, after the listed ones, marked "Missing on YT".
 
 Sorting: **Newest** (YouTube's own order), **Oldest** (reversed), **Most
-popular** (`view_count`), **Shortest** / **Longest** (`duration`). There is no
-upload date in flat mode — `timestamp` came back null on every video tested — so
-newest/oldest fall back to the order YouTube returns, which is newest-first.
+popular** (`view_count`), **Shortest** / **Longest** (`duration`). Newest and
+Oldest use the order YouTube returns, which is newest-first and exact. The
+"3 weeks ago" under a card is approximate: the listing only carries YouTube's
+own wording, which yt-dlp turns into a date.
+
+**Subscribe**, in the channel header, queues a channel's new uploads each time
+Vault opens or you press Sync: everything listed above the newest video you've
+archived. Its popup picks which of Videos, Shorts and Live that covers.
 Shorts carry no duration, so they sort last under Shortest/Longest.
 
 ### Failures and retries

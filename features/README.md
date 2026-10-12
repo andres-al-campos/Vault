@@ -13,6 +13,7 @@ and cookies have no file yet.
 | Channel listing | [channel-listing.md](channel-listing.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 | Browsing a channel | [browsing.md](browsing.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 | Remembered channels | [remembered-channels.md](remembered-channels.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
+| Subscriptions | [subscriptions.md](subscriptions.md) | macOS | Tests, and by click against the stand-in (2026-10-12) |
 
 ## What counts as a feature
 

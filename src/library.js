@@ -79,6 +79,33 @@ export const batchSizes = (count) => BATCHES.filter((n) => n < count);
 // thousand downloads on a large channel.
 export const ASK_ABOVE = 100;
 
+// What a subscription downloads: the videos listed above the newest archived
+// one. The listing is newest first, so that is exactly "uploaded since the
+// last one I kept", with no dates needed. A video skipped on purpose stays
+// skipped once something newer is archived.
+//
+// With nothing archived there is no such line, so only videos that weren't in
+// the list before this refresh count (`before`: the ids it had, or null when
+// there was no earlier list). Subscribing never pulls the back catalogue.
+export function newVideos(list, archived, before) {
+  const newest = list.findIndex((v) => archived.has(v.id));
+  if (newest >= 0) return list.slice(0, newest);
+  return before ? list.filter((v) => !before.has(v.id)) : [];
+}
+
+// "3 weeks ago" from a Unix timestamp. The listing's dates are approximate to
+// begin with, so one unit is all the precision there is.
+export function ago(timestamp, now = Date.now() / 1000) {
+  if (!timestamp) return "";
+  const s = Math.max(0, now - timestamp);
+  const units = [["year", 31536000], ["month", 2592000], ["week", 604800], ["day", 86400], ["hour", 3600]];
+  for (const [name, len] of units) {
+    const n = Math.floor(s / len);
+    if (n >= 1) return `${n} ${name}${n > 1 ? "s" : ""} ago`;
+  }
+  return "just now";
+}
+
 // Archived videos the channel no longer lists (deleted or made private on
 // YouTube) have no card of their own, and they are the ones an archive most
 // needs to keep showing. They go after the listed videos.
