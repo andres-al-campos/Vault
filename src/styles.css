@@ -92,6 +92,7 @@ body {
 .btn-primary { background: var(--btn-bg); color: var(--btn-fg); }
 .btn-primary:not(:disabled):hover { background: var(--btn-bg-hover); }
 .btn-icon { background: var(--panel); border: 1px solid var(--line); color: var(--text); padding: 9px 11px; display: grid; place-items: center; }
+.btn-labelled { display: flex; align-items: center; gap: 7px; }
 .btn-icon:not(:disabled):hover { background: var(--hover); }
 .btn-icon:disabled { color: var(--muted); }
 
