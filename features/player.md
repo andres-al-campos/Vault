@@ -12,7 +12,8 @@ videos sit in browser tabs through a day.
   tabs are open.
 - Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
   under the pointer). The line under a title is how far through it is. Resting
-  on a tab shows its whole title and its time. Closing the tab on screen moves to the one on its right, or its left
+  on a tab shows its whole title and its time; once one such card is up, moving
+  to another tab shows its card at once. Closing the tab on screen moves to the one on its right, or its left
   from the last one; closing the last tab returns to the channel.
 - Controls: play/pause, time, a seek bar, volume, and a button that opens the
   file in the Mac's default player instead. Clicking the picture also toggles

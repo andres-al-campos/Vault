@@ -397,17 +397,17 @@ body {
 .player.full.idle .ptop, .player.full.idle .pbar { opacity: 0; pointer-events: none; }
 .player.full.idle { cursor: none; }
 
-.ptabs { flex: 1; min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
+.ptabs { flex: 1; min-width: 0; display: flex; gap: 9px; overflow-x: auto; scrollbar-width: none; }
 .ptabs::-webkit-scrollbar { display: none; }
 /* Tabs look and behave like a browser's: they shrink to share the row down to
    a floor where the row scrolls, the one on screen is a raised fill, and the
-   rest are plain text with a hairline between them. */
+   rest are plain text with a hairline centred in the gap between them. */
 .ptab { position: relative; flex: 0 1 230px; min-width: 110px; height: 34px; display: flex; align-items: center;
-  gap: 4px; padding: 0 6px 0 13px; border-radius: 10px; color: var(--muted2);
-  font: 500 13px inherit; cursor: pointer; overflow: hidden; }
+  gap: 4px; padding: 0 7px 0 12px; border-radius: 10px; color: var(--muted2);
+  font: 500 13px inherit; cursor: pointer; }
 .ptab:hover { background: var(--hover); color: var(--text); }
 .ptab.active { background: var(--hover-strong); color: var(--text); }
-.ptab + .ptab::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 1px; background: var(--chip-line); }
+.ptab + .ptab::before { content: ""; position: absolute; left: -5px; top: 9px; bottom: 9px; width: 1px; background: var(--chip-line); }
 .ptab.active::before, .ptab.active + .ptab::before, .ptab:hover::before, .ptab:hover + .ptab::before { display: none; }
 /* A long title fades out at the tab's edge instead of ending in dots. */
 .ptab .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
@@ -415,11 +415,12 @@ body {
   mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); }
 /* Only the tab on screen, or the one under the pointer, offers its close. */
 .ptab .x { display: none; flex: none; border: 0; background: transparent; color: inherit; cursor: pointer;
-  font-size: 12px; width: 22px; height: 22px; border-radius: 50%; }
+  font-size: 9.5px; line-height: 1; width: 17px; height: 17px; border-radius: 50%; opacity: .75; }
 .ptab.active .x, .ptab:hover .x { display: block; }
-.ptab .x:hover { background: color-mix(in srgb, currentColor 16%, transparent); }
-/* How far through the video is. */
-.ptab i { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
+.ptab .x:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
+/* How far through the video is, kept inside the tab's rounded corners. */
+.ptab .prog { position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; }
+.ptab .prog i { display: block; height: 100%; border-radius: 1px; background: var(--accent); }
 
 .ptip { position: fixed; z-index: 60; max-width: 360px; padding: 9px 12px; border-radius: 10px;
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .28);

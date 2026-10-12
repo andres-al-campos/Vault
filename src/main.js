@@ -700,7 +700,7 @@ function renderTabs() {
     <div class="ptab ${t.id === tabs.activeId ? "active" : ""}" data-id="${esc(t.id)}">
       <span class="t">${esc(t.title)}</span>
       <button class="x" data-close title="Close this tab">✕</button>
-      <i style="width:${(progress(t) * 100).toFixed(1)}%"></i>
+      <span class="prog"><i style="width:${(progress(t) * 100).toFixed(1)}%"></i></span>
     </div>`).join("");
   renderWatching();
 }
@@ -911,19 +911,29 @@ $("ptabs").addEventListener("click", (e) => {
 // how far through it is.
 const tipEl = $("ptip");
 let tipTimer = null;
-function hideTip() { clearTimeout(tipTimer); tipEl.hidden = true; }
+let tipSeen = 0; // when a card was last showing
+function hideTip() {
+  clearTimeout(tipTimer);
+  if (!tipEl.hidden) tipSeen = Date.now();
+  tipEl.hidden = true;
+}
 $("ptabs").addEventListener("mouseover", (e) => {
   const el = e.target.closest(".ptab");
   const tab = el && tabs.find(el.dataset.id);
-  if (!tab || e.target.closest("[data-close]")) return hideTip();
+  if (e.target.closest("[data-close]")) return hideTip();
+  // The gap between two tabs: keep the card that's up.
+  if (!tab) return;
   clearTimeout(tipTimer);
+  // The first card waits for the pointer to rest. Once one is up, or was a
+  // moment ago, the next tab's comes at once, so tabs can be flipped through.
+  const warm = !tipEl.hidden || Date.now() - tipSeen < 600;
   tipTimer = setTimeout(() => {
     const r = el.getBoundingClientRect();
     tipEl.innerHTML = `<b>${esc(tab.title)}</b><span>${fmtDur(tab.position)} / ${tab.duration ? fmtDur(tab.duration) : "–"}</span>`;
     tipEl.hidden = false;
     tipEl.style.top = `${r.bottom + 4}px`;
     tipEl.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - tipEl.offsetWidth - 8))}px`;
-  }, tipEl.hidden ? 400 : 0);
+  }, warm ? 0 : 400);
 });
 $("ptabs").addEventListener("mouseleave", hideTip);
 $("ptabs").addEventListener("mousedown", hideTip);
