@@ -12,7 +12,8 @@ Type a channel and see its videos as cards.
   time they're opened and kept in memory only.
 - The listing also brings the channel's avatar, banner, subscriber count and
   verified flag, when YouTube has them.
-- Sync re-fetches the Videos list of the channel on screen.
+- Sync re-fetches the Videos list of the channel on screen and re-reads its
+  folder, so files added, moved or deleted outside the app show up.
 - A channel with no Shorts or Live tab shows that tab as empty.
 - A failed Shorts or Live fetch shows the error with Try again. A failed Sync
   shows an alert and leaves the saved list as it was.

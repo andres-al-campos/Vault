@@ -213,6 +213,9 @@ async function doFetch(raw, { quiet = false } = {}) {
     for (const k of Array.from(tabErrors.keys())) if (k.startsWith(`${info.url}|`)) tabErrors.delete(k);
     activeTab = "videos";
     await persist();
+    // A fetch is also when the folder gets looked at again, so Sync picks up
+    // files added, moved or deleted outside the app, not only new uploads.
+    await loadArchive();
     renderSelector();
     showActive();
   } catch (e) {

@@ -55,8 +55,9 @@ signs it, and launches it — so a rebuild is the copy that opens, never last bu
 The app writes `~/.vault/state.json` whenever anything changes (a fetch, a rename, a
 folder choice). On launch it reloads that file and shows the channel you last had open,
 straight from the cached video list — no re-fetch needed. The dropdown at the top-left
-switches between remembered channels, and each row has an ✕ to forget one. Press
-**Fetch channel** to refresh a channel's list with anything new.
+switches between remembered channels, and each row has an ✕ to forget one. The
+**Sync** button refreshes the channel on screen: new uploads from YouTube, and
+the folder re-read for files added or removed outside the app.
 
 ### Download folders
 
