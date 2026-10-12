@@ -92,7 +92,7 @@ extern "C" fn gl_symbol(_: *mut c_void, name: *const c_char) -> *mut c_void {
 // current frame into whatever framebuffer the layer has bound. The render
 // context is made here, on the first draw, because this is the one place that
 // context is guaranteed to be current.
-extern "C-unwind" fn draw(_this: &AnyObject, _: Sel, _cgl: *mut c_void, _pf: *mut c_void, _t: f64, _ts: *const c_void) {
+extern "C-unwind" fn draw(this: &AnyObject, _: Sel, _cgl: *mut c_void, _pf: *mut c_void, _t: f64, _ts: *const c_void) {
     unsafe {
         let mut render = RENDER.load(Ordering::SeqCst);
         if render.is_null() {
@@ -115,9 +115,19 @@ extern "C-unwind" fn draw(_this: &AnyObject, _: Sel, _cgl: *mut c_void, _pf: *mu
         }
         let mut fbo: c_int = 0;
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, &mut fbo);
-        let mut viewport = [0 as c_int; 4];
-        glGetIntegerv(GL_VIEWPORT, viewport.as_mut_ptr());
-        let mut target = GlFbo { fbo, w: viewport[2], h: viewport[3], internal_format: 0 };
+        // mpv fits the picture to the size it's told. That comes from the
+        // layer itself; the GL viewport is the fallback, since it can still
+        // be the old size on the first draws after the layer is resized,
+        // which stretched the picture going into fullscreen.
+        let bounds: NSRect = msg_send![this, bounds];
+        let scale: f64 = msg_send![this, contentsScale];
+        let (mut w, mut h) = ((bounds.size.width * scale).round() as c_int, (bounds.size.height * scale).round() as c_int);
+        if w <= 0 || h <= 0 {
+            let mut viewport = [0 as c_int; 4];
+            glGetIntegerv(GL_VIEWPORT, viewport.as_mut_ptr());
+            (w, h) = (viewport[2], viewport[3]);
+        }
+        let mut target = GlFbo { fbo, w, h, internal_format: 0 };
         let mut flip: c_int = 1;
         let params = [
             RenderParam { kind: PARAM_OPENGL_FBO, data: &mut target as *mut GlFbo as *mut c_void },
@@ -309,6 +319,11 @@ pub fn player_place(window: tauri::WebviewWindow, visible: bool, x: f64, top: f6
         if visible {
             let frame = NSRect::new(NSPoint::new(x, win_h - top - h), NSSize::new(w, h));
             let _: () = msg_send![view, setFrame: frame];
+            // The layer follows its view, but say so outright and ask for a
+            // fresh drawable at the new size.
+            let bounds = NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(w, h));
+            let _: () = msg_send![layer, setBounds: bounds];
+            let _: () = msg_send![layer, setNeedsDisplay];
         }
     });
 }
