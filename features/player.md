@@ -12,7 +12,8 @@ videos sit in browser tabs through a day.
   tabs are open.
 - Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
   under the pointer). The line under a title is how far through it is. Resting
-  on a tab shows its whole title, its time and its thumbnail; once one such card is up, moving
+  on a tab shows its whole title and its thumbnail, with the same line along the
+  thumbnail's bottom; once one such card is up, moving
   to another tab shows its card at once. Closing the tab on screen moves to the one on its right, or its left
   from the last one, and that tab waits paused where it was left. Closing the
   last tab returns to the channel.
@@ -84,7 +85,7 @@ it from 0.
 - Agent's guesses, never confirmed: pausing on the way back to the channel;
   ⌘-click for a background tab; starting over within 5
   seconds of the end; new tabs go at the right end; the stage is black while
-  a video loads; the tab's hover card shows time where a browser shows the site; the
+  a video loads; the
   fullscreen keys and gestures, the 2.5-second fade, and keeping the tabs in
   fullscreen.
 - The channel is hidden under the player with `visibility`, and the stage is

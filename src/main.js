@@ -946,7 +946,7 @@ $("ptabs").addEventListener("mouseover", (e) => {
   const warm = !tipEl.hidden || Date.now() - tipSeen < 600;
   tipTimer = setTimeout(() => {
     const r = el.getBoundingClientRect();
-    tipEl.innerHTML = `<b>${esc(tab.title)}</b><span>${fmtDur(tab.position)} / ${tab.duration ? fmtDur(tab.duration) : "–"}</span><img src="${thumb(tab.id)}" alt="">`;
+    tipEl.innerHTML = `<b>${esc(tab.title)}</b><img src="${thumb(tab.id)}" alt=""><i style="width:${(progress(tab) * 100).toFixed(1)}%"></i>`;
     // A delisted video has no thumbnail left on YouTube.
     tipEl.querySelector("img").addEventListener("error", (ev) => ev.target.remove());
     tipEl.hidden = false;
