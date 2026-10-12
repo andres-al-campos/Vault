@@ -57,8 +57,8 @@
   --btn-fg: #e7e8ec;
   --btn-bg-hover: #363b46;
   --sel-ring: #7c8494;
-  /* Light enough to read as "on" against the dark row, short of full white. */
-  --on: #c3c7d1;
+  /* Near white: a mid grey left the count beside the label hard to read. */
+  --on: #eceef2;
   --on-fg: #14161b;
   --sb-thumb: #3a3f4d;
   --sb-thumb-hover: #4c5364;
@@ -278,6 +278,9 @@ body {
 .dl-menu.open { display: block; }
 .chan-title { display: flex; align-items: center; gap: 14px; }
 .subscribe { position: relative; }
+/* Shares the chosen filter's fill, so "on" is one colour across the page. */
+.btn-on { background: var(--on); color: var(--on-fg); border: 0; }
+.btn-on:hover { filter: brightness(.94); }
 .subscribe > .btn { padding: 6px 13px; font-size: 13px; }
 .sub-menu { min-width: 250px; left: 0; right: auto; }
 .sub-opt { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 8px;
@@ -291,7 +294,7 @@ body {
 .pill:hover { color: var(--text); }
 .pill.active { background: var(--on); color: var(--on-fg); }
 .pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
-.pill.active .n { color: inherit; opacity: .65; }
+.pill.active .n { color: inherit; opacity: .7; }
 /* Lines up with the tab and filter groups, both measured at 35px rendered
    (3px pad + 1px border around a 29px button). appearance:none drops the
    native metrics that made the select sit taller, and the chevron is drawn
