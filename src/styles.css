@@ -27,6 +27,9 @@
   /* Ring around the currently selected tab / filter / sort option. Distinct
      from --accent, which marks counts and warnings. */
   --sel-ring: #8a8f9c;
+  /* The chosen filter: a solid fill, easier to spot in a row than an outline. */
+  --on: #2b2e36;
+  --on-fg: #ffffff;
   --sb-thumb: #cfcfc7;
   --sb-thumb-hover: #b4b4ab;
 }
@@ -54,6 +57,9 @@
   --btn-fg: #e7e8ec;
   --btn-bg-hover: #363b46;
   --sel-ring: #7c8494;
+  /* Light enough to read as "on" against the dark row, short of full white. */
+  --on: #c3c7d1;
+  --on-fg: #14161b;
   --sb-thumb: #3a3f4d;
   --sb-thumb-hover: #4c5364;
 }
@@ -275,10 +281,9 @@ body {
 .pill { border: 0; background: transparent; color: var(--muted2); font: 600 12.5px inherit;
   padding: 6px 12px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .pill:hover { color: var(--text); }
-.pill.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  outline: 2px solid var(--sel-ring); outline-offset: -1px; }
+.pill.active { background: var(--on); color: var(--on-fg); }
 .pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
-.pill.active .n { color: var(--accent); }
+.pill.active .n { color: inherit; opacity: .65; }
 /* Lines up with the tab and filter groups, both measured at 35px rendered
    (3px pad + 1px border around a 29px button). appearance:none drops the
    native metrics that made the select sit taller, and the chevron is drawn
