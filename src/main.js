@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, ask } from "@tauri-apps/plugin-dialog";
 import { createQueue } from "./queue.js";
-import { isMembers, archiveState, view, downloadable, withUnlisted } from "./library.js";
+import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, ASK_ABOVE } from "./library.js";
 
 /* ---------------- theme ---------------- */
 const root = document.documentElement;
@@ -341,7 +341,15 @@ function renderControls(now) {
   if (now) {
     const { jobs, locked } = downloadable(now.shown, archived, { cookies: !!state.cookies_browser, holds: queue.holds });
     // With nothing to queue, say why instead of offering "Download 0".
-    const download = jobs.length ? `<button class="btn btn-primary" id="dlshown">↓ Download ${jobs.length} shown</button>`
+    // The arrow offers the first few in the order on screen, so the sort
+    // picks the batch: Oldest + First 50 is the 50 oldest not yet archived.
+    const sizes = batchSizes(jobs.length);
+    const menu = sizes.length ? `<button class="btn btn-primary split-arrow" id="dlmore" title="Download only the first few">▾</button>
+        <div class="dl-menu" id="dlmenu">
+          ${sizes.map((n) => `<button class="cookie-item" data-first="${n}">First ${n}</button>`).join("")}
+          <button class="cookie-item" data-first="${jobs.length}">All ${jobs.length}</button>
+        </div>` : "";
+    const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown">↓ Download ${jobs.length} shown</button>${menu}</div>`
       : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
       : `<button class="btn btn-primary" id="dlshown" disabled>Nothing to download</button>`;
     bar = `
@@ -360,8 +368,15 @@ function renderControls(now) {
   controlsEl.querySelectorAll("[data-filter]").forEach((b) =>
     b.addEventListener("click", () => setFilter(b.dataset.filter, b.dataset.value)));
   $("sort")?.addEventListener("change", (e) => setFilter("sort", e.target.value));
-  $("dlshown")?.addEventListener("click", downloadShown);
+  $("dlshown")?.addEventListener("click", () => downloadShown());
+  $("dlmore")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    $("dlmenu").classList.toggle("open");
+  });
+  controlsEl.querySelectorAll("[data-first]").forEach((b) =>
+    b.addEventListener("click", () => downloadShown(Number(b.dataset.first))));
 }
+document.addEventListener("click", () => $("dlmenu")?.classList.remove("open"));
 
 function setFilter(name, value) {
   filters[name] = value;
@@ -593,7 +608,9 @@ async function startDownload(v) {
 
 // Queues what the filters have narrowed to. With nothing but locked
 // members-only videos on screen, the button asks for cookies instead.
-async function downloadShown() {
+// Queues what's on screen and not on disk; `first` keeps only that many, in
+// the order shown.
+async function downloadShown(first = Infinity) {
   const ch = activeChannel();
   const now = currentView();
   if (!ch || !now) return;
@@ -602,13 +619,22 @@ async function downloadShown() {
     if (locked) setTimeout(() => cookieMenu.classList.add("open")); // after this click's own close-all
     return;
   }
+  const batch = jobs.slice(0, first);
+  if (batch.length > ASK_ABOVE) {
+    const go = await ask(
+      `This adds ${batch.length} videos to the queue. They download one at a time, so it can run for hours and take a lot of disk space. The arrow next to the button queues a smaller batch.`,
+      { title: `Queue ${batch.length} videos?`, kind: "warning", okLabel: QUEUE_THEM, cancelLabel: "Cancel" });
+    if (!go) return;
+  }
   const dir = await ensureDir(ch);
   if (!dir) return;
-  for (const { video } of jobs) queue.add(jobFor(video, dir));
+  for (const { video } of batch) queue.add(jobFor(video, dir));
   renderQueue();
   renderList();
   pump();
 }
+
+const QUEUE_THEM = "Queue them";
 
 function pump() {
   const job = queue.next();

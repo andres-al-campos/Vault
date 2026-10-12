@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { archiveState, view, downloadable, withUnlisted, sortVideos } from "./library.js";
+import { archiveState, view, downloadable, withUnlisted, sortVideos, batchSizes } from "./library.js";
 
 const v = (id, extra = {}) => ({ id, title: id, duration: 10, view_count: 1, url: `u/${id}`, availability: null, ...extra });
 const member = (id, extra = {}) => v(id, { availability: "subscriber_only", ...extra });
@@ -65,6 +65,20 @@ test("Download shown takes what isn't on disk, forcing the missing ones", () => 
 
   const queued = downloadable(list, archived, { cookies: true, holds: (id) => id === "b" });
   assert.deepEqual(queued.jobs.map((j) => j.video.id), ["d", "e"]);
+});
+
+test("only batches smaller than what there is to download are offered", () => {
+  assert.deepEqual(batchSizes(8), []);
+  assert.deepEqual(batchSizes(10), []);
+  assert.deepEqual(batchSizes(60), [10, 25, 50]);
+  assert.deepEqual(batchSizes(4000), [10, 25, 50, 100]);
+});
+
+test("a batch is the first downloadable videos in the order shown", () => {
+  // Oldest first: the batch is the oldest not yet on disk, skipping archived ones.
+  const oldest = view(list, { access: "all", have: "all", sort: "oldest" }, archived).shown;
+  const { jobs } = downloadable(oldest, archived, { cookies: true, holds: () => false });
+  assert.deepEqual(jobs.slice(0, 2).map((j) => j.video.id), ["e", "d"]);
 });
 
 test("archived videos the channel no longer lists are added after the listed ones", () => {

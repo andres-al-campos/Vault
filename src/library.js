@@ -70,6 +70,15 @@ export function downloadable(shown, archived, { cookies, holds }) {
   return { jobs, locked };
 }
 
+// The batch sizes worth offering for `count` downloadable videos: only those
+// smaller than the count, since "First 50" of 30 is just all of them.
+export const BATCHES = [10, 25, 50, 100];
+export const batchSizes = (count) => BATCHES.filter((n) => n < count);
+
+// Queueing more than this asks first: one click shouldn't start a few
+// thousand downloads on a large channel.
+export const ASK_ABOVE = 100;
+
 // Archived videos the channel no longer lists (deleted or made private on
 // YouTube) have no card of their own, and they are the ones an archive most
 // needs to keep showing. They go after the listed videos.

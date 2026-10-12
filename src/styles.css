@@ -260,6 +260,16 @@ body {
 .tabs { align-items: flex-end; }
 .tabs .btn { margin-bottom: 7px; }
 .tabs-spacer { flex: 1; }
+.split { position: relative; display: flex; gap: 1px; margin-bottom: 7px; }
+.split .btn { margin-bottom: 0; }
+.split .btn:first-child:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.split .split-arrow { padding-left: 9px; padding-right: 9px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.dl-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; min-width: 150px; z-index: 40;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22); padding: 6px; display: none;
+}
+.dl-menu.open { display: block; }
 .filters { display: flex; gap: 2px; background: var(--chip); border: 1px solid var(--chip-line);
   border-radius: 10px; padding: 3px; }
 .pill { border: 0; background: transparent; color: var(--muted2); font: 600 12.5px inherit;

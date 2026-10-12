@@ -102,7 +102,9 @@ Two filters, each with one choice at a time, narrow each other:
   counts as archived; its card says "File missing" and offers Download again.
 
 The number on each option is what choosing it would show. **Download N shown**
-queues everything on screen that isn't already on disk.
+queues everything on screen that isn't already on disk. The arrow beside it
+queues only the first 10, 25, 50 or 100 in the order shown, and queueing more
+than 100 at once asks first.
 
 Archived videos the channel no longer lists (deleted or made private) stay on
 the Videos tab, after the listed ones, marked "Missing on YT".
@@ -138,7 +140,6 @@ out.
 
 - `csp` is `null` in `tauri.conf.json` (no Content-Security-Policy). Fine for a local
   app; tighten before distributing.
-- `Download N shown` has no cap. With no filter on a large channel that's a long queue.
 - Changing a channel's folder reads that folder's archive: videos downloaded into
   the old folder read as not archived until the folder is switched back or the
   files are moved across.

@@ -11,6 +11,7 @@
 //   ?scenario=fresh     nothing saved (the default)
 //   ?scenario=library   one channel with a folder; some videos archived, one
 //                       with its file missing, some marked members-only
+//   &confirm=no         the "Queue N videos?" popup is answered Cancel
 //   ?scenario=corrupt   the state file can't be read
 //   &failtab=shorts     the first fetch of that tab fails
 //   &fail=<id>,<id>     those downloads fail on their first try
@@ -128,6 +129,8 @@ const commands = {
   open_file: () => null,
   // The folder picker: there's no dialog to click, so it picks the suggestion.
   "plugin:dialog|open": ({ options }) => options?.defaultPath || DIR,
+  // The "Queue N videos?" popup: answered yes unless ?confirm=no.
+  "plugin:dialog|message": () => (q.get("confirm") === "no" ? "Cancel" : "Queue them"),
 };
 
 mockWindows("main");

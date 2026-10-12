@@ -24,6 +24,11 @@ what you have and what you can get.
   queued, forcing the missing ones. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
   nothing to do it is disabled.
+- The arrow beside it queues only the first 10, 25, 50 or 100 of those, in the
+  order on screen, so the sort picks the batch: Oldest + First 50 is the 50
+  oldest not yet archived. Sizes that wouldn't be smaller than everything
+  aren't offered.
+- Queueing more than 100 at once asks first.
 - Tab, filters and sort are remembered across launches.
 
 ## How to get to it
@@ -52,6 +57,11 @@ download filled its card button to 40%, read Archived when done, then Play.
 
 ## Gotchas
 
+- The "Queue N videos?" popup has not been seen: the stand-in's channel has 60
+  videos, under the 100 that triggers it. The threshold and the batch sizes
+  are an agent's guess, as is a video that is both "Missing on YT" and "File
+  missing" still offering Download again, which will fail if YouTube really
+  removed it.
 - The header's art and subscriber count are saved with the channel. A channel
   saved before they were fetched shows its initial until the next Sync.
 - An archived Short shows on the Videos tab as "Missing on YT" until
