@@ -267,6 +267,13 @@ fn is_channel_url(u: &str) -> bool {
     channelish && !u.contains("/watch") && !u.contains("youtu.be/")
 }
 
+/// Whether yt-dlp failed only because the channel has no such tab, e.g.
+/// "ERROR: [youtube:tab] @jawed: This channel does not have a shorts tab".
+fn is_missing_tab(stderr: &str) -> bool {
+    let l = stderr.to_lowercase();
+    l.contains("this channel does not have a") && l.contains(" tab")
+}
+
 /// Map a line of yt-dlp output to a short, human reason. The first match wins,
 /// so the specific cases are checked before the generic ones.
 fn classify_failure(line: &str) -> Option<&'static str> {
@@ -352,6 +359,19 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
 
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);
+        // A channel with no Shorts (or Live) tab is an empty list, not a
+        // failure: yt-dlp exits non-zero for it, and passing that on would put
+        // an error screen where "No shorts on this channel" belongs.
+        if is_missing_tab(&err) {
+            return Ok(ChannelInfo {
+                url: identity,
+                title: String::new(),
+                uploader: String::new(),
+                tab,
+                video_count: 0,
+                videos: Vec::new(),
+            });
+        }
         let msg = err.trim().lines().last().unwrap_or("yt-dlp failed").to_string();
         return Err(msg);
     }
@@ -1228,6 +1248,27 @@ mod tests {
         assert_eq!(urls, ["https://www.youtube.com/@foo", "https://www.youtube.com/@bar"]);
         assert_eq!(state.channels[0].download_dir.as_deref(), Some("/tmp/foo"));
         let _ = std::fs::remove_dir_all(file.parent().unwrap());
+    }
+
+    #[test]
+    fn a_channel_without_the_tab_is_empty_not_a_failure() {
+        // Observed from yt-dlp against @jawed, which has one video and no shorts.
+        assert!(is_missing_tab("ERROR: [youtube:tab] @jawed: This channel does not have a shorts tab"));
+        assert!(is_missing_tab("ERROR: [youtube:tab] @foo: This channel does not have a streams tab\n"));
+        assert!(!is_missing_tab("ERROR: [youtube] abc: Sign in to confirm you're not a bot"));
+        assert!(!is_missing_tab("ERROR: unable to download webpage: HTTP Error 503"));
+    }
+
+    // Network test, one small channel: a listing, and a tab it doesn't have.
+    #[test]
+    #[ignore]
+    fn a_small_channel_lists_and_its_missing_tab_is_empty() {
+        let videos = fetch_channel_blocking("@Jawed".to_string(), "videos".to_string(), None).expect("videos");
+        assert_eq!(videos.url, "https://www.youtube.com/@jawed");
+        assert!(videos.videos.iter().any(|v| v.id == "jNQXAC9IVRw"));
+        let shorts = fetch_channel_blocking("@jawed".to_string(), "shorts".to_string(), None)
+            .expect("a missing tab is an empty list");
+        assert!(shorts.videos.is_empty());
     }
 
     #[test]

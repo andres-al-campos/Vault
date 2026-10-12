@@ -11,6 +11,7 @@ Type a channel and see its videos as cards.
 - Videos is fetched up front and saved. Shorts and Live are fetched the first
   time they're opened and kept in memory only.
 - Sync re-fetches the Videos list of the channel on screen.
+- A channel with no Shorts or Live tab shows that tab as empty.
 - A failed Shorts or Live fetch shows the error with Try again. A failed Sync
   shows an alert and leaves the saved list as it was.
 
