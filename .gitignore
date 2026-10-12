@@ -7,3 +7,7 @@ src-tauri/icon-src.png
 .DS_Store
 # Local build/IDE noise
 *.tmp
+
+# Mockups and plans stay local
+designs/
+plans/
