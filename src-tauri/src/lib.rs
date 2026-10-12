@@ -229,7 +229,9 @@ fn normalize_input(raw: &str) -> String {
 /// A channel's identity: one spelling per channel, whatever was typed or
 /// pasted. `@foo`, `youtube.com/@foo`, `m.youtube.com/@foo/videos?view=0` and
 /// `https://www.youtube.com/@foo/` are all `https://www.youtube.com/@foo`.
-/// The tab is dropped because the fetch appends its own.
+/// The tab is dropped because the fetch appends its own. Handles and the old
+/// `/c/` and `/user/` names are lowercased, since YouTube ignores their case;
+/// `/channel/UC…` ids are case-sensitive and kept as they are.
 ///
 /// Anything that isn't a YouTube channel URL (a single video, a playlist,
 /// another site) comes back as `normalize_input` left it.
@@ -247,9 +249,10 @@ fn canonical_channel_url(raw: &str) -> String {
     let path = path.split(['?', '#']).next().unwrap_or("");
     let mut segments = path.split('/').filter(|s| !s.is_empty());
     let channel = match segments.next() {
-        Some(handle) if handle.starts_with('@') => handle.to_string(),
+        Some(handle) if handle.starts_with('@') => handle.to_lowercase(),
         Some(kind @ ("channel" | "c" | "user")) => match segments.next() {
-            Some(name) => format!("{kind}/{name}"),
+            Some(id) if kind == "channel" => format!("{kind}/{id}"),
+            Some(name) => format!("{kind}/{}", name.to_lowercase()),
             None => return url,
         },
         _ => return url,
@@ -1143,6 +1146,9 @@ mod tests {
         let want = "https://www.youtube.com/@foo";
         for raw in [
             "@foo",
+            "@Foo",
+            "FOO",
+            "https://www.youtube.com/@FoO/videos",
             "foo",
             "https://www.youtube.com/@foo",
             "https://youtube.com/@foo",
@@ -1157,7 +1163,7 @@ mod tests {
             canonical_channel_url("https://youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw/videos"),
             "https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw"
         );
-        assert_eq!(canonical_channel_url("https://youtube.com/c/Foo/about"), "https://www.youtube.com/c/Foo");
+        assert_eq!(canonical_channel_url("https://youtube.com/c/Foo/about"), "https://www.youtube.com/c/foo");
         // Not a channel: left exactly as typed.
         for raw in [
             "https://www.youtube.com/watch?v=abc12345678",

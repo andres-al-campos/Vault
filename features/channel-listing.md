@@ -7,7 +7,7 @@ Type a channel and see its videos as cards.
 - Accepts an @handle, a bare name, a `UC…` channel id, or a pasted URL.
 - However it was typed, a channel has one identity:
   `https://www.youtube.com/@handle` (or `/channel/…`, `/c/…`, `/user/…`). Host,
-  tab, query and trailing slash don't make a second entry.
+  tab, query, trailing slash and the handle's case don't make a second entry.
 - Videos is fetched up front and saved. Shorts and Live are fetched the first
   time they're opened and kept in memory only.
 - Sync re-fetches the Videos list of the channel on screen.
@@ -35,7 +35,6 @@ Last driven: 2026-10-12, tests only. The `net` tests were not run that day.
 
 ## Gotchas
 
-- Handles are compared as typed: `@Foo` and `@foo` are two entries.
 - The tab is remembered across launches but Shorts and Live aren't saved, so a
   remembered tab is fetched on arrival.
 - The alert on a failed Sync is an agent's guess at where that message belongs.
