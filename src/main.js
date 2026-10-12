@@ -751,7 +751,7 @@ async function loadActive({ paused = false } = {}) {
   if (!tab) return;
   stageMsg.hidden = true;
   try {
-    if (loadedId === tab.id) await invoke("player_set", { action: "play" });
+    if (loadedId === tab.id) await invoke("player_set", { action: paused ? "pause" : "play" });
     else {
       // Black until the new file reports in (tick lifts it), so the stage
       // never shows through to whatever was there before the first frame.
@@ -787,14 +787,15 @@ async function tick() {
   if (Date.now() - lastSave > 5000) { saveTabs(); lastSave = Date.now(); }
 }
 
-function showPlayer() {
+// Arrives paused unless a card's Play asked for the video.
+function showPlayer({ paused = true } = {}) {
   if (!tabs.active) return;
   playerEl.hidden = false;
   root.classList.add("watching");
   renderTabs();
   placeVideo();
   invoke("player_set", { action: "volume", value: Number($("pvol").value) }).catch(() => {});
-  loadActive();
+  loadActive({ paused });
   clearInterval(poll);
   poll = setInterval(tick, 250);
 }
@@ -887,7 +888,7 @@ async function openVideo(id, { background = false } = {}) {
   tabs.open({ id, path: entry.path, title: gridVideos.get(id)?.title ?? entry.title ?? id }, { background });
   saveTabs();
   if (background) { renderWatching(); return; }
-  if (watching()) { renderTabs(); loadActive(); } else showPlayer();
+  if (watching()) { renderTabs(); loadActive(); } else showPlayer({ paused: false });
 }
 
 async function togglePlay() {
@@ -910,7 +911,7 @@ function seekTo(seconds) {
   invoke("player_set", { action: "seek", value: to }).catch((e) => stageError(e));
 }
 
-$("watching").addEventListener("click", showPlayer);
+$("watching").addEventListener("click", () => showPlayer());
 $("pback").addEventListener("click", leavePlayer);
 $("pplay").addEventListener("click", togglePlay);
 stageEl.addEventListener("click", (e) => { if (e.target === stageEl) togglePlay(); });

@@ -10,8 +10,8 @@ videos sit in browser tabs through a day.
   ⌘-click opens the tab without leaving the channel.
 - "Open videos N" in the top bar goes back to the player. It shows only while
   tabs are open.
-- Switching to a tab brings its video up paused where it was left; only Play
-  on a card starts a video playing.
+- Switching to a tab, or coming back through "Open videos", brings the video
+  up paused where it was left; only Play on a card starts a video playing.
 - Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
   under the pointer). Resting on a tab shows its whole title and its thumbnail,
   with a line along the thumbnail's bottom for how far through it is; once one such card is up, moving
