@@ -59,6 +59,12 @@ const BROWSERS = ["chrome", "safari", "firefox", "floorp","edge", "brave", "chro
 // Shorts and the live tab are fetched on demand and kept in memory only —
 // the Videos tab is the one that persists.
 const tabCache = new Map(); // channelUrl -> { shorts: [...], live: [...] }
+// Why a tab's list couldn't be fetched, by `${channelUrl}|${tab}`. Kept apart
+// from tabCache so a failure never reads as "this channel has no shorts".
+const tabErrors = new Map();
+const tabLoading = new Set();
+const tabId = (ch, tab) => `${ch.url}|${tab}`;
+const isLazyTab = (tab) => tab === "shorts" || tab === "streams";
 
 // The Archive tab spans every channel, not just the active one, so it lives
 // outside tabCache. Rebuilt on demand (boot, after a download finishes, on
@@ -176,6 +182,7 @@ async function doFetch(raw, { quiet = false } = {}) {
     const info = await invoke("fetch_channel", { url: raw, tab: "videos", cookies: state.cookies_browser ?? null });
     if (!info.videos || !info.videos.length) {
       if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>No videos found</h2><p>That returned nothing. Check the URL or @handle and try again.</p>`);
+      else alert(`Couldn't refresh ${raw}.\n\nYouTube returned no videos. The saved list is unchanged — try again in a moment.`);
       return;
     }
     let ch = state.channels.find((c) => c.url === info.url);
@@ -190,12 +197,16 @@ async function doFetch(raw, { quiet = false } = {}) {
     ch.fetched_at = Math.floor(Date.now() / 1000);
     state.active = info.url;
     tabCache.delete(info.url); // tab caches are stale after a re-fetch
+    for (const k of Array.from(tabErrors.keys())) if (k.startsWith(`${info.url}|`)) tabErrors.delete(k);
     activeTab = "videos";
     await persist();
     renderSelector();
     showActive();
   } catch (e) {
     if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>Couldn't fetch that</h2><p>${esc(String(e))}</p>`);
+    // Sync keeps the list on screen, so its failure has nowhere to show. Say
+    // it rather than leave the click looking ignored.
+    else alert(`Couldn't refresh ${raw}.\n\n${e}\n\nThe saved list is unchanged.`);
   } finally {
     $("fetch").disabled = false;
   }
@@ -216,6 +227,13 @@ function showActive() {
   renderHeader(ch);
   renderControls();
   renderGrid();
+  // The tab is remembered across launches but Shorts and Live aren't saved,
+  // so a remembered tab can arrive here with nothing fetched yet.
+  if (isLazyTab(activeTab) && !tabVideos(ch, activeTab) && !tabErrors.has(tabId(ch, activeTab))) {
+    loadTab(ch, activeTab).then(() => {
+      if (activeChannel() === ch) { renderControls(); renderGrid(); }
+    });
+  }
 }
 
 function renderHeader(ch) {
@@ -355,22 +373,32 @@ async function switchTab(tab) {
     }
     controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Reading the archive…</span></div>`;
     await loadArchive();
-  } else if (tab !== "videos" && !tabVideos(ch, tab)) {
-    controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Loading ${TAB_LABEL[tab]}…</span></div>`;
-    try {
-      const info = await invoke("fetch_channel", { url: ch.url, tab, cookies: state.cookies_browser ?? null });
-      const entry = tabCache.get(ch.url) || {};
-      entry[tabKey(tab)] = info.videos || [];
-      tabCache.set(ch.url, entry);
-    } catch (e) {
-      const entry = tabCache.get(ch.url) || {};
-      entry[tabKey(tab)] = [];
-      tabCache.set(ch.url, entry);
-      console.error(`Could not load ${tab}:`, e);
-    }
+  } else if (isLazyTab(tab) && !tabVideos(ch, tab)) {
+    await loadTab(ch, tab);
   }
   renderControls();
   renderGrid();
+}
+
+// Fetch the Shorts or Live list for a channel. A failure is recorded as a
+// failure: caching it as an empty list is what made a bot check or a dropped
+// connection read as "No shorts on this channel".
+async function loadTab(ch, tab) {
+  const key = tabId(ch, tab);
+  if (tabLoading.has(key)) return;
+  tabLoading.add(key);
+  tabErrors.delete(key);
+  controlsEl.innerHTML = `<div class="controls"><div class="spin"></div><span class="shown">Loading ${TAB_LABEL[tab]}…</span></div>`;
+  try {
+    const info = await invoke("fetch_channel", { url: ch.url, tab, cookies: state.cookies_browser ?? null });
+    const entry = tabCache.get(ch.url) || {};
+    entry[tabKey(tab)] = info.videos || [];
+    tabCache.set(ch.url, entry);
+  } catch (e) {
+    tabErrors.set(key, String(e));
+  } finally {
+    tabLoading.delete(key);
+  }
 }
 
 function visibleVideos() {
@@ -407,11 +435,25 @@ function renderGrid() {
   const shown = $("shown");
   if (shown) shown.textContent = list.length === total ? `${total} shown` : `${list.length} of ${total} shown`;
 
+  const failed = tabErrors.get(tabId(ch, activeTab));
+  if (failed) {
+    gridEl.style.display = "none";
+    emptyEl.style.display = "flex";
+    emptyEl.innerHTML = `<div class="mark">VAULT</div><h2>Couldn't load ${TAB_LABEL[activeTab]}</h2><p>${esc(failed)}</p>
+      <div style="margin-top:18px"><button class="btn btn-primary" id="tab-retry">Try again</button></div>`;
+    $("tab-retry").addEventListener("click", async () => {
+      await loadTab(ch, activeTab);
+      renderControls(); renderGrid();
+    });
+    return;
+  }
+
   if (!list.length) {
     gridEl.style.display = "none";
     emptyEl.style.display = "flex";
-    emptyEl.innerHTML = `<div class="mark">VAULT</div><h2>Nothing here</h2><p>${
-      total === 0
+    emptyEl.innerHTML = `<div class="mark">VAULT</div><h2>${tabVideos(ch, activeTab) === null ? "One moment" : "Nothing here"}</h2><p>${
+      tabVideos(ch, activeTab) === null ? `Loading ${TAB_LABEL[activeTab]}…`
+        : total === 0
         ? isArchive() ? "Nothing archived yet. Download a video and it lands here." : `No ${TAB_LABEL[activeTab].toLowerCase()} on this channel.`
         : "No videos match this filter."
     }</p>`;
