@@ -56,7 +56,7 @@ export function view(list, { access, have, sort }, archived) {
 
 // What "Download N shown" would queue: everything on screen that isn't on
 // disk, isn't already in the queue, and can be downloaded at all. A missing
-// file is fetched again in force mode. `locked` counts the members-only videos
+// file is fetched again like any other. `locked` counts the members-only videos
 // left out for want of cookies.
 export function downloadable(shown, archived, { cookies, holds }) {
   const jobs = [];
@@ -65,7 +65,7 @@ export function downloadable(shown, archived, { cookies, holds }) {
     const state = archiveState(video.id, archived);
     if (state === "have" || holds(video.id)) continue;
     if (isMembers(video) && !cookies) { locked++; continue; }
-    jobs.push({ video, force: state === "missing" });
+    jobs.push({ video });
   }
   return { jobs, locked };
 }

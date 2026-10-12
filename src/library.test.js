@@ -53,10 +53,10 @@ test("hasMembers says whether the access filter has anything to offer", () => {
   assert.equal(view([v("a")], { access: "all", have: "all", sort: "newest" }, archived).hasMembers, false);
 });
 
-test("Download shown takes what isn't on disk, forcing the missing ones", () => {
+test("Download shown takes what isn't on disk, missing files included", () => {
   const holds = () => false;
   const open = downloadable(list, archived, { cookies: true, holds });
-  assert.deepEqual(open.jobs.map((j) => [j.video.id, j.force]), [["b", false], ["d", false], ["e", true]]);
+  assert.deepEqual(open.jobs.map((j) => j.video.id), ["b", "d", "e"]);
   assert.equal(open.locked, 0);
 
   const noCookies = downloadable(list, archived, { cookies: false, holds });

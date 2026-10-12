@@ -2,11 +2,9 @@
 // one is running. No DOM and no Tauri in here, so the rules run under
 // `node --test` (queue.test.js).
 //
-// A job's facts live on the job and nowhere else. `force` used to be copied
-// onto a separate pending entry as well, and the copy on the job was never
-// set, so retrying a failed "Download again" ran without it.
+// A job's facts live on the job and nowhere else.
 export function createQueue() {
-  const jobs = new Map(); // id -> { title, url, dir, force, pct, status, stat }
+  const jobs = new Map(); // id -> { title, url, dir, pct, status, stat }
   let waiting = [];       // ids, in the order they will start
   let activeId = null;    // the one job downloading (concurrency = 1)
 
@@ -14,17 +12,9 @@ export function createQueue() {
   // the same video can be queued again.
   const holds = (id) => jobs.has(id) && jobs.get(id).status !== "error";
 
-  function add({ id, title, url, dir, force = false }) {
+  function add({ id, title, url, dir }) {
     if (holds(id)) return false;
-    // A failed forced job stays forced however it is queued again — the
-    // sidebar's Retry or the card's own button. Without the flag yt-dlp skips
-    // the id as already archived and the row reports a success with no file.
-    const failed = jobs.get(id);
-    jobs.set(id, {
-      title, url, dir,
-      force: force || !!failed?.force,
-      pct: 0, status: "queued", stat: "Queued",
-    });
+    jobs.set(id, { title, url, dir, pct: 0, status: "queued", stat: "Queued" });
     waiting.push(id);
     return true;
   }

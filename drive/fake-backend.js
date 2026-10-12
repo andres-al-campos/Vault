@@ -65,8 +65,9 @@ const running = new Map(); // id -> interval
 const log = [];            // every command, for a drive to assert on
 window.__drive = { log, archive, get state() { return state; } };
 
-function download({ id, dir, force }) {
-  if (archive.has(id) && !force) {
+function download({ id, dir }) {
+  // The real backend skips only when the finished file is already there.
+  if (archive.get(id)) {
     emit("download-skipped", { id });
     emit("download-done", { id, ok: true, cancelled: false, reason: null });
     return;

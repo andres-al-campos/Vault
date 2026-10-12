@@ -282,7 +282,7 @@ async function queueNew(ch, before) {
     // later refresh when they aren't.
     const { jobs } = downloadable(newVideos(list, mine, was), mine, { cookies: !!state.cookies_browser, holds: queue.holds });
     for (const { video } of jobs) {
-      if (queue.add({ id: video.id, title: video.title, url: video.url, dir: ch.download_dir, force: false })) queued++;
+      if (queue.add({ id: video.id, title: video.title, url: video.url, dir: ch.download_dir })) queued++;
     }
   }
   if (queued) {
@@ -710,13 +710,11 @@ async function changeDir(ch) {
 }
 
 /* ---------------- queue engine (one at a time) ---------------- */
-// Where a video's file goes, and whether to force it. A file the archive
-// records but the disk has lost goes back to the folder that recorded it, in
-// force mode: yt-dlp skips it otherwise, since the archive still lists the id,
-// and the backend re-stamps the archive only after the file lands.
+// Where a video's file goes. One the folder records but has lost goes back to
+// the folder that recorded it, which may not be the channel's current one.
 function jobFor(v, dir) {
   const missing = archiveState(v.id, archived) === "missing";
-  return { id: v.id, title: v.title, url: v.url, dir: (missing && archived.get(v.id).dir) || dir, force: missing };
+  return { id: v.id, title: v.title, url: v.url, dir: (missing && archived.get(v.id).dir) || dir };
 }
 
 async function startDownload(v) {
@@ -767,7 +765,7 @@ function pump() {
   updateJobElement(job.id);
   renderSummary();
   syncCard(job.id);
-  invoke("download_video", { id: job.id, url: job.url, dir: job.dir, force: job.force, cookies: state.cookies_browser ?? null })
+  invoke("download_video", { id: job.id, url: job.url, dir: job.dir, cookies: state.cookies_browser ?? null })
     .catch((e) => finish(job.id, false, `Error: ${e}`));
 }
 

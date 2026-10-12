@@ -24,31 +24,22 @@ test("a queued, running or finished job can't be added twice", () => {
   assert.equal(q.add(job("a")), false);
 });
 
-test("a failed forced download is still forced when retried", () => {
+test("a failed job can be retried, and keeps where it was going", () => {
   const q = createQueue();
-  q.add(job("a", { force: true }));
-  assert.equal(q.next().force, true);
+  q.add(job("a", { dir: "/elsewhere" }));
+  q.next();
   q.settle("a", false, "Failed — Network error");
   assert.equal(q.retry("a"), true);
-  assert.equal(q.next().force, true, "retry lost the force flag");
+  assert.equal(q.next().dir, "/elsewhere");
 });
 
-test("a failed forced download is still forced when queued again from a card", () => {
-  const q = createQueue();
-  q.add(job("a", { force: true }));
-  q.next();
-  q.settle("a", false);
-  assert.equal(q.add(job("a")), true);
-  assert.equal(q.next().force, true);
-});
-
-test("an unforced job stays unforced through a retry", () => {
+test("a failed job can be queued again from its card", () => {
   const q = createQueue();
   q.add(job("a"));
   q.next();
   q.settle("a", false);
-  q.retry("a");
-  assert.equal(q.next().force, false);
+  assert.equal(q.add(job("a")), true);
+  assert.equal(q.next().id, "a");
 });
 
 test("a second report for a settled job changes nothing", () => {
