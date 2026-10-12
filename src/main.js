@@ -239,7 +239,8 @@ function showActive() {
   rebuildArchived();
   $("folder").disabled = false;
   $("sync").disabled = false;
-  $("url").value = ch.url;
+  // The field is only for adding a channel; Sync refreshes the one on screen.
+  $("url").value = "";
   renderHeader(ch);
   renderList();
   // The tab is remembered across launches but Shorts and Live aren't saved,
@@ -448,7 +449,7 @@ function card(v) {
   const playable = have === "have" && !!entry?.path;
   const meta = [
     fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`,
-    v.unlisted && "Delisted",
+    v.unlisted && "Missing on YT",
   ].filter(Boolean).join(" · ");
   return `
     <div class="card" data-id="${esc(v.id)}">

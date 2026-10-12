@@ -19,7 +19,7 @@ what you have and what you can get.
   thumbnail also plays it.
 - A missing file counts as archived and says so on its card.
 - Archived videos the channel no longer lists stay on the Videos tab after the
-  listed ones, marked "Delisted".
+  listed ones, marked "Missing on YT".
 - Download N shown queues everything on screen that isn't on disk or already
   queued, forcing the missing ones. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
@@ -28,7 +28,7 @@ what you have and what you can get.
 
 ## How to get to it
 
-Fetch or pick a channel. The header, tab strip, filter row and grid are the
+Add or pick a channel. The header, tab strip, filter row and grid are the
 main column.
 
 ## Driving it
@@ -54,7 +54,7 @@ download filled its card button to 40%, read Archived when done, then Play.
 
 - The header's art and subscriber count are saved with the channel. A channel
   saved before they were fetched shows its initial until the next Sync.
-- An archived Short shows on the Videos tab as "Delisted" until
+- An archived Short shows on the Videos tab as "Missing on YT" until
   Shorts has been opened once: that is when the app learns it is a Short.
 - There is no upload date in the listing, so no "3 weeks ago" under a card.
 - Shorts use the same 16:9 cards as videos.

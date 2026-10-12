@@ -105,7 +105,7 @@ The number on each option is what choosing it would show. **Download N shown**
 queues everything on screen that isn't already on disk.
 
 Archived videos the channel no longer lists (deleted or made private) stay on
-the Videos tab, after the listed ones, marked "Delisted".
+the Videos tab, after the listed ones, marked "Missing on YT".
 
 Sorting: **Newest** (YouTube's own order), **Oldest** (reversed), **Most
 popular** (`view_count`), **Shortest** / **Longest** (`duration`). There is no
@@ -142,7 +142,7 @@ out.
 - Changing a channel's folder reads that folder's archive: videos downloaded into
   the old folder read as not archived until the folder is switched back or the
   files are moved across.
-- An archived Short shows on the Videos tab as "Delisted" until the
+- An archived Short shows on the Videos tab as "Missing on YT" until the
   Shorts tab has been opened once, since that is when Vault learns it is a Short.
 
 ## Layout
