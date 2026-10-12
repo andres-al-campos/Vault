@@ -16,7 +16,8 @@ videos sit in browser tabs through a day.
   from the last one; closing the last tab returns to the channel.
 - Controls: play/pause, time, a seek bar, volume, and a button that opens the
   file in the Mac's default player instead. Clicking the picture also toggles
-  play. Space toggles, ←/→ skip 5 seconds, Esc goes back to the channel.
+  play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, Esc goes back to
+  the channel.
 - A video that reaches its end stays on its last frame and the play button
   becomes "Play again".
 - Each tab resumes where it was left, across tab switches and relaunches. One
@@ -67,8 +68,12 @@ it from 0.
   the tab says the file isn't there until the video is played from its card
   again.
 - Agent's guesses, never confirmed: pausing on the way back to the channel;
-  ⌘-click for a background tab; 5-second arrow skips; starting over within 5
+  ⌘-click for a background tab; starting over within 5
   seconds of the end; new tabs go at the right end; the stage is black while
   a video loads; the tab's hover card shows time where a browser shows the site.
+- The channel is hidden under the player with `visibility`, and the stage is
+  see-through, so anything in the channel that is slow to hide shows over the
+  video. A `transition: all` did exactly that to the clicked thumbnail;
+  transitions are switched off under the player for that reason.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.

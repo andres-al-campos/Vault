@@ -891,9 +891,11 @@ $("pext").addEventListener("click", () => {
 });
 document.addEventListener("keydown", (e) => {
   if (!watching() || e.metaKey || e.ctrlKey || e.altKey) return;
-  const step = { ArrowLeft: -5, ArrowRight: 5 }[e.key];
-  if (e.key === " ") togglePlay();
-  else if (e.key === "Escape") leavePlayer();
+  // YouTube's keys: arrows skip 5 seconds, J and L skip 10, K is play/pause.
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  const step = { ArrowLeft: -5, ArrowRight: 5, j: -10, l: 10 }[key];
+  if (key === " " || key === "k") togglePlay();
+  else if (key === "Escape") leavePlayer();
   else if (step) seekTo((tabs.active?.position ?? 0) + step);
   else return;
   e.preventDefault();
