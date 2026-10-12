@@ -20,3 +20,7 @@ Look-and-feel calls, with the reason given at the time.
   is the only thing that says a video is archived. yt-dlp is a dependency, not
   the thing being used, so its own archive file isn't kept up.
 - 2026-10-12. Titles aren't recorded: YouTube videos get renamed.
+- 2026-10-12. The player's tabs look and feel like a browser's tab strip
+  (Chrome's was the reference, without the site icon): a raised fill for the
+  one on screen, hairlines between the rest, close on hover, the full title
+  on a card below. Asked for by that look; the solid fill stays for filters.

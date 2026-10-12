@@ -691,7 +691,7 @@ function renderWatching() {
 
 function renderTabs() {
   $("ptabs").innerHTML = tabs.tabs.map((t) => `
-    <div class="ptab ${t.id === tabs.activeId ? "active" : ""}" data-id="${esc(t.id)}" title="${esc(t.title)}">
+    <div class="ptab ${t.id === tabs.activeId ? "active" : ""}" data-id="${esc(t.id)}">
       <span class="t">${esc(t.title)}</span>
       <button class="x" data-close title="Close this tab">✕</button>
       <i style="width:${(progress(t) * 100).toFixed(1)}%"></i>
@@ -853,6 +853,27 @@ $("ptabs").addEventListener("click", (e) => {
   if (e.target.closest("[data-close]")) closeTab(tab.dataset.id);
   else selectTab(tab.dataset.id);
 });
+// Resting on a tab shows its whole title, which the tab itself cuts short, and
+// how far through it is.
+const tipEl = $("ptip");
+let tipTimer = null;
+function hideTip() { clearTimeout(tipTimer); tipEl.hidden = true; }
+$("ptabs").addEventListener("mouseover", (e) => {
+  const el = e.target.closest(".ptab");
+  const tab = el && tabs.find(el.dataset.id);
+  if (!tab || e.target.closest("[data-close]")) return hideTip();
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => {
+    const r = el.getBoundingClientRect();
+    tipEl.innerHTML = `<b>${esc(tab.title)}</b><span>${fmtDur(tab.position)} / ${tab.duration ? fmtDur(tab.duration) : "–"}</span>`;
+    tipEl.hidden = false;
+    tipEl.style.top = `${r.bottom + 4}px`;
+    tipEl.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - tipEl.offsetWidth - 8))}px`;
+  }, tipEl.hidden ? 400 : 0);
+});
+$("ptabs").addEventListener("mouseleave", hideTip);
+$("ptabs").addEventListener("mousedown", hideTip);
+
 seekEl.addEventListener("pointerdown", () => { seeking = true; });
 seekEl.addEventListener("input", () => { seekTo(Number(seekEl.value)); $("ptime").textContent = `${fmtDur(Number(seekEl.value))} / ${fmtDur(tabs.active?.duration ?? 0)}`; });
 seekEl.addEventListener("change", () => { seeking = false; });

@@ -10,8 +10,9 @@ videos sit in browser tabs through a day.
   ⌘-click opens the tab without leaving the channel.
 - "Open videos N" in the top bar goes back to the player. It shows only while
   tabs are open.
-- Tabs: click to switch, ✕ to close. The line under a title is how far through
-  it is. Closing the tab on screen moves to the one on its right, or its left
+- Tabs: click to switch, ✕ to close (shown on the tab on screen and the one
+  under the pointer). The line under a title is how far through it is. Resting
+  on a tab shows its whole title and its time. Closing the tab on screen moves to the one on its right, or its left
   from the last one; closing the last tab returns to the channel.
 - Controls: play/pause, time, a seek bar, volume, and a button that opens the
   file in the Mac's default player instead. Clicking the picture also toggles
@@ -67,6 +68,7 @@ it from 0.
   again.
 - Agent's guesses, never confirmed: pausing on the way back to the channel;
   ⌘-click for a background tab; 5-second arrow skips; starting over within 5
-  seconds of the end; new tabs go at the right end.
+  seconds of the end; new tabs go at the right end; the stage is black while
+  a video loads; the tab's hover card shows time where a browser shows the site.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.

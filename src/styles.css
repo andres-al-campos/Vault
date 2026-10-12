@@ -385,21 +385,35 @@ body {
 .ptop { border-bottom: 1px solid var(--line); }
 .pbar { border-top: 1px solid var(--line); }
 
-.ptabs { flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.ptabs { flex: 1; min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
 .ptabs::-webkit-scrollbar { display: none; }
-/* Tabs shrink to share the row, as a browser's do, down to a floor where the
-   row scrolls instead. */
-.ptab { position: relative; flex: 0 1 230px; min-width: 110px; display: flex; align-items: center; gap: 6px;
-  padding: 7px 6px 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--chip);
-  color: var(--muted2); font: 600 12.5px inherit; cursor: pointer; overflow: hidden; }
-.ptab:hover { border-color: var(--hover-line); color: var(--text); }
-.ptab.active { background: var(--on); color: var(--on-fg); border-color: var(--on); }
-.ptab .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ptab .x { border: 0; background: transparent; color: inherit; opacity: .6; cursor: pointer;
-  font-size: 11px; width: 20px; height: 20px; border-radius: 6px; }
-.ptab .x:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
+/* Tabs look and behave like a browser's: they shrink to share the row down to
+   a floor where the row scrolls, the one on screen is a raised fill, and the
+   rest are plain text with a hairline between them. */
+.ptab { position: relative; flex: 0 1 230px; min-width: 110px; height: 34px; display: flex; align-items: center;
+  gap: 4px; padding: 0 6px 0 13px; border-radius: 10px; color: var(--muted2);
+  font: 500 13px inherit; cursor: pointer; overflow: hidden; }
+.ptab:hover { background: var(--hover); color: var(--text); }
+.ptab.active { background: var(--hover-strong); color: var(--text); }
+.ptab + .ptab::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 1px; background: var(--chip-line); }
+.ptab.active::before, .ptab.active + .ptab::before, .ptab:hover::before, .ptab:hover + .ptab::before { display: none; }
+/* A long title fades out at the tab's edge instead of ending in dots. */
+.ptab .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent); }
+/* Only the tab on screen, or the one under the pointer, offers its close. */
+.ptab .x { display: none; flex: none; border: 0; background: transparent; color: inherit; cursor: pointer;
+  font-size: 12px; width: 22px; height: 22px; border-radius: 50%; }
+.ptab.active .x, .ptab:hover .x { display: block; }
+.ptab .x:hover { background: color-mix(in srgb, currentColor 16%, transparent); }
 /* How far through the video is. */
 .ptab i { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
+
+.ptip { position: fixed; z-index: 60; max-width: 360px; padding: 9px 12px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
+  pointer-events: none; }
+.ptip b { display: block; font-size: 13px; line-height: 1.35; }
+.ptip span { font: 500 11.5px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
 
 .stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; }
 .stage.loading { background: #000; }
