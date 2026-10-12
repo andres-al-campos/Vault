@@ -24,3 +24,6 @@ Look-and-feel calls, with the reason given at the time.
   (Chrome's was the reference, without the site icon): a raised fill for the
   one on screen, hairlines between the rest, close on hover, the full title
   on a card below. Asked for by that look; the solid fill stays for filters.
+  One departure: the hairline is kept beside the tab on screen as well. That
+  tab floats with space above and below it, so without the line there was no
+  telling where the tab to its left ended.
