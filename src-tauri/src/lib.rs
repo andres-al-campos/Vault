@@ -3,7 +3,6 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
@@ -53,6 +52,22 @@ struct ChannelInfo {
     tab: String,
     video_count: usize,
     videos: Vec<Video>,
+    #[serde(flatten)]
+    about: ChannelAbout,
+}
+
+/// What the channel page shows above its videos. All of it comes free with
+/// the listing; none of it is guaranteed, so every field can be absent.
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+struct ChannelAbout {
+    #[serde(default)]
+    avatar: Option<String>,
+    #[serde(default)]
+    banner: Option<String>,
+    #[serde(default)]
+    followers: Option<u64>,
+    #[serde(default)]
+    verified: bool,
 }
 
 /// A channel the user has fetched. Persisted so the app reopens where it left
@@ -74,6 +89,10 @@ struct SavedChannel {
     /// are not persisted.
     #[serde(default)]
     videos: Vec<Video>,
+    /// Saved with the channel so the header draws on launch without a fetch.
+    /// Absent in state files written before the header showed them.
+    #[serde(flatten)]
+    about: ChannelAbout,
 }
 
 /// Everything the app remembers, in one file. The frontend owns this object and
@@ -370,6 +389,7 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
                 tab,
                 video_count: 0,
                 videos: Vec::new(),
+                about: ChannelAbout::default(),
             });
         }
         let msg = err.trim().lines().last().unwrap_or("yt-dlp failed").to_string();
@@ -379,9 +399,14 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
     let root: serde_json::Value =
         serde_json::from_slice(&out.stdout).map_err(|e| format!("Bad JSON from yt-dlp: {e}"))?;
 
+    Ok(parse_listing(&root, identity, tab))
+}
+
+/// Turn yt-dlp's `--flat-playlist -J` output into a channel listing.
+fn parse_listing(root: &serde_json::Value, identity: String, tab: String) -> ChannelInfo {
     let raw_entries: Vec<&serde_json::Value> = match root.get("entries") {
         Some(serde_json::Value::Array(a)) => a.iter().collect(),
-        _ => vec![&root],
+        _ => vec![root],
     };
 
     // Entries may be nested one level (channel -> tab -> videos). Walk them
@@ -442,14 +467,50 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
         .unwrap_or(&title)
         .to_string();
 
-    Ok(ChannelInfo {
+    ChannelInfo {
         url: identity,
         title,
         uploader,
         tab,
         video_count: videos.len(),
         videos,
-    })
+        about: channel_about(root),
+    }
+}
+
+/// The avatar, banner and counts from a listing's top level. yt-dlp puts both
+/// images in one `thumbnails` list: the avatar is the square one, banners are
+/// the wide ones in several sizes, and each also comes as an `*_uncropped`
+/// original with no dimensions.
+fn channel_about(root: &serde_json::Value) -> ChannelAbout {
+    let thumbs: Vec<&serde_json::Value> =
+        root.get("thumbnails").and_then(|t| t.as_array()).map(|a| a.iter().collect()).unwrap_or_default();
+    let size = |t: &serde_json::Value| Some((t.get("width")?.as_u64()?, t.get("height")?.as_u64()?));
+    let url = |t: &serde_json::Value| t.get("url").and_then(|u| u.as_str()).map(|s| s.to_string());
+    let by_id = |id: &str| thumbs.iter().find(|t| t.get("id").and_then(|i| i.as_str()) == Some(id)).and_then(|t| url(t));
+
+    let avatar = thumbs
+        .iter()
+        .find(|t| size(t).is_some_and(|(w, h)| w == h))
+        .and_then(|t| url(t))
+        .or_else(|| by_id("avatar_uncropped"));
+    // The narrowest banner that still fills a wide window; the largest is 2560.
+    let mut banners: Vec<(u64, &serde_json::Value)> =
+        thumbs.iter().filter_map(|t| size(t).filter(|(w, h)| w > h).map(|(w, _)| (w, *t))).collect();
+    banners.sort_by_key(|(w, _)| *w);
+    let banner = banners
+        .iter()
+        .find(|(w, _)| *w >= 1700)
+        .or(banners.last())
+        .and_then(|(_, t)| url(t))
+        .or_else(|| by_id("banner_uncropped"));
+
+    ChannelAbout {
+        avatar,
+        banner,
+        followers: root.get("channel_follower_count").and_then(|v| v.as_u64()),
+        verified: root.get("channel_is_verified").and_then(|v| v.as_bool()).unwrap_or(false),
+    }
 }
 
 /// One download, as the frontend asks for it.
@@ -695,17 +756,6 @@ struct ArchiveEntry {
     path: Option<String>,
 }
 
-#[derive(Serialize, Clone)]
-struct ChannelVault {
-    url: String,
-    title: String,
-    dir: Option<String>,
-    /// How many ids this channel's own archive file records.
-    archived: usize,
-    /// Whether the channel's folder (and its archive) was reachable.
-    reachable: bool,
-}
-
 /// Read an archive file into ids, in file order (oldest download first).
 /// yt-dlp's format is `<extractor> <id>` per line.
 fn read_archive(path: &std::path::Path) -> Vec<String> {
@@ -835,8 +885,15 @@ fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
             // fallback for states whose archive predates per-channel folders.
             let channel = owner_title.or(list_channel.as_deref()).map(|s| s.to_string());
             let url = v.as_ref().map(|v| v.url.clone()).unwrap_or_else(|| format!("https://www.youtube.com/watch?v={id}"));
+            // A video that has dropped off every saved list still has its
+            // title in the file's name: "<title> [<id>].<ext>".
+            let title_on_disk = path.as_deref().and_then(|p| {
+                let name = std::path::Path::new(p).file_name()?.to_string_lossy().into_owned();
+                let title = name[..name.rfind(&format!("[{id}]"))?].trim();
+                (!title.is_empty()).then(|| title.to_string())
+            });
             ArchiveEntry {
-                title: v.as_ref().map(|v| v.title.clone()).unwrap_or_else(|| id.clone()),
+                title: v.as_ref().map(|v| v.title.clone()).or(title_on_disk).unwrap_or_else(|| id.clone()),
                 id,
                 duration: v.as_ref().and_then(|v| v.duration),
                 view_count: v.as_ref().and_then(|v| v.view_count),
@@ -848,42 +905,6 @@ fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
             }
         })
         .collect()
-}
-
-/// Per-channel archive state, so the UI can show each channel's own vault
-/// rather than one undifferentiated list. `reachable` is false when the
-/// channel's folder can't be read — an unmounted drive is the usual reason.
-#[tauri::command]
-fn channel_vaults() -> Vec<ChannelVault> {
-    let state = state_or_default();
-    state
-        .channels
-        .iter()
-        .map(|c| {
-            let (archived, reachable) = match c.download_dir.as_deref() {
-                Some(d) => {
-                    let dir = std::path::Path::new(d);
-                    let file = channel_archive_path(dir);
-                    (read_archive(&file).len(), file.is_file())
-                }
-                None => (0, false),
-            };
-            ChannelVault {
-                url: c.url.clone(),
-                title: c.title.clone(),
-                dir: c.download_dir.clone(),
-                archived,
-                reachable,
-            }
-        })
-        .collect()
-}
-
-/// The set of video ids already archived anywhere, so the UI can mark cards as
-/// "downloaded" on load without re-checking the filesystem.
-#[tauri::command]
-fn downloaded_ids() -> Vec<String> {
-    archive_owners(&state_or_default()).into_iter().map(|(id, _, _)| id).collect()
 }
 
 /// Record an id in an archive file, creating the file if needed. The line
@@ -1175,11 +1196,6 @@ fn open_file(path: String) -> Result<(), String> {
     Ok(())
 }
 
-#[allow(dead_code)]
-fn now_secs() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1428,6 +1444,60 @@ mod tests {
     }
 
     #[test]
+    fn a_listing_carries_the_channel_art_and_counts() {
+        // The shape yt-dlp returned for a real channel: sized banners, a
+        // square avatar, and an uncropped original of each with no size.
+        let root: serde_json::Value = serde_json::from_str(
+            r#"{
+            "channel": "Some Channel", "channel_follower_count": 5540000, "channel_is_verified": true,
+            "thumbnails": [
+                {"id": "0", "width": 1060, "height": 175, "url": "https://img/banner-1060"},
+                {"id": "2", "width": 1707, "height": 283, "url": "https://img/banner-1707"},
+                {"id": "5", "width": 2560, "height": 424, "url": "https://img/banner-2560"},
+                {"id": "banner_uncropped", "url": "https://img/banner-raw"},
+                {"id": "7", "width": 900, "height": 900, "url": "https://img/avatar-900"},
+                {"id": "avatar_uncropped", "url": "https://img/avatar-raw"}
+            ],
+            "entries": []
+        }"#,
+        )
+        .unwrap();
+        let about = parse_listing(&root, "u".into(), "videos".into()).about;
+        assert_eq!(about.avatar.as_deref(), Some("https://img/avatar-900"));
+        assert_eq!(about.banner.as_deref(), Some("https://img/banner-1707"));
+        assert_eq!(about.followers, Some(5540000));
+        assert!(about.verified);
+
+        // A channel with nothing set still parses.
+        let bare: serde_json::Value = serde_json::from_str(r#"{"channel": "Bare", "entries": []}"#).unwrap();
+        assert_eq!(parse_listing(&bare, "u".into(), "videos".into()).about, ChannelAbout::default());
+    }
+
+    #[test]
+    fn a_video_gone_from_the_listing_keeps_its_title_from_the_file() {
+        let dir = std::env::temp_dir().join(format!("vault-orphan-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = channel_archive_path(&dir);
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, "youtube abcdefghijk\nyoutube zzzzzzzzzzz\n").unwrap();
+        std::fs::write(dir.join("Deleted upload [abcdefghijk].mp4"), b"x").unwrap();
+
+        let mut s = PersistedState::default();
+        s.channels.push(SavedChannel {
+            url: "https://www.youtube.com/@foo".into(),
+            title: "Foo".into(),
+            download_dir: Some(dir.to_string_lossy().into_owned()),
+            ..Default::default()
+        });
+        let entries = archive_entries(&s);
+        assert_eq!(entries[0].title, "Deleted upload");
+        // No list and no file: the id is all there is.
+        assert_eq!(entries[1].title, "zzzzzzzzzzz");
+        assert!(entries[1].path.is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn channel_url_detection() {
         assert!(is_channel_url("https://www.youtube.com/@foo"));
         assert!(is_channel_url("https://www.youtube.com/channel/UCabc"));
@@ -1501,18 +1571,9 @@ mod tests {
             ]
         }"#;
         let root: serde_json::Value = serde_json::from_str(payload).unwrap();
-        let raw: Vec<&serde_json::Value> = root["entries"].as_array().unwrap().iter().collect();
-        let mut queue: std::collections::VecDeque<&serde_json::Value> = raw.into();
-        let mut order = Vec::new();
-        while let Some(e) = queue.pop_front() {
-            if let Some(nested) = e.get("entries").and_then(|v| v.as_array()) {
-                queue.extend(nested.iter());
-                continue;
-            }
-            if let Some(id) = e.get("id").and_then(|v| v.as_str()) {
-                order.push(id.to_string());
-            }
-        }
+        let info = parse_listing(&root, "https://www.youtube.com/@some".into(), "videos".into());
+        let order: Vec<&str> = info.videos.iter().map(|v| v.id.as_str()).collect();
+        assert_eq!(info.title, "Some Channel");
         assert_eq!(order, vec!["newest00001", "middle00002", "oldest00003"]);
     }
 
@@ -1599,9 +1660,7 @@ pub fn run() {
             fetch_channel,
             download_video,
             cancel_download,
-            downloaded_ids,
             list_archive,
-            channel_vaults,
             load_state,
             save_state,
             default_download_dir_str,
