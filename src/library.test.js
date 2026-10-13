@@ -53,7 +53,7 @@ test("hasMembers says whether the access filter has anything to offer", () => {
   assert.equal(view([v("a")], { access: "all", have: "all", sort: "newest" }, archived).hasMembers, false);
 });
 
-test("Download shown takes what isn't on disk, missing files included", () => {
+test("Download all takes what isn't on disk, missing files included", () => {
   const holds = () => false;
   const open = downloadable(list, archived, { cookies: true, holds });
   assert.deepEqual(open.jobs.map((j) => j.video.id), ["b", "d", "e"]);

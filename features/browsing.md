@@ -45,7 +45,7 @@ main column.
 Preconditions: none.
 
 `./build.sh check` (~1s once built): the filter combinations, the counts, what
-Download shown takes, unlisted videos, the sorts, and which rows of a long
+Download all takes, unlisted videos, the sorts, and which rows of a long
 grid are drawn, in `src/library.test.js`;
 channel art and counts from a listing, and an unlisted video's title from its
 file name, in the Rust unit tests.

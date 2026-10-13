@@ -54,7 +54,7 @@ export function view(list, { access, have, sort }, archived) {
   };
 }
 
-// What "Download N shown" would queue: everything on screen that isn't on
+// What "Download all N" would queue: everything the filters leave that isn't on
 // disk, isn't already in the queue, and can be downloaded at all. A missing
 // file is fetched again like any other. `locked` counts the members-only videos
 // left out for want of cookies.
