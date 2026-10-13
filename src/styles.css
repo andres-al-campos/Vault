@@ -302,10 +302,11 @@ body {
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--text); border-bottom-color: var(--text); }
 .tabs { align-items: flex-end; }
-/* One height whatever the button holds. Left to its contents, the one with
-   the arrow came out half a pixel taller than "Nothing to download", and
-   everything under the strip moved when one replaced the other. */
-.tabs .btn { margin-bottom: 7px; height: 34px; padding-top: 0; padding-bottom: 0; display: flex; align-items: center; }
+/* One height whatever the button holds, the same as the Sort button and the
+   filter rows below. Left to its contents, the one with the arrow came out
+   half a pixel taller than "Nothing to download", and everything under the
+   strip moved when one replaced the other. */
+.tabs .btn { margin-bottom: 7px; height: 35px; padding-top: 0; padding-bottom: 0; display: flex; align-items: center; }
 .tabs-spacer { flex: 1; }
 .split { position: relative; display: flex; gap: 1px; margin-bottom: 7px; }
 .split .btn { margin-bottom: 0; }
