@@ -31,7 +31,7 @@ videos sit in browser tabs through a day.
   leaves; a second Esc goes back to the channel. A window that was already
   fullscreen stays so on the way out.
 - Starting or stopping playback blinks a play or pause mark in the middle of
-  the picture.
+  the picture, and muting or unmuting blinks a speaker the same way.
 - The keyboard's play/pause key, headphone buttons and Control Center toggle
   the loaded video, through mpv's own media-key support.
 - A video that reaches its end stays on its last frame and the play button

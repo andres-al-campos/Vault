@@ -739,10 +739,10 @@ function placeVideo() {
 new ResizeObserver(placeVideo).observe(stageEl);
 
 // The mark that blinks in the middle of the picture when playback starts or
-// stops, as on YouTube.
-function flash(paused) {
+// stops, or the sound goes off or on, as on YouTube.
+function flash(icon) {
   const el = $("bezel");
-  el.innerHTML = paused ? PAUSE_ICON : PLAY_ICON;
+  el.innerHTML = icon;
   el.classList.remove("go");
   void el.offsetWidth; // restarts the animation when toggled twice quickly
   el.classList.add("go");
@@ -822,7 +822,7 @@ async function tick() {
   stageEl.classList.remove("loading");
   // Seen here and not where the button is pressed, so a pause that came from
   // the keyboard's media key shows too.
-  if (reported && s.paused !== playing.paused && !s.ended) flash(s.paused);
+  if (reported && s.paused !== playing.paused && !s.ended) flash(s.paused ? PAUSE_ICON : PLAY_ICON);
   reported = true;
   tabs.note(tab.id, s.position, s.duration);
   playing = { paused: s.paused, ended: s.ended };
@@ -952,6 +952,7 @@ async function toggleMute() {
   try {
     await invoke("player_set", { action: "mute" });
     muted = !!(await invoke("player_state")).muted;
+    flash(muted ? MUTED_ICON : VOLUME_ICON);
   } catch (e) { console.error("Could not mute:", e); }
   renderTransport();
 }
