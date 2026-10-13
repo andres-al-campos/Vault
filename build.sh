@@ -81,6 +81,28 @@ kill_running() {
   sleep 0.3
 }
 
+# macOS 26 repaints an old-format .icns as glass, which lets the tile's red
+# show through the white V and turns it pink. An icon in Apple's layered format
+# is drawn as its settings say, and src-tauri/Vault.icon sets the V opaque. The
+# .icns Tauri bundles stays in the app for older macOS. This runs before the
+# signing below, since it changes the bundle.
+layered_icon() {
+  local out=src-tauri/target/layered-icon
+  if ! xcrun --find actool >/dev/null 2>&1; then
+    echo "Xcode's actool wasn't found, so the app keeps its old-format icon and macOS 26 will draw its V pink. Install Xcode 26 or later, run 'sudo xcode-select -s /Applications/Xcode.app', then re-run ./build.sh." >&2
+    return 0
+  fi
+  rm -rf "$out" && mkdir -p "$out"
+  xcrun actool src-tauri/Vault.icon --compile "$out" --app-icon Vault \
+    --platform macosx --minimum-deployment-target 26.0 \
+    --output-partial-info-plist "$out/partial.plist" >/dev/null \
+    || die "actool couldn't compile src-tauri/Vault.icon. Run the actool command in build.sh's layered_icon by hand to see its errors; icon.json or Assets/v.svg is likely malformed."
+  [ -f "$out/Assets.car" ] || die "actool ran but wrote no Assets.car, which needs Xcode 26 or later. Check 'xcodebuild -version', update Xcode, then re-run ./build.sh."
+  cp "$out/Assets.car" "${INSTALLED_APP}/Contents/Resources/Assets.car"
+  /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string Vault" "${INSTALLED_APP}/Contents/Info.plist" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Set :CFBundleIconName Vault" "${INSTALLED_APP}/Contents/Info.plist"
+}
+
 case "${1:-}" in
   dev)
     exec npm run tauri dev
@@ -135,6 +157,8 @@ echo "Installing to ${INSTALLED_APP} …"
 kill_running
 rm -rf "$INSTALLED_APP"
 cp -R "$BUILT_APP" "$INSTALLED_APP"
+
+layered_icon
 
 # Ad-hoc sign so Gatekeeper lets a locally built, unsigned app launch, and drop
 # any quarantine flag the copy inherited. Local use only — not a distributable

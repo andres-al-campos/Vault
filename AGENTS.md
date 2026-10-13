@@ -73,6 +73,10 @@ Look-and-feel calls, with the reason given at the time.
 - 2026-10-13. The icon's V is large and centred top to bottom, with the same
   room above it as below its point: smaller, the white blurred into the red
   and looked pink.
+- 2026-10-13. The icon's V is opaque white. It's the one thing that shouldn't
+  blend with what's behind it: macOS 26 drew the old-format icon as glass
+  and the V went pink, so the app also carries a layered icon (`build.sh`,
+  `src-tauri/Vault.icon`) with the glass turned off.
 - 2026-10-13. The icon stays a red tile with a white V: switched, a red V on
   white looked like a heart or a hospital sign. The wordmark's V is a
   normal letter in red: with the icon's mark in its place the word read as
