@@ -38,6 +38,9 @@
   --sb-thumb-hover: #b4b4ab;
 }
 [data-theme="dark"] {
+  /* Tells the system which side its own drawing is on: scrollbar tracks and
+     checkboxes come out dark instead of white. */
+  color-scheme: dark;
   --bg: #0e0f13;
   --panel: #15171d;
   --card: #171a21;
@@ -252,7 +255,11 @@ body {
 .side-actions button { flex: 1; white-space: nowrap; font: 600 12px inherit; padding: 8px; border-radius: 9px;
   cursor: pointer; border: 1px solid var(--line); background: var(--chip); color: var(--text); transition: 0.15s; }
 .side-actions button:not(:disabled):hover { border-color: var(--hover-line); }
+.side-actions button { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.side-actions button svg { width: 13px; height: 13px; flex: none; }
+/* The same fill and hover as Open videos and Subscribe. */
 .side-actions button.resume { background: var(--on); color: var(--on-fg); border-color: var(--on); }
+.side-actions button.resume:hover { filter: brightness(.94); }
 .queue { flex: 1; overflow: auto; padding: 6px 0 20px; }
 
 .qi { padding: 12px 20px 12px 6px; border-bottom: 1px solid var(--line2); display: flex; gap: 0; }
@@ -387,11 +394,12 @@ body {
    ::-webkit-scrollbar styling overrides the system "Show scroll bars: When
    scrolling" preference — in a 600-video grid that leaves no sense of position
    or how much is left. `overflow-y: scroll` reserves the gutter and forces a
-   persistent bar regardless of the setting. */
+   persistent bar regardless of the setting.
+   Only the ::-webkit-scrollbar rules style it. With `scrollbar-width` and
+   `scrollbar-color` set as well, the system's own bar was drawn instead: a
+   different width, and a white track whenever there was nothing to scroll. */
 .main, .queue, .chansel-menu {
   overflow-y: scroll;
-  scrollbar-width: thin;
-  scrollbar-color: var(--sb-thumb) transparent;
 }
 .main::-webkit-scrollbar, .queue::-webkit-scrollbar, .chansel-menu::-webkit-scrollbar {
   width: 12px; -webkit-appearance: none; appearance: none;
