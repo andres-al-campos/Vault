@@ -462,7 +462,7 @@ function renderControls(now) {
     // The arrow offers the first few in the order on screen, so the sort
     // picks the batch: Oldest + First 50 is the 50 oldest not yet archived.
     const sizes = batchSizes(jobs.length);
-    const menu = sizes.length ? `<button class="btn btn-primary split-arrow" id="dlmore" title="Download only the first few">▾</button>
+    const menu = sizes.length ? `<button class="btn btn-primary split-arrow" id="dlmore" title="Download only the first few"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="dl-menu" id="dlmenu">
           ${sizes.map((n) => `<button class="cookie-item" data-first="${n}">First ${n}</button>`).join("")}
           <button class="cookie-item" data-first="${jobs.length}">All ${jobs.length}</button>
@@ -1001,7 +1001,8 @@ $("ptabs").addEventListener("mouseover", (e) => {
     // A delisted video has no thumbnail left on YouTube.
     tipEl.querySelector("img").addEventListener("error", (ev) => ev.target.remove());
     tipEl.hidden = false;
-    tipEl.style.top = `${r.bottom + 4}px`;
+    // Below the bar the tabs sit in, not just below the tab.
+    tipEl.style.top = `${$("ptabs").parentElement.getBoundingClientRect().bottom + 5}px`;
     tipEl.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - tipEl.offsetWidth - 8))}px`;
   }, warm ? 0 : 400);
 });

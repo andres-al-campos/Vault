@@ -285,6 +285,15 @@ body {
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22); padding: 6px; display: none;
 }
 .dl-menu.open { display: block; }
+/* The download button's menu is part of the button: its width, its colour,
+   the same hairline seam as between its two halves, and square corners where
+   they meet. */
+.split .split-arrow { display: grid; place-items: center; }
+.split .dl-menu { top: calc(100% + 1px); left: 0; right: 0; min-width: 0; padding: 4px;
+  background: var(--btn-bg); color: var(--btn-fg); border: 0; border-radius: 0 0 10px 10px; }
+.split .dl-menu .cookie-item { color: inherit; }
+.split .dl-menu .cookie-item:hover { background: var(--btn-bg-hover); }
+.split:has(.dl-menu.open) .btn { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .chan-title { display: flex; align-items: center; gap: 14px; }
 .subscribe { position: relative; }
 /* Shares the chosen filter's fill, so "on" is one colour across the page. */
