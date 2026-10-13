@@ -37,9 +37,19 @@ function build(saved) {
     return true;
   }
 
+  // The line runs in the order the rows are listed. A job that rejoins it
+  // (a retry, or the download Stop all ended) keeps its row, so it takes
+  // that row's turn instead of going to the back.
+  function inRowOrder() {
+    const inLine = new Set(waiting);
+    waiting = Array.from(jobs.keys()).filter((id) => inLine.has(id));
+  }
+
   function retry(id) {
     const j = jobs.get(id);
-    return !!j && j.status === "error" && add({ id, ...j });
+    if (!j || j.status !== "error" || !add({ id, ...j })) return false;
+    inRowOrder();
+    return true;
   }
 
   // Starts the next waiting job when nothing is running, and returns it.
@@ -59,11 +69,12 @@ function build(saved) {
     if (!j || j.status === "done" || j.status === "error") return false;
     const held = halting === id;
     if (held) halting = null;
-    // Stopped, not failed: it goes back to the front of the line, and its
+    // Stopped, not failed: it goes back in line where its row is, and its
     // partial file is what the next run carries on from.
     if (held && !ok) {
       activeId = null;
-      waiting.unshift(id);
+      waiting.push(id);
+      inRowOrder();
       Object.assign(j, { status: "queued", stat: j.pct > 0 ? `Stopped at ${Math.round(j.pct)}%` : "Queued" });
       return true;
     }

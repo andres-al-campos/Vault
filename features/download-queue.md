@@ -10,9 +10,10 @@ Queue videos and watch them download one at a time in the sidebar.
 - Cancel (✕) stops a running download or drops a waiting one. Re-queuing a
   cancelled download resumes its partial file.
 - Stop all ends the running download and holds the line; the button becomes
-  Resume all. The stopped download keeps its partial file, goes back to the
-  front reading "Stopped at N%", and carries on from there on Resume. Resume
-  also queues the failed rows again. Videos queued while stopped wait for it.
+  Resume all. The stopped download keeps its partial file, goes back in
+  line where its row is, reading "Stopped at N%", and carries on from there
+  on Resume. Resume also queues the failed rows again. A retried row keeps
+  its place and takes its turn from there. Videos queued while stopped wait for it.
   With nothing left but failures the same button reads Retry N failed.
 - A waiting row is dragged by its grip to a new place in the line.
 - What hasn't finished is remembered when Vault closes: it comes back in the

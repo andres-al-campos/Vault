@@ -165,3 +165,16 @@ test("the first button releases, holds, or retries, whichever gets things moving
   assert.equal(lineAction({ stopped: false, live: 0, failed: 2 }), "retry");
   assert.equal(lineAction({ stopped: false, live: 0, failed: 0 }), null);
 });
+
+test("a retried job keeps its row and its turn", () => {
+  const q = createQueue();
+  for (const id of ["a", "b", "c", "d"]) q.add(job(id));
+  q.next(); q.settle("a", false, "Network error");
+  q.next(); // b is running
+  assert.equal(q.retry("a"), true);
+  assert.deepEqual([...q.jobs.keys()], ["a", "b", "c", "d"]);
+  q.settle("b", true);
+  assert.equal(q.next().id, "a");
+  q.settle("a", true);
+  assert.equal(q.next().id, "c");
+});
