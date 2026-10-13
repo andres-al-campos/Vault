@@ -509,15 +509,20 @@ function renderControls(now) {
     if (!on) return;
     const fill = document.createElement("i");
     fill.className = "pill-on";
-    const sit = (b) => { fill.style.width = `${b.offsetWidth}px`; fill.style.transform = `translateX(${b.offsetLeft}px)`; };
+    // Measured before the fill goes in and before any of it is styled:
+    // reading a size lays the page out, and a fill laid out half-placed
+    // starts its slide from the row's left edge instead of the last choice.
+    const place = (b) => ({ width: `${b.offsetWidth}px`, transform: `translateX(${b.offsetLeft}px)` });
     const from = [...row.querySelectorAll(".pill")].find((b) => b.dataset.value === was[on.dataset.filter]);
+    const end = place(on);
+    const start = from && from !== on ? place(from) : null;
+    Object.assign(fill.style, start ?? end);
     row.prepend(fill);
-    if (from && from !== on) {
-      sit(from);
+    if (start) {
       fill.offsetWidth; // the starting place has to be laid out before it can move from it
+      Object.assign(fill.style, end);
       on.classList.add("arriving");
     }
-    sit(on);
   });
 
   controlsEl.querySelectorAll("[data-tab]").forEach((b) =>

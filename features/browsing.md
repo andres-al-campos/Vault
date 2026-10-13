@@ -61,6 +61,11 @@ download filled its card button to 40%, read Archived when done, then Play.
 
 ## Gotchas
 
+- A filter row's fill slides from the last choice to the new one. It once
+  always slid from the row's left edge: the fill was measured and styled
+  after going into the page, and reading a size laid it out half-placed. No
+  test covers it; watch each frame's position in the stand-in to check it.
+
 - The "Queue N videos?" popup has not been seen: the stand-in's channel has 60
   videos, under the 100 that triggers it. The threshold and the batch sizes
   are an agent's guess, as is a video that is both "Missing on YT" and "File
