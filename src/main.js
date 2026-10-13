@@ -815,6 +815,10 @@ async function tick() {
   // A report about another file crossed a tab switch, and one with no length
   // came before the file opened. Either would overwrite this tab's place.
   if (!tab || loadedId !== tab.id || s.path !== tab.path || !(s.duration > 0)) return;
+  // Until the frame is really there the cover stays, and the position is
+  // not taken: a seek into a long video lands a while after the file opens,
+  // and what's reported meanwhile isn't where the tab was left.
+  if (!s.ready) return;
   stageEl.classList.remove("loading");
   // Seen here and not where the button is pressed, so a pause that came from
   // the keyboard's media key shows too.

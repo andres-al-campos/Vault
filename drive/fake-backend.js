@@ -158,7 +158,7 @@ const commands = {
   player_state() {
     filmNow();
     const ended = film.position >= film.duration;
-    return { position: film.position, duration: film.duration, paused: film.paused || ended, ended, path: film.path, muted: !!film.muted };
+    return { position: film.position, duration: film.duration, paused: film.paused || ended, ended, path: film.path, muted: !!film.muted, ready: !!film.path };
   },
   player_place: () => null,
   // No picture to save here.

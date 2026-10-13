@@ -285,6 +285,10 @@ pub struct PlayerState {
     duration: f64,
     paused: bool,
     muted: bool,
+    /// The picture for the current position is up: the file is open, the
+    /// seek to where it starts has landed, and the output has a frame. The
+    /// length alone is known well before that.
+    ready: bool,
     /// The video reached its end and is sitting on the last frame.
     ended: bool,
     /// The file these numbers are about, so a report that crosses a tab
@@ -301,6 +305,7 @@ pub fn player_state() -> PlayerState {
         duration: num("duration").unwrap_or(0.0),
         paused: yes("pause"),
         muted: yes("mute"),
+        ready: num("time-pos").is_some() && !yes("seeking") && yes("vo-configured"),
         ended: yes("eof-reached"),
         path: property("path"),
     }
@@ -341,10 +346,20 @@ pub fn player_place(window: tauri::WebviewWindow, visible: bool, x: f64, top: f6
 #[tauri::command(async)]
 pub fn player_fullscreen(window: tauri::WebviewWindow, on: Option<bool>) -> Result<bool, String> {
     match on {
-        Some(on) => window
-            .set_fullscreen(on)
-            .map(|_| on)
-            .map_err(|e| format!("Couldn't switch fullscreen: {e}. Use the green button in the window's title bar instead.")),
+        Some(on) => {
+            window.set_fullscreen(on).map_err(|e| {
+                format!("Couldn't switch fullscreen: {e}. Use the green button in the window's title bar instead.")
+            })?;
+            // The move to or from fullscreen takes the keyboard away from the
+            // web view, and the page's keys (F, Esc, Space) stop arriving.
+            // Hand it back now, and again once the animation has finished.
+            let _ = window.set_focus();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(900));
+                let _ = window.set_focus();
+            });
+            Ok(on)
+        }
         None => window
             .is_fullscreen()
             .map_err(|e| format!("Couldn't tell whether the window is fullscreen: {e}. Reopen Vault if the player's controls look wrong.")),
