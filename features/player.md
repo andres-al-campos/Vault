@@ -24,8 +24,8 @@ videos sit in browser tabs through a day.
 - Controls: play/pause, time, a seek bar, volume and fullscreen. Clicking the picture also toggles
   play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, M or the speaker
   mutes, Esc goes back to the channel.
-- Fullscreen: the button at the right of the controls, F, or a double-click on
-  the picture. The window goes fullscreen and the tabs and controls lie over
+- Fullscreen: the button at the right of the controls, or F. The window goes
+  fullscreen and the tabs and controls lie over
   the picture, fading out with the pointer after 2.5 seconds without movement.
   They stay while the video is paused or the pointer is on them. F or Esc
   leaves; a second Esc goes back to the channel. A window that was already

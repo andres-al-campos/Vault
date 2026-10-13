@@ -37,8 +37,8 @@ Look-and-feel calls, with the reason given at the time.
   Download is the same white fill as Subscribe and the chosen filter, for now:
   blue was tried there and looked too light and flat. Failures and retries
   are amber.
-- 2026-10-12. The logo and the app icon are YouTube's red. Buttons aren't: a
-  red button means something else.
+- 2026-10-12. The logo is YouTube's red, and the app icon a red near it.
+  Buttons aren't: a red button means something else.
 - 2026-10-12. Menus and the filter rows animate, briefly: appearing at once
   was jarring.
 - 2026-10-13. A failed download is unfinished, not finished: Clear finished
@@ -56,5 +56,13 @@ Look-and-feel calls, with the reason given at the time.
 - 2026-10-13. Nothing on the page moves when a view changes: controls keep
   one height and the content one width, with or without a scrollbar.
 - 2026-10-13. Open videos has no play icon, so it doesn't read as the same
-  button as Resume all.
+  button as Resume all. Resume all is the same grey as the buttons beside
+  it: it doesn't need to stand out.
+- 2026-10-13. Nothing teleports: a thing that changes place or appears moves
+  or fades there, since a jump is jarring. Menus always fade, the filter fill
+  and the tab underline slide. Slides ease out: fast to leave, slow to settle.
+- 2026-10-13. Fullscreen is the button or F. No double-click: two ways in
+  are enough.
+- 2026-10-13. The app icon's red is a little softer than YouTube's, which
+  was too red in the Dock, and its V and ring are larger.
 - 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.

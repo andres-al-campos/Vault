@@ -374,6 +374,7 @@ function renderHeader(ch) {
          <button class="mini accent" id="change-dir" title="Choose the download folder">${FOLDER_ICON}</button>
        </div>`;
 
+  const wasOpen = openMenus(headEl);
   headEl.innerHTML = `
     ${ch.banner ? `<img class="banner" src="${esc(ch.banner)}" alt="">` : ""}
     <div class="chan">
@@ -401,6 +402,7 @@ function renderHeader(ch) {
     [...headEl.querySelectorAll("[data-sub]")].map((b) => [b.dataset.sub, b.checked]));
   $("sub-btn").addEventListener("click", (e) => { e.stopPropagation(); $("sub-menu").classList.toggle("open"); });
   $("sub-menu").addEventListener("click", (e) => e.stopPropagation());
+  fadeShut(wasOpen);
   // Once subscribed, a tick takes effect as it's made.
   headEl.querySelectorAll("[data-sub]").forEach((b) => b.addEventListener("change", () => {
     if (ch.subscribe) { ch.subscribe = picked(); persist(); }
@@ -448,6 +450,60 @@ function renderList() {
   renderGrid(now);
   main.scrollTop = at;
   drawWindow(); // for where the scroll has just been put back
+}
+
+// Nothing on the page changes place at once: it moves or fades there.
+//
+// The mark under a row's chosen option (a filter's fill, the tabs' underline)
+// is its own element, placed over `on`, since the row itself is redrawn on
+// every change. It slides there from `from`: where the last mark was when
+// the row was redrawn (see whereIs), which may be partway through a slide.
+const whereIs = (mark) => {
+  if (!mark) return null;
+  const css = getComputedStyle(mark);
+  return { width: css.width, transform: css.transform };
+};
+function slideMark(row, cls, on, from) {
+  if (!on) return;
+  const mark = document.createElement("i");
+  mark.className = cls;
+  // Measured before the mark goes in and before any of it is styled:
+  // reading a size lays the page out, and a mark laid out half-placed
+  // starts its slide from the row's left edge instead of the last choice.
+  const end = { width: `${on.offsetWidth}px`, transform: `translateX(${on.offsetLeft}px)` };
+  const x = (t) => new DOMMatrix(t).m41;
+  const start = from && (Math.abs(x(from.transform) - x(end.transform)) > 0.5 || Math.abs(parseFloat(from.width) - parseFloat(end.width)) > 0.5) ? from : null;
+  Object.assign(mark.style, start ?? end);
+  row.prepend(mark);
+  // The slide starts two frames on, once the redrawn page is on screen.
+  // Started here, its clock runs while the page is still being laid out and
+  // can be over before the first frame shows.
+  if (start) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!mark.isConnected) return;
+      Object.assign(mark.style, end);
+      on.classList.add("arriving");
+    }));
+  }
+}
+
+// A menu whose row was picked is redrawn along with everything around it,
+// which would make it vanish. The new copy starts open and is shut at once,
+// so it fades like one closed by a click elsewhere.
+const openMenus = (within) => Array.from(within.querySelectorAll(".dl-menu.open"), (m) => m.id);
+function fadeShut(ids) {
+  for (const id of ids) {
+    const menu = $(id);
+    if (!menu) continue;
+    // Opened without its fade: by now the page has been laid out with it
+    // shut, so opening it normally would start fading in from nothing, and
+    // shutting it again would have nothing to fade from.
+    menu.style.transition = "none";
+    menu.classList.add("open");
+    menu.offsetWidth; // laid out open, so the fade has somewhere to start
+    menu.style.transition = "";
+    menu.classList.remove("open");
+  }
 }
 
 // The size picked from the Download button's menu; null is all of them. The
@@ -499,38 +555,22 @@ function renderControls(now) {
     tabs += `<span class="tabs-spacer"></span>${download}`;
   }
 
-  // Where each group's fill sat, so it can slide from there to the new choice.
+  // Where each group's fill and the tab underline sat, so they can slide from
+  // there to the new choice, and which menus were open, so they can fade.
   const was = {};
-  controlsEl.querySelectorAll(".pill.active").forEach((b) => { was[b.dataset.filter] = b.dataset.value; });
+  controlsEl.querySelectorAll(".pill-on").forEach((m) => { was[m.nextElementSibling?.dataset.filter] = whereIs(m); });
+  const wasTab = whereIs(controlsEl.querySelector(".tab-on"));
+  const wasOpen = openMenus(controlsEl);
 
   controlsEl.innerHTML = `<div class="tabs">${tabs}</div><div class="controls">${bar}</div>`;
 
   controlsEl.querySelectorAll(".filters").forEach((row) => {
     const on = row.querySelector(".pill.active");
-    if (!on) return;
-    const fill = document.createElement("i");
-    fill.className = "pill-on";
-    // Measured before the fill goes in and before any of it is styled:
-    // reading a size lays the page out, and a fill laid out half-placed
-    // starts its slide from the row's left edge instead of the last choice.
-    const place = (b) => ({ width: `${b.offsetWidth}px`, transform: `translateX(${b.offsetLeft}px)` });
-    const from = [...row.querySelectorAll(".pill")].find((b) => b.dataset.value === was[on.dataset.filter]);
-    const end = place(on);
-    const start = from && from !== on ? place(from) : null;
-    Object.assign(fill.style, start ?? end);
-    row.prepend(fill);
-    // The slide starts two frames on, once the redrawn grid is on screen.
-    // Started here, its clock runs while a long list is still being laid
-    // out, and it is over before the first frame shows: choosing Archived
-    // (a short list) slid, and leaving it for a long one jumped.
-    if (start) {
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (!fill.isConnected) return;
-        Object.assign(fill.style, end);
-        on.classList.add("arriving");
-      }));
-    }
+    slideMark(row, "pill-on", on, was[on?.dataset.filter]);
   });
+  const tabsRow = controlsEl.querySelector(".tabs");
+  slideMark(tabsRow, "tab-on", tabsRow.querySelector(".tab.active"), wasTab);
+  fadeShut(wasOpen);
 
   controlsEl.querySelectorAll("[data-tab]").forEach((b) =>
     b.addEventListener("click", () => switchTab(b.dataset.tab)));
@@ -1088,7 +1128,6 @@ $("watching").addEventListener("click", () => showPlayer());
 $("pback").addEventListener("click", leavePlayer);
 $("pplay").addEventListener("click", togglePlay);
 stageEl.addEventListener("click", (e) => { if (e.target === stageEl) togglePlay(); });
-stageEl.addEventListener("dblclick", (e) => { if (e.target === stageEl) setFull(!full); });
 $("pfull").addEventListener("click", () => setFull(!full));
 playerEl.addEventListener("mousemove", wake);
 $("ptabs").addEventListener("click", (e) => {
@@ -1390,7 +1429,6 @@ function renderSummary() {
   const act = lineAction({ paused: queue.paused, live, failed: err });
   stop.dataset.act = act ?? "";
   stop.disabled = !act;
-  stop.classList.toggle("resume", act === "resume");
   const face = act === "resume" ? `${PLAY_ICON} Resume all` : act === "retry" ? `Retry ${err} failed` : `${PAUSE_ICON} Pause all`;
   if (stop.dataset.face !== face) { stop.dataset.face = face; stop.innerHTML = face; }
   // A failed download is unfinished, so it counts as queue, not as finished.

@@ -263,9 +263,6 @@ body {
 .side-actions button:not(:disabled):hover { border-color: var(--hover-line); }
 .side-actions button { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .side-actions button svg { width: 13px; height: 13px; flex: none; }
-/* The same fill and hover as Open videos and Subscribe. */
-.side-actions button.resume { background: var(--on); color: var(--on-fg); border-color: var(--on); }
-.side-actions button.resume:hover { filter: brightness(.94); }
 .queue { flex: 1; overflow: auto; padding: 6px 0 20px; }
 
 .qi { padding: 12px 20px 12px 0; border-bottom: 1px solid var(--line2); display: flex; gap: 0; }
@@ -302,11 +299,15 @@ body {
 .controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 16px 0 20px; min-height: 35px; }
 /* The tab strip under the header, as on a channel page: plain labels on a
    rule, the current one underlined. */
-.tabs { display: flex; gap: 26px; border-bottom: 1px solid var(--line); margin-top: 12px; }
+.tabs { position: relative; display: flex; gap: 26px; border-bottom: 1px solid var(--line); margin-top: 12px; }
 .tab { border: 0; background: transparent; color: var(--muted2); font: 600 14.5px inherit;
   padding: 11px 2px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tab:hover { color: var(--text); }
-.tab.active { color: var(--text); border-bottom-color: var(--text); }
+.tab.active { color: var(--text); }
+/* The underline is its own element, so it can slide to the tab chosen. Ease
+   out: quick to leave, slow to settle. */
+.tab-on { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--text);
+  transition: transform .2s ease-out, width .2s ease-out; }
 /* Tall enough for the Download button whether or not it is there, so the
    rows below don't move when it comes and goes. */
 .tabs { align-items: flex-end; min-height: 43px; }
