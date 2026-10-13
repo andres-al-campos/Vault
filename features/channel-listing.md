@@ -53,6 +53,13 @@ By hand only: the tabs, and how a failed fetch looks.
 
 Last driven: 2026-10-12, tests only. The `net` tests were not run that day.
 
+## Calls
+
+Look-and-feel calls made for this feature, with the reason given at the
+time.
+
+- 2026-10-12. Titles aren't recorded: YouTube videos get renamed.
+
 ## Gotchas
 
 - `.vault/videos.json` is the only record of what a folder has archived.

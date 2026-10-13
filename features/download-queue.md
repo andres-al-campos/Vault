@@ -74,6 +74,22 @@ Last driven: 2026-10-13, in the stand-in: pause, resume, reorder, clear and
 restore. The live download test last passed on 2026-10-12 against @billwurtz
 (12s on its own), before any of those existed.
 
+## Calls
+
+Look-and-feel calls made for this feature, with the reason given at the
+time.
+
+- 2026-10-13. A failed download is unfinished, not finished: Clear finished
+  leaves it, Clear queue takes it, and Resume all tries it again.
+- 2026-10-13. The Downloads header is the same three buttons at all times,
+  greyed out when they have nothing to act on: four or five that came and
+  went didn't look good.
+- 2026-10-13. It's Pause all, not Stop all, since a download picks up where
+  it left off. Waiting rows read "Queued · Paused" so nobody expects them to
+  start.
+- 2026-10-13. A retried or paused download keeps its row. Rows only move
+  when dragged.
+
 ## Gotchas
 
 - The queue is saved in the web view's own storage, not in `~/.vault`: it is

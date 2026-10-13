@@ -23,7 +23,10 @@ inside a feature is a sub-feature of it.
 
 ## Each file has
 
-What the user gets, Sub-features, How to get to it, Driving it, Gotchas.
+What the user gets, Sub-features, How to get to it, Driving it, Gotchas. A
+file also has Calls when a look-and-feel call was made about that feature
+alone: the decision, its date and the reason given. A call that holds across
+the app is in `AGENTS.md`, under Principles.
 
 ## Keeping it current
 

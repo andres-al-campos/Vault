@@ -61,6 +61,18 @@ Archived showed 7 cards (6 Play, 1 Download again, 1 unlisted); Members + Not ar
 download", which opened the cookie menu; choosing a browser unlocked them. A
 download filled its card button to 40%, read Archived when done, then Play.
 
+## Calls
+
+Look-and-feel calls made for this feature, with the reason given at the
+time.
+
+- 2026-10-12. Members-only badges stay green, as on YouTube's own thumbnails.
+- 2026-10-12. A card keeps its footer button, so download progress shows on
+  the card itself.
+- 2026-10-12. "File missing" shows on the card only, not as a filter: a file
+  can only be missing if it was archived.
+- 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
+
 ## Gotchas
 
 - Only the rows near the view are on the page: the ones in view and a

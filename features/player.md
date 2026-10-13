@@ -66,6 +66,27 @@ switching away and back reloaded the first at 1.2s; after a reload the active
 tab loaded at 18.8s; seeking to the end showed "Play again", which restarted
 it from 0.
 
+## Calls
+
+Look-and-feel calls made for this feature, with the reason given at the
+time.
+
+- 2026-10-12. The player's tabs look and feel like a browser's tab strip
+  (Chrome's was the reference, without the site icon): a raised fill for the
+  one on screen, hairlines between the rest, close on hover, the full title
+  on a card below. Asked for by that look; the solid fill stays for filters.
+  No hairline beside the tab on screen: it looked better without. So that
+  tab's edge can mark where its neighbour ends, the bar leaves little space
+  above and below it.
+- 2026-10-12. The player's top and bottom bars are the same height, and
+  short: more of the window goes to the video.
+- 2026-10-12. The video is shown as sRGB, not pushed to the screen's full
+  gamut: the more saturated picture looked unrealistic.
+- 2026-10-12. The seek bar is YouTube's red, as an extra touch of YouTube. The
+  same red marks progress on a tab's hover card.
+- 2026-10-13. Fullscreen is the button or F. No double-click: two ways in
+  are enough.
+
 ## Gotchas
 
 - Needs mpv from Homebrew (`brew install mpv`). The build fails with that
