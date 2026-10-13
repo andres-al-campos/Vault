@@ -54,7 +54,15 @@ const remembered = (key, options) => {
 
 /* ---------------- state ---------------- */
 let state = { active: null, channels: [] };
-const queue = createQueue(); // the download jobs and their order — see queue.js
+// The download jobs and their order — see queue.js. What hadn't finished when
+// Vault last closed comes back, stopped if it was stopped.
+const QUEUE_KEY = "vault-queue";
+const queue = createQueue((() => { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)); } catch { return null; } })());
+const saveQueue = () => { try { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.snapshot())); } catch { /* a full store only costs the restore */ } };
+let queueSave = null;
+// Progress reports arrive several times a second; the line itself changes rarely.
+const saveQueueSoon = () => { queueSave ??= setTimeout(() => { queueSave = null; saveQueue(); }, 400); };
+window.addEventListener("beforeunload", saveQueue);
 
 // yt-dlp reads cookies straight from the chosen browser's profile, so
 // members-only videos and the bot check are handled without ever handling
@@ -1239,6 +1247,8 @@ function refreshArchiveSoon() {
 /* ---------------- queue rendering ---------------- */
 const queueEl = $("queue");
 
+const GRIP_ICON = '<svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/><circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/><circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/></svg>';
+
 function renderQueue() {
   if (queue.jobs.size === 0) {
     queueEl.innerHTML = `<div class="qempty">Nothing queued yet.</div>`;
@@ -1253,6 +1263,7 @@ function renderQueue() {
         : `<button class="x" data-cancel="${id}">✕</button>`;
     return `
     <div class="qi" data-id="${id}" data-status="${j.status}">
+      ${j.status === "queued" ? `<span class="grip live" data-grip title="Drag to change the order">${GRIP_ICON}</span>` : '<span class="grip"></span>'}
       <img src="${thumb(id)}" alt="">
       <div class="m">
         <div class="t">${esc(j.title)}</div>
@@ -1264,6 +1275,7 @@ function renderQueue() {
       </div>
     </div>`;
   }).join("");
+  if (drag) markDrop();
   renderSummary();
 }
 
@@ -1290,10 +1302,23 @@ function renderSummary() {
   const q = list.filter((j) => j.status === "queued").length;
   const done = list.filter((j) => j.status === "done").length;
   const err = list.filter((j) => j.status === "error").length;
+  const live = down + q;
   $("qsum").textContent = queue.jobs.size === 0
     ? "Idle"
-    : [`${down} downloading`, `${q} queued`, done && `${done} done`, err && `${err} failed`]
-        .filter(Boolean).join(" · ");
+    : [queue.stopped && live ? `Stopped · ${live} waiting` : [`${down} downloading`, `${q} queued`].join(" · "),
+       done && `${done} done`, err && `${err} failed`].filter(Boolean).join(" · ");
+
+  // Stop all holds the line; while held, the same button releases it.
+  const stop = $("qstop");
+  stop.hidden = !live;
+  stop.classList.toggle("resume", queue.stopped);
+  stop.textContent = queue.stopped ? "▶ Resume all" : "❚❚ Stop all";
+  const show = (id, n, label) => { $(id).hidden = !n; $(id).textContent = label; };
+  show("retryall", err, `Retry ${err} failed`);
+  show("clear", done + err, `Clear ${done + err} finished`);
+  show("clearq", q, "Clear queue");
+  $("qacts").hidden = !(err || done || q);
+  saveQueueSoon();
 }
 
 queueEl.addEventListener("click", async (e) => {
@@ -1330,6 +1355,67 @@ function retryJob(id) {
   syncCard(id);
   pump();
 }
+
+$("qstop").addEventListener("click", async () => {
+  if (queue.stopped) {
+    queue.resume();
+    renderQueue();
+    pump();
+    return;
+  }
+  const id = queue.stop();
+  renderQueue();
+  if (!id) return;
+  // The download's own report puts it back in line. With no process left to
+  // report, that has to happen here.
+  const killed = await invoke("cancel_download", { id }).catch(() => false);
+  if (!killed) finish(id, false, "Cancelled");
+});
+$("clearq").addEventListener("click", async () => {
+  const n = Array.from(queue.jobs.values()).filter((j) => j.status === "queued").length;
+  const go = await ask(`This takes ${n} waiting ${n === 1 ? "video" : "videos"} out of the queue. Anything already downloading carries on.`,
+    { title: "Clear the queue?", kind: "warning", okLabel: "Clear queue", cancelLabel: "Cancel" });
+  if (!go) return;
+  queue.clearWaiting();
+  renderQueue();
+  if (activeChannel()) renderList();
+});
+
+// Dragging a waiting row by its grip: a line shows where it would land, and
+// letting go moves it there. Tracked by id, since a download finishing
+// redraws the rows mid-drag.
+let drag = null; // { id, before } — `before` is the row it would land ahead of, null for the end
+const rowOf = (id) => queueEl.querySelector(`.qi[data-id="${CSS.escape(id)}"]`);
+function markDrop() {
+  queueEl.querySelectorAll(".dragging, .drop-before, .drop-after").forEach((el) => el.classList.remove("dragging", "drop-before", "drop-after"));
+  if (!drag) return;
+  rowOf(drag.id)?.classList.add("dragging");
+  if (drag.before) rowOf(drag.before)?.classList.add("drop-before");
+  else Array.from(queueEl.querySelectorAll('.qi[data-status="queued"]')).at(-1)?.classList.add("drop-after");
+}
+queueEl.addEventListener("pointerdown", (e) => {
+  const grip = e.target.closest("[data-grip]");
+  if (!grip || e.button !== 0) return;
+  e.preventDefault();
+  drag = { id: grip.closest(".qi").dataset.id, before: undefined };
+  queueEl.classList.add("sorting");
+});
+window.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (!queue.isWaiting(drag.id)) { drag = null; queueEl.classList.remove("sorting"); return markDrop(); }
+  const rows = Array.from(queueEl.querySelectorAll('.qi[data-status="queued"]'));
+  const under = rows.find((r) => { const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+  drag.before = under ? under.dataset.id : null;
+  markDrop();
+});
+window.addEventListener("pointerup", () => {
+  if (!drag) return;
+  const { id, before } = drag;
+  drag = null;
+  queueEl.classList.remove("sorting");
+  if (before !== undefined && queue.move(id, before)) renderQueue();
+  else markDrop();
+});
 
 $("clear").addEventListener("click", () => {
   queue.clearFinished();
@@ -1427,6 +1513,7 @@ async function boot() {
   renderCookieState();
   showActive();
   renderQueue();
+  pump(); // whatever was still in line when Vault last closed
   renderWatching();
   checkSubscriptions();
 }

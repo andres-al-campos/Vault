@@ -9,8 +9,19 @@ Queue videos and watch them download one at a time in the sidebar.
   one can.
 - Cancel (✕) stops a running download or drops a waiting one. Re-queuing a
   cancelled download resumes its partial file.
-- A failed row shows why and gets Retry; Retry failed re-queues every failed row.
-- Clear finished removes done and failed rows.
+- Stop all ends the running download and holds the line; the button becomes
+  Resume all. The stopped download keeps its partial file, goes back to the
+  front reading "Stopped at N%", and carries on from there on Resume. Resume
+  doesn't retry failed rows.
+- A waiting row is dragged by its grip to a new place in the line.
+- What hasn't finished is remembered when Vault closes: it comes back in the
+  same order, and starts again at launch unless the queue was stopped.
+  Finished and failed rows aren't remembered.
+- A failed row shows why and gets Retry; Retry N failed re-queues every failed row.
+- Clear N finished removes done and failed rows. Clear queue asks, then drops
+  everything waiting and leaves the running download alone.
+- Retry, Clear finished and Clear queue only show while they have something to
+  act on, and Stop all only while something is running or waiting.
 - Download again, on a card whose file is missing, is an ordinary download
   into the folder that recorded it.
 - A download that ends with the file already in the folder reads "Already in
@@ -37,7 +48,9 @@ Preconditions: none.
 
 `./build.sh check` (~1s once built): the queue's rules in `src/queue.test.js` —
 order, one at a time, no double-queuing, retry and re-queue of a failed job, a
-second completion report changing nothing, cancelling a waiting job. How a
+second completion report changing nothing, cancelling a waiting job, stop and
+resume (including a resume before the stopped download has exited), moving a
+waiting job, clearing the queue, and a saved queue coming back. How a
 finished download becomes a record, in the Rust unit tests.
 
 `./build.sh check net` (~100s): really downloads two short videos from a live
@@ -49,14 +62,21 @@ By click against the stand-in backend (see the README's driving conventions):
 `?scenario=library&fail=<id>&speed=300` — Download on a Shorts card, Download
 again on a missing file, its failure, Retry. No script replays this yet.
 
-By hand only: cancelling a running download, and anything through the native
-folder picker.
+By hand only: cancelling or stopping a running download for real (the stand-in
+has no yt-dlp to end), the queue coming back after the app itself is quit, and
+anything through the native folder picker.
 
 Last driven: 2026-10-12. The live download test passed against @billwurtz
 (12s on its own) after the move to `videos.json`. The stand-in has not been
 clicked through since.
 
 ## Gotchas
+
+- The queue is saved in the web view's own storage, not in `~/.vault`: it is
+  what this window was doing, not a fact about the library.
+- Stop all, Clear queue and the grip were clicked through in the stand-in on
+  2026-10-13. Whether a restored queue should start by itself at launch is an
+  agent's guess.
 
 - A queue row's buttons depend on its status, so a status change redraws the
   list. Patching the row in place once left a failed row with no Retry.

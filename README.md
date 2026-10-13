@@ -143,7 +143,9 @@ since a piped-but-unread stderr is what would otherwise block yt-dlp once the
 pipe buffer filled.
 
 Failed rows get a **Retry** button, and the sidebar has **Retry failed** to
-re-queue all of them. Cancelling works whether the job is running (SIGTERM to
+re-queue all of them. **Stop all** ends the running download and holds the
+queue until **Resume all**; a waiting row can be dragged to a new place; and
+whatever hadn't finished comes back the next time Vault opens. Cancelling works whether the job is running (SIGTERM to
 yt-dlp) or still queued (dropped from the frontend's own queue, since a queued
 job has no process to signal — this was the bug where ✕ appeared to do nothing).
 
