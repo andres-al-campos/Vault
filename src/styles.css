@@ -91,8 +91,7 @@ body {
   backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);
 }
 .logo { font-weight: 800; letter-spacing: -0.04em; font-size: 19px; flex: none; }
-/* The V is the app icon's mark, sized to the capitals and standing on the baseline. */
-.logo svg { height: .74em; width: auto; margin-right: .03em; fill: var(--played); stroke: var(--played); stroke-width: 2; stroke-linejoin: round; }
+.logo span { color: var(--played); }
 .search {
   flex: 1; min-width: 180px; display: flex; align-items: center; gap: 8px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 4px 4px 14px;
