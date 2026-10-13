@@ -30,6 +30,7 @@ videos sit in browser tabs through a day.
   They stay while the video is paused or the pointer is on them. F or Esc
   leaves; a second Esc goes back to the channel. A window that was already
   fullscreen stays so on the way out.
+- Pointing along the seek bar shows the time a click there would land on.
 - Starting or stopping playback blinks a play or pause mark in the middle of
   the picture, and muting or unmuting blinks a speaker the same way.
 - The keyboard's play/pause key, headphone buttons and Control Center toggle

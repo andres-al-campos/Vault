@@ -1008,6 +1008,22 @@ $("ptabs").addEventListener("mouseover", (e) => {
 $("ptabs").addEventListener("mouseleave", hideTip);
 $("ptabs").addEventListener("mousedown", hideTip);
 
+// Pointing along the seek bar shows the time a click there would land on.
+const HANDLE = 13; // the handle's width: its centre can't reach the bar's ends
+const seekTip = $("pseek-tip");
+seekEl.addEventListener("pointermove", (e) => {
+  const duration = tabs.active?.duration ?? 0;
+  if (!(duration > 0)) return;
+  const r = seekEl.getBoundingClientRect();
+  const along = Math.min(1, Math.max(0, (e.clientX - r.left - HANDLE / 2) / (r.width - HANDLE)));
+  seekTip.textContent = fmtDur(along * duration);
+  seekTip.hidden = false;
+  const x = r.left + HANDLE / 2 + along * (r.width - HANDLE);
+  seekTip.style.left = `${Math.max(6, Math.min(x - seekTip.offsetWidth / 2, window.innerWidth - seekTip.offsetWidth - 6))}px`;
+  seekTip.style.top = `${r.top - seekTip.offsetHeight - 6}px`;
+});
+seekEl.addEventListener("pointerleave", () => { seekTip.hidden = true; });
+
 seekEl.addEventListener("pointerdown", () => { seeking = true; });
 seekEl.addEventListener("input", () => { fill(seekEl); seekTo(Number(seekEl.value)); $("ptime").textContent = `${fmtDur(Number(seekEl.value))} / ${fmtDur(tabs.active?.duration ?? 0)}`; });
 seekEl.addEventListener("change", () => { seeking = false; });
