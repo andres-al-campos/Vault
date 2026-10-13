@@ -30,6 +30,21 @@ extern "C" {
     fn dlsym(handle: *mut c_void, name: *const c_char) -> *mut c_void;
 }
 
+// An opaque Core Graphics colour space, named so it can be passed to AppKit.
+#[repr(C)]
+struct CGColorSpace {
+    _private: [u8; 0],
+}
+unsafe impl objc2::RefEncode for CGColorSpace {
+    const ENCODING_REF: objc2::Encoding = objc2::Encoding::Pointer(&objc2::Encoding::Struct("CGColorSpace", &[]));
+}
+
+#[link(name = "CoreGraphics", kind = "framework")]
+extern "C" {
+    static kCGColorSpaceSRGB: *const c_void;
+    fn CGColorSpaceCreateWithName(name: *const c_void) -> *mut CGColorSpace;
+}
+
 #[link(name = "QuartzCore", kind = "framework")]
 #[link(name = "OpenGL", kind = "framework")]
 extern "C" {
@@ -173,6 +188,14 @@ pub fn init(window: &tauri::WebviewWindow) -> Result<(), String> {
         let layer: *mut AnyObject = msg_send![layer_class(), new];
         let scale: f64 = msg_send![ns_window, backingScaleFactor];
         let _: () = msg_send![layer, setContentsScale: scale];
+        // Without a colour space the layer's pixels go to the display as they
+        // are, and on a wide-gamut Mac screen the video comes out more
+        // saturated than the same frame anywhere else, the page's own still
+        // of it included. mpv draws sRGB, so say so.
+        let srgb = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+        if !srgb.is_null() {
+            let _: () = msg_send![layer, setColorspace: srgb];
+        }
         let _: () = msg_send![view, setLayer: layer];
         let _: () = msg_send![view, setWantsLayer: true];
         let _: () = msg_send![view, setHidden: true];
@@ -353,10 +376,16 @@ pub fn player_fullscreen(window: tauri::WebviewWindow, on: Option<bool>) -> Resu
             // The move to or from fullscreen takes the keyboard away from the
             // web view, and the page's keys (F, Esc, Space) stop arriving.
             // Hand it back now, and again once the animation has finished.
-            let _ = window.set_focus();
+            // (The window's own set_focus only raises the window; it's the
+            // web view inside that has to be given the keys.)
+            let focus = move || {
+                let webview: &tauri::Webview = window.as_ref();
+                let _ = webview.set_focus();
+            };
+            focus();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(900));
-                let _ = window.set_focus();
+                focus();
             });
             Ok(on)
         }
