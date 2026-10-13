@@ -745,7 +745,7 @@ let lastSave = 0;
 function renderWatching() {
   const n = tabs.tabs.length;
   $("watching").hidden = n === 0;
-  $("watching").innerHTML = `${PLAY_ICON} Open videos <span class="n">${n}</span>`;
+  $("watching").innerHTML = `Open videos <span class="n">${n}</span>`;
 }
 
 function renderTabs() {
@@ -1314,7 +1314,8 @@ function renderSummary() {
   stop.dataset.act = act ?? "";
   stop.disabled = !act;
   stop.classList.toggle("resume", act === "resume");
-  stop.textContent = act === "resume" ? "▶ Resume all" : act === "retry" ? `Retry ${err} failed` : "❚❚ Stop all";
+  const face = act === "resume" ? `${PLAY_ICON} Resume all` : act === "retry" ? `Retry ${err} failed` : `${PAUSE_ICON} Stop all`;
+  if (stop.dataset.face !== face) { stop.dataset.face = face; stop.innerHTML = face; }
   // A failed download is unfinished, so it counts as queue, not as finished.
   $("clearq").disabled = !(q || err);
   $("clear").disabled = !done;
