@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createQueue } from "./queue.js";
+import { createQueue, lineAction } from "./queue.js";
 
 const job = (id, extra = {}) => ({ id, title: id, url: `u/${id}`, dir: "/d", ...extra });
 
@@ -155,4 +155,13 @@ test("finished and failed jobs are cleared separately", () => {
   assert.equal(q.jobs.get("b").stat, "Network error");
   q.clearFailed();
   assert.deepEqual([...q.jobs.keys()], ["c"]);
+});
+
+test("the first button releases, holds, or retries, whichever gets things moving", () => {
+  assert.equal(lineAction({ stopped: false, live: 3, failed: 1 }), "stop");
+  assert.equal(lineAction({ stopped: true, live: 3, failed: 0 }), "resume");
+  // Held with nothing in line: still offered, or new downloads would wait unexplained.
+  assert.equal(lineAction({ stopped: true, live: 0, failed: 0 }), "resume");
+  assert.equal(lineAction({ stopped: false, live: 0, failed: 2 }), "retry");
+  assert.equal(lineAction({ stopped: false, live: 0, failed: 0 }), null);
 });

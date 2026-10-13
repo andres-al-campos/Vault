@@ -7,6 +7,16 @@
 // `saved` is an earlier snapshot(): the jobs that hadn't finished, and whether
 // the queue was stopped.
 export function createQueue(saved) {
+  return build(saved);
+}
+
+// What the panel's first button does now: release a held line, hold a moving
+// one, or, with nothing left but failures, try those again. Null when there
+// is nothing for it to do.
+export const lineAction = ({ stopped, live, failed }) =>
+  stopped ? "resume" : live ? "stop" : failed ? "retry" : null;
+
+function build(saved) {
   const jobs = new Map(); // id -> { title, url, dir, pct, status, stat }
   let waiting = [];       // ids, in the order they will start
   let activeId = null;    // the one job downloading (concurrency = 1)

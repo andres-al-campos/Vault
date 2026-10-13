@@ -1,7 +1,7 @@
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, ask } from "@tauri-apps/plugin-dialog";
-import { createQueue } from "./queue.js";
+import { createQueue, lineAction } from "./queue.js";
 import { createTabs, resumeAt, progress } from "./player.js";
 import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, batchOf, ASK_ABOVE, newVideos, ago } from "./library.js";
 
@@ -1310,15 +1310,14 @@ function renderSummary() {
 
   // Stop all holds the line; while held, the same button releases it.
   const stop = $("qstop");
-  $("qline").hidden = !live;
-  stop.classList.toggle("resume", queue.stopped);
-  stop.textContent = queue.stopped ? "▶ Resume all" : "❚❚ Stop all";
-  $("clearq").hidden = !q;
-  const show = (id, n, label) => { $(id).hidden = !n; $(id).textContent = label; };
-  show("retryall", err, `Retry ${err} failed`);
-  show("clearfailed", err, `Clear ${err} failed`);
-  show("clear", done, `Clear ${done} finished`);
-  $("qacts").hidden = !(err || done);
+  const act = lineAction({ stopped: queue.stopped, live, failed: err });
+  stop.dataset.act = act ?? "";
+  stop.disabled = !act;
+  stop.classList.toggle("resume", act === "resume");
+  stop.textContent = act === "resume" ? "▶ Resume all" : act === "retry" ? `Retry ${err} failed` : "❚❚ Stop all";
+  // A failed download is unfinished, so it counts as queue, not as finished.
+  $("clearq").disabled = !(q || err);
+  $("clear").disabled = !done;
   saveQueueSoon();
 }
 
@@ -1357,9 +1356,15 @@ function retryJob(id) {
   pump();
 }
 
+const retryFailed = () => Array.from(queue.jobs.entries())
+  .filter(([, j]) => j.status === "error")
+  .forEach(([id]) => retryJob(id));
+
 $("qstop").addEventListener("click", async () => {
-  if (queue.stopped) {
+  // Resume all gets everything unfinished moving, the failed ones included.
+  if ($("qstop").dataset.act !== "stop") {
     queue.resume();
+    retryFailed();
     renderQueue();
     pump();
     return;
@@ -1373,11 +1378,12 @@ $("qstop").addEventListener("click", async () => {
   if (!killed) finish(id, false, "Cancelled");
 });
 $("clearq").addEventListener("click", async () => {
-  const n = Array.from(queue.jobs.values()).filter((j) => j.status === "queued").length;
-  const go = await ask(`This takes ${n} waiting ${n === 1 ? "video" : "videos"} out of the queue. Anything already downloading carries on.`,
+  const n = Array.from(queue.jobs.values()).filter((j) => j.status === "queued" || j.status === "error").length;
+  const go = await ask(`This takes ${n} waiting or failed ${n === 1 ? "video" : "videos"} out of the queue. Anything already downloading carries on.`,
     { title: "Clear the queue?", kind: "warning", okLabel: "Clear queue", cancelLabel: "Cancel" });
   if (!go) return;
   queue.clearWaiting();
+  queue.clearFailed();
   renderQueue();
   if (activeChannel()) renderList();
 });
@@ -1418,20 +1424,10 @@ window.addEventListener("pointerup", () => {
   else markDrop();
 });
 
-$("clearfailed").addEventListener("click", () => {
-  queue.clearFailed();
-  renderQueue();
-  if (activeChannel()) renderList();
-});
 $("clear").addEventListener("click", () => {
   queue.clearFinished();
   renderQueue();
   if (activeChannel()) renderList();
-});
-$("retryall").addEventListener("click", () => {
-  Array.from(queue.jobs.entries())
-    .filter(([, j]) => j.status === "error")
-    .forEach(([id]) => retryJob(id));
 });
 $("sync").addEventListener("click", () => {
   const ch = activeChannel();
