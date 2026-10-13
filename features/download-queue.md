@@ -9,21 +9,22 @@ Queue videos and watch them download one at a time in the sidebar.
   one can.
 - Cancel (✕) stops a running download or drops a waiting one. Re-queuing a
   cancelled download resumes its partial file.
-- Stop all ends the running download and holds the line; the button becomes
-  Resume all. The stopped download keeps its partial file, goes back in
-  line where its row is, reading "Stopped at N%", and carries on from there
+- Pause all ends the running download and holds the line; the button becomes
+  Resume all. The paused download keeps its partial file, goes back in
+  line where its row is, reading "Paused at N%", and carries on from there
   on Resume. Resume also queues the failed rows again. A retried row keeps
-  its place and takes its turn from there. Videos queued while stopped wait for it.
+  its place and takes its turn from there. Videos queued while paused wait for it, and every waiting row reads
+  "Queued · Paused".
   With nothing left but failures the same button reads Retry N failed.
 - A waiting row is dragged by its grip to a new place in the line.
 - What hasn't finished is remembered when Vault closes: it comes back in the
-  same order, and starts again at launch unless the queue was stopped.
+  same order, and starts again at launch unless the queue was paused.
   Finished and failed rows aren't remembered.
 - A failed row shows why and gets its own Retry and ✕.
 - A failed download is unfinished: it counts as queue, not as finished. Clear
   finished removes done rows only. Clear queue asks, then drops everything
   waiting or failed and leaves the running download alone.
-- The header is always the same three buttons, Stop all, Clear queue and Clear
+- The header is always the same three buttons, Pause all, Clear queue and Clear
   finished, greyed out while they have nothing to act on.
 - Download again, on a card whose file is missing, is an ordinary download
   into the folder that recorded it.
@@ -51,8 +52,8 @@ Preconditions: none.
 
 `./build.sh check` (~1s once built): the queue's rules in `src/queue.test.js` —
 order, one at a time, no double-queuing, retry and re-queue of a failed job, a
-second completion report changing nothing, cancelling a waiting job, stop and
-resume (including a resume before the stopped download has exited), moving a
+second completion report changing nothing, cancelling a waiting job, pause and
+resume (including a resume before the paused download has exited), moving a
 waiting job, clearing the queue, and a saved queue coming back. How a
 finished download becomes a record, in the Rust unit tests.
 
@@ -65,7 +66,7 @@ By click against the stand-in backend (see the README's driving conventions):
 `?scenario=library&fail=<id>&speed=300` — Download on a Shorts card, Download
 again on a missing file, its failure, Retry. No script replays this yet.
 
-By hand only: cancelling or stopping a running download for real (the stand-in
+By hand only: cancelling or pausing a running download for real (the stand-in
 has no yt-dlp to end), the queue coming back after the app itself is quit, and
 anything through the native folder picker.
 
@@ -77,7 +78,7 @@ clicked through since.
 
 - The queue is saved in the web view's own storage, not in `~/.vault`: it is
   what this window was doing, not a fact about the library.
-- Stop all, Clear queue and the grip were clicked through in the stand-in on
+- Pause all, Clear queue and the grip were clicked through in the stand-in on
   2026-10-13. Whether a restored queue should start by itself at launch is an
   agent's guess.
 

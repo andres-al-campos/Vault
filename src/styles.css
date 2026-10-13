@@ -262,12 +262,13 @@ body {
 .side-actions button.resume:hover { filter: brightness(.94); }
 .queue { flex: 1; overflow: auto; padding: 6px 0 20px; }
 
-.qi { padding: 12px 20px 12px 6px; border-bottom: 1px solid var(--line2); display: flex; gap: 0; }
+.qi { padding: 12px 20px 12px 0; border-bottom: 1px solid var(--line2); display: flex; gap: 0; }
 .qi img { margin-right: 12px; }
-/* A waiting row is dragged by its grip to a new place in the line. */
-.grip { width: 14px; flex: none; display: grid; place-items: center; color: var(--muted); border-radius: 5px; }
+/* A waiting row is dragged by its grip to a new place in the line. The grip
+   sits midway between the panel's edge and the thumbnail. */
+.grip { width: 20px; flex: none; display: grid; place-items: center; color: var(--muted); }
 .grip.live { cursor: grab; touch-action: none; }
-.grip.live:hover { color: var(--text); background: var(--hover); }
+.grip.live:hover { color: var(--text); }
 .qi.dragging { opacity: .45; }
 .qi.drop-before { box-shadow: inset 0 2px 0 var(--on); }
 .qi.drop-after { box-shadow: inset 0 -2px 0 var(--on); }
@@ -401,6 +402,15 @@ body {
 .main, .queue, .chansel-menu {
   overflow-y: scroll;
 }
+/* The app's web view still drew a white strip, and gave the content a
+   different width, when there was nothing to scroll. So neither is left to
+   it: the content is as wide as the column less the bar, whether or not a
+   bar is there, and a column with nothing to scroll (.still, set by the
+   script) has no bar to draw. */
+.main, .queue { overflow-x: hidden; }
+.main > * { width: calc(100vw - 372px - 12px); }
+.queue > * { width: calc(372px - 1px - 12px); }
+.main.still, .queue.still { overflow-y: hidden; }
 .main::-webkit-scrollbar, .queue::-webkit-scrollbar, .chansel-menu::-webkit-scrollbar {
   width: 12px; -webkit-appearance: none; appearance: none;
 }

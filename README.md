@@ -142,18 +142,18 @@ classification reads yt-dlp's own output; stderr is drained on its own thread,
 since a piped-but-unread stderr is what would otherwise block yt-dlp once the
 pipe buffer filled.
 
-Failed rows get a **Retry** button. **Stop all** ends the running download and
+Failed rows get a **Retry** button. **Pause all** ends the running download and
 holds the queue until **Resume all**, which also queues the failed ones again; a waiting row can be dragged to a new place; and
 whatever hadn't finished comes back the next time Vault opens. Cancelling works whether the job is running (SIGTERM to
 yt-dlp) or still queued (dropped from the frontend's own queue, since a queued
 job has no process to signal — this was the bug where ✕ appeared to do nothing).
 
-### Why there's no pause button
+### How pausing works
 
 yt-dlp has no pause. It only has `--continue`, which resumes a partial file after an
-interruption. So "cancel" kills the process and re-queuing downloads resumes from where
-it left off. A real pause would be `SIGSTOP`/`SIGCONT`, which is fiddlier and was left
-out.
+interruption. So Pause all ends the process and keeps the partial file, and Resume
+all starts a new one that carries on from it. A download can't be frozen mid-flight;
+that would be `SIGSTOP`/`SIGCONT`, which is fiddlier and was left out.
 
 ## Notes / not-done-yet
 

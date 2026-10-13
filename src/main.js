@@ -55,7 +55,7 @@ const remembered = (key, options) => {
 /* ---------------- state ---------------- */
 let state = { active: null, channels: [] };
 // The download jobs and their order — see queue.js. What hadn't finished when
-// Vault last closed comes back, stopped if it was stopped.
+// Vault last closed comes back, paused if it was paused.
 const QUEUE_KEY = "vault-queue";
 const queue = createQueue((() => { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)); } catch { return null; } })());
 const saveQueue = () => { try { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.snapshot())); } catch { /* a full store only costs the restore */ } };
@@ -1249,6 +1249,9 @@ const queueEl = $("queue");
 
 const GRIP_ICON = '<svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/><circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/><circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/></svg>';
 
+// A waiting row says the line is held, so "Queued" never reads as "about to start".
+const statOf = (j) => (queue.paused && j.status === "queued" && j.stat === "Queued" ? "Queued · Paused" : j.stat);
+
 function renderQueue() {
   if (queue.jobs.size === 0) {
     queueEl.innerHTML = `<div class="qempty">Nothing queued yet.</div>`;
@@ -1269,7 +1272,7 @@ function renderQueue() {
         <div class="t">${esc(j.title)}</div>
         <div class="bar"><i class="${j.status === "done" ? "done" : ""}" style="width:${j.pct}%"></i></div>
         <div class="stat">
-          <span class="grow ${j.status === "error" ? "reason" : ""}" title="${esc(j.stat)}">${esc(j.stat)}</span>
+          <span class="grow ${j.status === "error" ? "reason" : ""}" title="${esc(statOf(j))}">${esc(statOf(j))}</span>
           ${controls}
         </div>
       </div>
@@ -1291,8 +1294,8 @@ function updateJobElement(id) {
   bar.style.width = j.pct + "%";
   bar.className = j.status === "done" ? "done" : "";
   const g = el.querySelector(".stat .grow");
-  g.textContent = j.stat;
-  g.title = j.stat;
+  g.textContent = statOf(j);
+  g.title = statOf(j);
   g.className = "grow" + (j.status === "error" ? " reason" : "");
 }
 
@@ -1305,16 +1308,16 @@ function renderSummary() {
   const live = down + q;
   $("qsum").textContent = queue.jobs.size === 0
     ? "Idle"
-    : [queue.stopped && live ? `Stopped · ${live} waiting` : [`${down} downloading`, `${q} queued`].join(" · "),
+    : [queue.paused && live ? `Paused · ${live} waiting` : [`${down} downloading`, `${q} queued`].join(" · "),
        done && `${done} done`, err && `${err} failed`].filter(Boolean).join(" · ");
 
-  // Stop all holds the line; while held, the same button releases it.
+  // Pause all holds the line; while held, the same button releases it.
   const stop = $("qstop");
-  const act = lineAction({ stopped: queue.stopped, live, failed: err });
+  const act = lineAction({ paused: queue.paused, live, failed: err });
   stop.dataset.act = act ?? "";
   stop.disabled = !act;
   stop.classList.toggle("resume", act === "resume");
-  const face = act === "resume" ? `${PLAY_ICON} Resume all` : act === "retry" ? `Retry ${err} failed` : `${PAUSE_ICON} Stop all`;
+  const face = act === "resume" ? `${PLAY_ICON} Resume all` : act === "retry" ? `Retry ${err} failed` : `${PAUSE_ICON} Pause all`;
   if (stop.dataset.face !== face) { stop.dataset.face = face; stop.innerHTML = face; }
   // A failed download is unfinished, so it counts as queue, not as finished.
   $("clearq").disabled = !(q || err);
@@ -1363,14 +1366,14 @@ const retryFailed = () => Array.from(queue.jobs.entries())
 
 $("qstop").addEventListener("click", async () => {
   // Resume all gets everything unfinished moving, the failed ones included.
-  if ($("qstop").dataset.act !== "stop") {
+  if ($("qstop").dataset.act !== "pause") {
     queue.resume();
     retryFailed();
     renderQueue();
     pump();
     return;
   }
-  const id = queue.stop();
+  const id = queue.pause();
   renderQueue();
   if (!id) return;
   // The download's own report puts it back in line. With no process left to
@@ -1488,6 +1491,22 @@ listen("download-done", (e) => {
   if (cancelled) finish(id, false, "Cancelled");
   else finish(id, ok, ok ? "Complete" : `Failed — ${reason || "unknown reason"}`);
 });
+
+// Marks a column that has nothing to scroll, so it is drawn without a
+// scrollbar; see .still in the stylesheet.
+for (const el of [document.querySelector(".main"), queueEl]) {
+  let due = false;
+  const sync = () => {
+    if (due) return;
+    due = true;
+    requestAnimationFrame(() => { due = false; el.classList.toggle("still", el.scrollHeight <= el.clientHeight + 1); });
+  };
+  const sized = new ResizeObserver(sync);
+  sized.observe(el);
+  for (const child of el.children) sized.observe(child);
+  new MutationObserver(sync).observe(el, { childList: true, subtree: true });
+  sync();
+}
 
 /* ---------------- boot ---------------- */
 $("fetch").addEventListener("click", () => doFetch($("url").value));
