@@ -70,9 +70,11 @@ export function createQueue(saved) {
     waiting = waiting.filter((w) => w !== id);
   }
 
+  // A failed job isn't finished: it stays, with its reason and its Retry,
+  // until it is retried or dismissed.
   function clearFinished() {
     for (const [id, j] of Array.from(jobs)) {
-      if (j.status === "done" || j.status === "error") jobs.delete(id);
+      if (j.status === "done") jobs.delete(id);
     }
   }
 

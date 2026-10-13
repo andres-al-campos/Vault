@@ -144,3 +144,13 @@ test("a saved queue comes back in order, running job first, still stopped", () =
   assert.equal(again.next(), null);
   assert.equal(createQueue({ jobs: "junk" }).jobs.size, 0);
 });
+
+test("clearing finished jobs leaves the failed ones", () => {
+  const q = createQueue();
+  for (const id of ["a", "b", "c"]) q.add(job(id));
+  q.next(); q.settle("a", true);
+  q.next(); q.settle("b", false, "Network error");
+  q.clearFinished();
+  assert.deepEqual([...q.jobs.keys()], ["b", "c"]);
+  assert.equal(q.jobs.get("b").stat, "Network error");
+});
