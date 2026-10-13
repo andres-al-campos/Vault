@@ -70,6 +70,9 @@ Look-and-feel calls, with the reason given at the time.
   wide as tall, a little narrower than YouTube's, with barely rounded
   corners. Its red is a little softer than YouTube's, which was too red in
   the Dock.
+- 2026-10-13. The icon's V is large and centred top to bottom, with the same
+  room above it as below its point: smaller, the white blurred into the red
+  and looked pink.
 - 2026-10-13. The icon stays a red tile with a white V: switched, a red V on
   white looked like a heart or a hospital sign. The wordmark's V is a
   normal letter in red: with the icon's mark in its place the word read as
