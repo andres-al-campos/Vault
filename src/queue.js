@@ -5,7 +5,7 @@
 // A job's facts live on the job and nowhere else.
 //
 // `saved` is an earlier snapshot(): the jobs that hadn't finished, and whether
-// the queue was stopped.
+// the queue was paused.
 export function createQueue(saved) {
   return build(saved);
 }
@@ -13,15 +13,15 @@ export function createQueue(saved) {
 // What the panel's first button does now: release a held line, hold a moving
 // one, or, with nothing left but failures, try those again. Null when there
 // is nothing for it to do.
-export const lineAction = ({ stopped, live, failed }) =>
-  stopped ? "resume" : live ? "stop" : failed ? "retry" : null;
+export const lineAction = ({ paused, live, failed }) =>
+  paused ? "resume" : live ? "pause" : failed ? "retry" : null;
 
 function build(saved) {
   const jobs = new Map(); // id -> { title, url, dir, pct, status, stat }
   let waiting = [];       // ids, in the order they will start
   let activeId = null;    // the one job downloading (concurrency = 1)
-  let stopped = false;    // nothing starts until resume()
-  // The running job stop() asked to end. Its process takes a moment to exit,
+  let paused = false;     // nothing starts until resume()
+  // The running job pause() asked to end. Its process takes a moment to exit,
   // and until it reports, the job still counts as running: resuming in that
   // moment must not start it a second time.
   let halting = null;
@@ -38,7 +38,7 @@ function build(saved) {
   }
 
   // The line runs in the order the rows are listed. A job that rejoins it
-  // (a retry, or the download Stop all ended) keeps its row, so it takes
+  // (a retry, or the download Pause all ended) keeps its row, so it takes
   // that row's turn instead of going to the back.
   function inRowOrder() {
     const inLine = new Set(waiting);
@@ -54,7 +54,7 @@ function build(saved) {
 
   // Starts the next waiting job when nothing is running, and returns it.
   function next() {
-    if (stopped || activeId || waiting.length === 0) return null;
+    if (paused || activeId || waiting.length === 0) return null;
     activeId = waiting.shift();
     const j = jobs.get(activeId);
     Object.assign(j, { status: "downloading", stat: "Starting…", pct: 0 });
@@ -69,13 +69,13 @@ function build(saved) {
     if (!j || j.status === "done" || j.status === "error") return false;
     const held = halting === id;
     if (held) halting = null;
-    // Stopped, not failed: it goes back in line where its row is, and its
+    // Paused, not failed: it goes back in line where its row is, and its
     // partial file is what the next run carries on from.
     if (held && !ok) {
       activeId = null;
       waiting.push(id);
       inRowOrder();
-      Object.assign(j, { status: "queued", stat: j.pct > 0 ? `Stopped at ${Math.round(j.pct)}%` : "Queued" });
+      Object.assign(j, { status: "queued", stat: j.pct > 0 ? `Paused at ${Math.round(j.pct)}%` : "Queued" });
       return true;
     }
     waiting = waiting.filter((w) => w !== id);
@@ -103,15 +103,15 @@ function build(saved) {
 
   // Holds the line. Returns the running job's id, for the caller to end its
   // process; that job rejoins the front when the process reports.
-  function stop() {
-    stopped = true;
+  function pause() {
+    paused = true;
     if (!activeId || halting) return null;
     halting = activeId;
-    jobs.get(activeId).stat = "Stopping…";
+    jobs.get(activeId).stat = "Pausing…";
     return activeId;
   }
 
-  function resume() { stopped = false; }
+  function resume() { paused = false; }
 
   // Moves a waiting job to just ahead of another, or to the end with no
   // `beforeId`. The rows are listed in the map's order, so the waiting ones
@@ -145,17 +145,18 @@ function build(saved) {
   // What to bring back after a restart: the running job first, then the line.
   function snapshot() {
     const ids = activeId ? [activeId, ...waiting] : waiting;
-    return { stopped, jobs: ids.map((id) => { const { title, url, dir } = jobs.get(id); return { id, title, url, dir }; }) };
+    return { paused, jobs: ids.map((id) => { const { title, url, dir } = jobs.get(id); return { id, title, url, dir }; }) };
   }
 
   for (const j of Array.isArray(saved?.jobs) ? saved.jobs : []) {
     if (j && typeof j.id === "string" && typeof j.url === "string") add(j);
   }
-  stopped = !!saved?.stopped;
+  // `stopped` is the name an earlier build saved it under.
+  paused = !!(saved?.paused ?? saved?.stopped);
 
   return {
-    jobs, holds, add, retry, next, settle, remove, clearFinished, clearFailed, stop, resume, move, clearWaiting, snapshot,
+    jobs, holds, add, retry, next, settle, remove, clearFinished, clearFailed, pause, resume, move, clearWaiting, snapshot,
     isWaiting: (id) => waiting.includes(id),
-    get stopped() { return stopped; },
+    get paused() { return paused; },
   };
 }

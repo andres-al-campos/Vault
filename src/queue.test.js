@@ -70,38 +70,38 @@ test("retry only applies to failed jobs", () => {
   assert.equal(q.retry("nope"), false);
 });
 
-test("a stopped queue starts nothing, and the running job rejoins the front", () => {
+test("a paused queue starts nothing, and the running job rejoins the front", () => {
   const q = createQueue();
   q.add(job("a")); q.add(job("b"));
   q.next();
   q.jobs.get("a").pct = 42.4;
-  assert.equal(q.stop(), "a");
+  assert.equal(q.pause(), "a");
   assert.equal(q.next(), null);
   // The process exits a moment later and reports a cancel.
   assert.equal(q.settle("a", false, "Cancelled"), true);
   assert.equal(q.jobs.get("a").status, "queued");
-  assert.equal(q.jobs.get("a").stat, "Stopped at 42%");
+  assert.equal(q.jobs.get("a").stat, "Paused at 42%");
   assert.equal(q.next(), null);
   q.resume();
   assert.equal(q.next().id, "a");
 });
 
-test("resuming before the stopped download has exited doesn't start it twice", () => {
+test("resuming before the paused download has exited doesn't start it twice", () => {
   const q = createQueue();
   q.add(job("a")); q.add(job("b"));
   q.next();
-  q.stop();
+  q.pause();
   q.resume();
   assert.equal(q.next(), null);
   q.settle("a", false, "Cancelled");
   assert.equal(q.next().id, "a");
 });
 
-test("a download that finishes while being stopped is done, not requeued", () => {
+test("a download that finishes while being paused is done, not requeued", () => {
   const q = createQueue();
   q.add(job("a"));
   q.next();
-  q.stop();
+  q.pause();
   q.settle("a", true);
   assert.equal(q.jobs.get("a").status, "done");
   q.resume();
@@ -130,17 +130,17 @@ test("clearing the queue drops what hasn't started and keeps the rest", () => {
   assert.equal(q.holds("b"), false);
 });
 
-test("a saved queue comes back in order, running job first, still stopped", () => {
+test("a saved queue comes back in order, running job first, still paused", () => {
   const q = createQueue();
   for (const id of ["a", "b", "c"]) q.add(job(id));
   q.next();
   q.settle("a", true);
   q.next(); // b is running
-  q.stop();
+  q.pause();
   const again = createQueue(JSON.parse(JSON.stringify(q.snapshot())));
   assert.deepEqual([...again.jobs.keys()], ["b", "c"]);
   assert.equal(again.jobs.get("b").dir, "/d");
-  assert.equal(again.stopped, true);
+  assert.equal(again.paused, true);
   assert.equal(again.next(), null);
   assert.equal(createQueue({ jobs: "junk" }).jobs.size, 0);
 });
@@ -158,12 +158,12 @@ test("finished and failed jobs are cleared separately", () => {
 });
 
 test("the first button releases, holds, or retries, whichever gets things moving", () => {
-  assert.equal(lineAction({ stopped: false, live: 3, failed: 1 }), "stop");
-  assert.equal(lineAction({ stopped: true, live: 3, failed: 0 }), "resume");
+  assert.equal(lineAction({ paused: false, live: 3, failed: 1 }), "pause");
+  assert.equal(lineAction({ paused: true, live: 3, failed: 0 }), "resume");
   // Held with nothing in line: still offered, or new downloads would wait unexplained.
-  assert.equal(lineAction({ stopped: true, live: 0, failed: 0 }), "resume");
-  assert.equal(lineAction({ stopped: false, live: 0, failed: 2 }), "retry");
-  assert.equal(lineAction({ stopped: false, live: 0, failed: 0 }), null);
+  assert.equal(lineAction({ paused: true, live: 0, failed: 0 }), "resume");
+  assert.equal(lineAction({ paused: false, live: 0, failed: 2 }), "retry");
+  assert.equal(lineAction({ paused: false, live: 0, failed: 0 }), null);
 });
 
 test("a retried job keeps its row and its turn", () => {
@@ -177,4 +177,8 @@ test("a retried job keeps its row and its turn", () => {
   assert.equal(q.next().id, "a");
   q.settle("a", true);
   assert.equal(q.next().id, "c");
+});
+
+test("a queue saved as stopped by an earlier build comes back paused", () => {
+  assert.equal(createQueue({ stopped: true, jobs: [job("a")] }).paused, true);
 });
