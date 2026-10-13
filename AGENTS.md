@@ -70,4 +70,7 @@ Look-and-feel calls, with the reason given at the time.
   wide as tall, a little narrower than YouTube's, with barely rounded
   corners. Its red is a little softer than YouTube's, which was too red in
   the Dock.
+- 2026-10-13. The icon stays a red tile with a white V: switched, a red V on
+  white looked like a heart or a hospital sign. The wordmark's V is the
+  icon's V, in red, so the two are one mark.
 - 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
