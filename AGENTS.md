@@ -81,4 +81,7 @@ Look-and-feel calls, with the reason given at the time.
   white looked like a heart or a hospital sign. The wordmark's V is a
   normal letter in red: with the icon's mark in its place the word read as
   "ault".
+- 2026-10-13. The full name is Vault Channel Archiver, VCA for short: it says
+  what the app does, so nobody is misled, and it keeps the V. "YouTube"
+  stays out of the name and in the description.
 - 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
