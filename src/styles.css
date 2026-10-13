@@ -301,10 +301,12 @@ body {
   padding: 11px 2px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--text); border-bottom-color: var(--text); }
-.tabs { align-items: flex-end; }
+/* Tall enough for the Download button whether or not it is there, so the
+   rows below don't move when it comes and goes. */
+.tabs { align-items: flex-end; min-height: 43px; }
 /* One height whatever the button holds, the same as the Sort button and the
    filter rows below. Left to its contents, the one with the arrow came out
-   half a pixel taller than "Nothing to download", and everything under the
+   half a pixel taller than one without, and everything under the
    strip moved when one replaced the other. */
 .tabs .btn { margin-bottom: 7px; height: 35px; padding-top: 0; padding-bottom: 0; display: flex; align-items: center; }
 .tabs-spacer { flex: 1; }
