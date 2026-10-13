@@ -23,7 +23,7 @@ what you have and what you can get.
 - Download N shown queues everything on screen that isn't on disk or already
   queued, forcing the missing ones. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
-  nothing to do it is disabled.
+  nothing to do there is no button.
 - The arrow beside it picks how many the button queues: the first 10, 25, 50
   or 100 of those, in the order on screen, so the sort picks the batch: Oldest
   + First 50 is the 50 oldest not yet archived. Picking one only changes the
@@ -65,6 +65,9 @@ download filled its card button to 40%, read Archived when done, then Play.
   always slid from the row's left edge: the fill was measured and styled
   after going into the page, and reading a size laid it out half-placed. No
   test covers it; watch each frame's position in the stand-in to check it.
+  The slide starts two frames after the redraw, so a long grid being laid
+  out doesn't use up its time. That part can't be seen in the stand-in: its
+  channel is 60 videos and its browser times a slide differently.
 
 - The "Queue N videos?" popup has not been seen: the stand-in's channel has 60
   videos, under the 100 that triggers it. The threshold and the batch sizes

@@ -470,7 +470,6 @@ function renderControls(now) {
   let bar = "";
   if (now) {
     const { jobs, locked } = downloadable(now.shown, archived, { cookies: !!state.cookies_browser, holds: queue.holds });
-    // With nothing to queue, say why instead of offering "Download 0".
     // The arrow offers the first few in the order on screen, so the sort
     // picks the batch: Oldest + First 50 is the 50 oldest not yet archived.
     const sizes = batchSizes(jobs.length);
@@ -483,7 +482,7 @@ function renderControls(now) {
     const label = take < jobs.length ? `first ${take}` : `${jobs.length} shown`;
     const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown">↓ Download ${label}</button>${menu}</div>`
       : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
-      : `<button class="btn btn-primary" id="dlshown" disabled>Nothing to download</button>`;
+      : ""; // nothing to queue: no button, rather than one that can't be pressed
     bar = `
       ${now.hasMembers ? group("access", ACCESS, now.counts.access) : ""}
       ${group("have", HAVE, now.counts.have)}
@@ -518,10 +517,16 @@ function renderControls(now) {
     const start = from && from !== on ? place(from) : null;
     Object.assign(fill.style, start ?? end);
     row.prepend(fill);
+    // The slide starts two frames on, once the redrawn grid is on screen.
+    // Started here, its clock runs while a long list is still being laid
+    // out, and it is over before the first frame shows: choosing Archived
+    // (a short list) slid, and leaving it for a long one jumped.
     if (start) {
-      fill.offsetWidth; // the starting place has to be laid out before it can move from it
-      Object.assign(fill.style, end);
-      on.classList.add("arriving");
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!fill.isConnected) return;
+        Object.assign(fill.style, end);
+        on.classList.add("arriving");
+      }));
     }
   });
 
