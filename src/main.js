@@ -1316,6 +1316,7 @@ function renderSummary() {
   $("clearq").hidden = !q;
   const show = (id, n, label) => { $(id).hidden = !n; $(id).textContent = label; };
   show("retryall", err, `Retry ${err} failed`);
+  show("clearfailed", err, `Clear ${err} failed`);
   show("clear", done, `Clear ${done} finished`);
   $("qacts").hidden = !(err || done);
   saveQueueSoon();
@@ -1417,6 +1418,11 @@ window.addEventListener("pointerup", () => {
   else markDrop();
 });
 
+$("clearfailed").addEventListener("click", () => {
+  queue.clearFailed();
+  renderQueue();
+  if (activeChannel()) renderList();
+});
 $("clear").addEventListener("click", () => {
   queue.clearFinished();
   renderQueue();

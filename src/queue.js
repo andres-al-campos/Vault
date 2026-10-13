@@ -71,12 +71,14 @@ export function createQueue(saved) {
   }
 
   // A failed job isn't finished: it stays, with its reason and its Retry,
-  // until it is retried or dismissed.
-  function clearFinished() {
+  // until it is retried or dismissed. Each kind is cleared on its own.
+  const clear = (status) => () => {
     for (const [id, j] of Array.from(jobs)) {
-      if (j.status === "done") jobs.delete(id);
+      if (j.status === status) jobs.delete(id);
     }
-  }
+  };
+  const clearFinished = clear("done");
+  const clearFailed = clear("error");
 
   // Holds the line. Returns the running job's id, for the caller to end its
   // process; that job rejoins the front when the process reports.
@@ -131,7 +133,7 @@ export function createQueue(saved) {
   stopped = !!saved?.stopped;
 
   return {
-    jobs, holds, add, retry, next, settle, remove, clearFinished, stop, resume, move, clearWaiting, snapshot,
+    jobs, holds, add, retry, next, settle, remove, clearFinished, clearFailed, stop, resume, move, clearWaiting, snapshot,
     isWaiting: (id) => waiting.includes(id),
     get stopped() { return stopped; },
   };
