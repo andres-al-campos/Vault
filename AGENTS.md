@@ -65,7 +65,7 @@ Look-and-feel calls, with the reason given at the time.
   are enough.
 - 2026-10-13. The app icon is a red tile with a white play triangle turned
   to point down: a nod to YouTube's button without its rounded rectangle,
-  which is the part that is theirs. It is still a solid triangle, narrower
-  than a play button's so its point reads as a V, with sharp corners. Its red is a little
+  which is the part that is theirs. It is still a solid triangle, as wide
+  as it is tall: between YouTube's and a narrow V. Its corners are sharp. Its red is a little
   softer than YouTube's, which was too red in the Dock.
 - 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
