@@ -69,3 +69,78 @@ test("retry only applies to failed jobs", () => {
   assert.equal(q.retry("a"), false);
   assert.equal(q.retry("nope"), false);
 });
+
+test("a stopped queue starts nothing, and the running job rejoins the front", () => {
+  const q = createQueue();
+  q.add(job("a")); q.add(job("b"));
+  q.next();
+  q.jobs.get("a").pct = 42.4;
+  assert.equal(q.stop(), "a");
+  assert.equal(q.next(), null);
+  // The process exits a moment later and reports a cancel.
+  assert.equal(q.settle("a", false, "Cancelled"), true);
+  assert.equal(q.jobs.get("a").status, "queued");
+  assert.equal(q.jobs.get("a").stat, "Stopped at 42%");
+  assert.equal(q.next(), null);
+  q.resume();
+  assert.equal(q.next().id, "a");
+});
+
+test("resuming before the stopped download has exited doesn't start it twice", () => {
+  const q = createQueue();
+  q.add(job("a")); q.add(job("b"));
+  q.next();
+  q.stop();
+  q.resume();
+  assert.equal(q.next(), null);
+  q.settle("a", false, "Cancelled");
+  assert.equal(q.next().id, "a");
+});
+
+test("a download that finishes while being stopped is done, not requeued", () => {
+  const q = createQueue();
+  q.add(job("a"));
+  q.next();
+  q.stop();
+  q.settle("a", true);
+  assert.equal(q.jobs.get("a").status, "done");
+  q.resume();
+  assert.equal(q.next(), null);
+});
+
+test("a waiting job can be moved ahead of another, or to the end", () => {
+  const q = createQueue();
+  for (const id of ["a", "b", "c", "d"]) q.add(job(id));
+  q.next(); // a is running
+  assert.equal(q.move("d", "b"), true);
+  assert.deepEqual([...q.jobs.keys()], ["a", "d", "b", "c"]);
+  assert.equal(q.move("d"), true);
+  assert.deepEqual([...q.jobs.keys()], ["a", "b", "c", "d"]);
+  assert.equal(q.move("a", "b"), false); // the running one stays put
+  q.settle("a", true);
+  assert.equal(q.next().id, "b");
+});
+
+test("clearing the queue drops what hasn't started and keeps the rest", () => {
+  const q = createQueue();
+  for (const id of ["a", "b", "c"]) q.add(job(id));
+  q.next();
+  assert.deepEqual(q.clearWaiting(), ["b", "c"]);
+  assert.deepEqual([...q.jobs.keys()], ["a"]);
+  assert.equal(q.holds("b"), false);
+});
+
+test("a saved queue comes back in order, running job first, still stopped", () => {
+  const q = createQueue();
+  for (const id of ["a", "b", "c"]) q.add(job(id));
+  q.next();
+  q.settle("a", true);
+  q.next(); // b is running
+  q.stop();
+  const again = createQueue(JSON.parse(JSON.stringify(q.snapshot())));
+  assert.deepEqual([...again.jobs.keys()], ["b", "c"]);
+  assert.equal(again.jobs.get("b").dir, "/d");
+  assert.equal(again.stopped, true);
+  assert.equal(again.next(), null);
+  assert.equal(createQueue({ jobs: "junk" }).jobs.size, 0);
+});
