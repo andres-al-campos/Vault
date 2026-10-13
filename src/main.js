@@ -1310,14 +1310,14 @@ function renderSummary() {
 
   // Stop all holds the line; while held, the same button releases it.
   const stop = $("qstop");
-  stop.hidden = !live;
+  $("qline").hidden = !live;
   stop.classList.toggle("resume", queue.stopped);
   stop.textContent = queue.stopped ? "▶ Resume all" : "❚❚ Stop all";
+  $("clearq").hidden = !q;
   const show = (id, n, label) => { $(id).hidden = !n; $(id).textContent = label; };
   show("retryall", err, `Retry ${err} failed`);
-  show("clear", done + err, `Clear ${done + err} finished`);
-  show("clearq", q, "Clear queue");
-  $("qacts").hidden = !(err || done || q);
+  show("clear", done, `Clear ${done} finished`);
+  $("qacts").hidden = !(err || done);
   saveQueueSoon();
 }
 

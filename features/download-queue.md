@@ -18,10 +18,13 @@ Queue videos and watch them download one at a time in the sidebar.
   same order, and starts again at launch unless the queue was stopped.
   Finished and failed rows aren't remembered.
 - A failed row shows why and gets Retry; Retry N failed re-queues every failed row.
-- Clear N finished removes done and failed rows. Clear queue asks, then drops
-  everything waiting and leaves the running download alone.
-- Retry, Clear finished and Clear queue only show while they have something to
-  act on, and Stop all only while something is running or waiting.
+- Clear N finished removes done rows only. A failed row stays until it is
+  retried or dismissed with its ✕. Clear queue asks, then drops everything
+  waiting and leaves the running download alone.
+- Stop all and Clear queue share a row, there while something is running or
+  waiting. Retry failed and Clear finished share the row below, each there
+  only while it has something to act on.
+- Videos queued while the queue is stopped wait for Resume all.
 - Download again, on a card whose file is missing, is an ordinary download
   into the folder that recorded it.
 - A download that ends with the file already in the folder reads "Already in

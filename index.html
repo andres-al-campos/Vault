@@ -61,11 +61,13 @@
         <div class="side-hd">
           <div class="t">Downloads</div>
           <div class="s" id="qsum">Idle</div>
-          <button class="side-stop" id="qstop" hidden></button>
+          <div class="side-actions" id="qline" hidden>
+            <button id="qstop"></button>
+            <button id="clearq" hidden>Clear queue</button>
+          </div>
           <div class="side-actions" id="qacts" hidden>
             <button class="warn" id="retryall" hidden></button>
             <button id="clear" hidden></button>
-            <button id="clearq" hidden></button>
           </div>
         </div>
         <div class="queue" id="queue"></div>

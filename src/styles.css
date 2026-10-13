@@ -245,16 +245,15 @@ body {
 .side-hd { padding: 17px 20px 14px; border-bottom: 1px solid var(--line2); }
 .side-hd .t { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .side-hd .s { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
-/* The header is up to three rows: what's happening, the one button that
-   holds or releases the line, then the buttons that only exist while they
-   have something to act on. */
-.side-stop, .side-actions button { font: 600 12px inherit; padding: 8px; border-radius: 9px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--chip); color: var(--text); transition: 0.15s; }
-.side-stop { width: 100%; margin-top: 13px; display: flex; align-items: center; justify-content: center; gap: 7px; }
-.side-stop.resume { background: var(--on); color: var(--on-fg); border-color: var(--on); }
+/* The header is up to three rows: what's happening; the line's own buttons,
+   hold or release it and empty it; then what to do with rows that have ended,
+   each there only while it has something to act on. */
 .side-actions { display: flex; gap: 8px; margin-top: 8px; }
-.side-actions button { flex: 1; white-space: nowrap; }
-.side-stop:hover, .side-actions button:hover { border-color: var(--hover-line); }
+.side-hd .s + .side-actions { margin-top: 13px; }
+.side-actions button { flex: 1; white-space: nowrap; font: 600 12px inherit; padding: 8px; border-radius: 9px;
+  cursor: pointer; border: 1px solid var(--line); background: var(--chip); color: var(--text); transition: 0.15s; }
+.side-actions button:hover { border-color: var(--hover-line); }
+.side-actions button.resume { background: var(--on); color: var(--on-fg); border-color: var(--on); }
 .side-actions button.warn { color: var(--warn); }
 .queue { flex: 1; overflow: auto; padding: 6px 0 20px; }
 
