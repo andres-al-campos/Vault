@@ -1,4 +1,4 @@
-# Vault — Channel Archiver
+# Vault - Channel Archiver
 
 A small desktop app around [yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a
 YouTube channel: fetch a channel, see every video as a card, download the ones you want.

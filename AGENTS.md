@@ -82,6 +82,6 @@ Look-and-feel calls, with the reason given at the time.
   normal letter in red: with the icon's mark in its place the word read as
   "ault".
 - 2026-10-13. The name is Vault. Where there is room it is written
-  "Vault — Channel Archiver": the name, a dash, and what it does, so nobody
+  "Vault - Channel Archiver": the name, a short dash, and what it does, so nobody
   is misled. "YouTube" stays out of both and goes in the description.
 - 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
