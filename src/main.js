@@ -484,7 +484,27 @@ function renderControls(now) {
     tabs += `<span class="tabs-spacer"></span>${download}`;
   }
 
+  // Where each group's fill sat, so it can slide from there to the new choice.
+  const was = {};
+  controlsEl.querySelectorAll(".pill.active").forEach((b) => { was[b.dataset.filter] = b.dataset.value; });
+
   controlsEl.innerHTML = `<div class="tabs">${tabs}</div><div class="controls">${bar}</div>`;
+
+  controlsEl.querySelectorAll(".filters").forEach((row) => {
+    const on = row.querySelector(".pill.active");
+    if (!on) return;
+    const fill = document.createElement("i");
+    fill.className = "pill-on";
+    const sit = (b) => { fill.style.width = `${b.offsetWidth}px`; fill.style.transform = `translateX(${b.offsetLeft}px)`; };
+    const from = [...row.querySelectorAll(".pill")].find((b) => b.dataset.value === was[on.dataset.filter]);
+    row.prepend(fill);
+    if (from && from !== on) {
+      sit(from);
+      fill.offsetWidth; // the starting place has to be laid out before it can move from it
+      on.classList.add("arriving");
+    }
+    sit(on);
+  });
 
   controlsEl.querySelectorAll("[data-tab]").forEach((b) =>
     b.addEventListener("click", () => switchTab(b.dataset.tab)));

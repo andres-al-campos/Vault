@@ -33,8 +33,11 @@ Look-and-feel calls, with the reason given at the time.
   gamut: the more saturated picture looked unrealistic.
 - 2026-10-12. The seek bar is YouTube's red, as an extra touch of YouTube. The
   same red marks progress on a tab's hover card.
-- 2026-10-12. The accent is blue (WebTime's `#4f86f7`), not orange: orange on
-  black is too strongly another site's look. Blue fills the main Download
-  button and tints each card's; a white fill there would have been a third
-  thing the same colour and size as Subscribe and the chosen filter. Failures
-  and retries are amber.
+- 2026-10-12. No orange: orange on black is too strongly another site's look.
+  Download is the same white fill as Subscribe and the chosen filter, for now:
+  blue was tried there and looked too light and flat. Failures and retries
+  are amber.
+- 2026-10-12. The logo and the app icon are YouTube's red. Buttons aren't: a
+  red button means something else.
+- 2026-10-12. Menus and the filter rows animate, briefly: appearing at once
+  was jarring.
