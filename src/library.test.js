@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { archiveState, view, downloadable, withUnlisted, sortVideos, batchSizes, batchOf, newVideos, ago } from "./library.js";
+import { archiveState, view, downloadable, withUnlisted, sortVideos, batchSizes, batchOf, newVideos, ago, windowOf } from "./library.js";
 
 const v = (id, extra = {}) => ({ id, title: id, duration: 10, view_count: 1, url: `u/${id}`, availability: null, ...extra });
 const member = (id, extra = {}) => v(id, { availability: "subscriber_only", ...extra });
@@ -143,4 +143,22 @@ test("the download button queues the picked size, or all when fewer are left", (
   assert.equal(batchOf(25, 60), 25);
   assert.equal(batchOf(25, 25), 25);
   assert.equal(batchOf(25, 8), 8);
+});
+
+test("a long grid draws the rows in view and a margin around them", () => {
+  const grid = { count: 1000, cols: 4, rowH: 300, viewH: 900, over: 900 };
+  // At the top: three rows in view, three more below.
+  assert.deepEqual(windowOf({ ...grid, top: 0 }), { first: 0, last: 24, before: 0, after: 244 * 300 });
+  // Before the grid has reached the view (a header above it), nothing is skipped.
+  assert.equal(windowOf({ ...grid, top: -400 }).first, 0);
+  // Deep in: whole rows only, and the page keeps its full length.
+  const mid = windowOf({ ...grid, top: 30000 });
+  assert.deepEqual(mid, { first: 97 * 4, last: 106 * 4, before: 97 * 300, after: 144 * 300 });
+  assert.equal(mid.before + (mid.last - mid.first) / 4 * 300 + mid.after, 250 * 300);
+  // At the very end, and past it.
+  assert.equal(windowOf({ ...grid, top: 250 * 300 - 900 }).last, 1000);
+  assert.deepEqual(windowOf({ ...grid, top: 999999 }), { first: 1000, last: 1000, before: 75000, after: 0 });
+  // A last row that isn't full.
+  assert.equal(windowOf({ ...grid, count: 10, top: 0 }).last, 10);
+  assert.deepEqual(windowOf({ ...grid, count: 0, top: 0 }), { first: 0, last: 0, before: 0, after: 0 });
 });

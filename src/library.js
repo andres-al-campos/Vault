@@ -143,3 +143,23 @@ export function withUnlisted(list, entries, knownIds) {
   }
   return out.concat(extra.filter((x) => !x.timestamp));
 }
+
+// Which cards of a long grid to have on the page: the rows in view, plus
+// `over` pixels of rows above and below so scrolling rarely catches a row not
+// yet drawn. `top` is how far the view has scrolled past the grid's own top
+// (negative while the grid starts below the view's edge), and `rowH` is a
+// row's height with the gap under it. `before` and `after` are the heights
+// the undrawn rows would have taken, so the page stays its full length and
+// the scrollbar tells the truth.
+export function windowOf({ count, cols, rowH, top, viewH, over }) {
+  const rows = Math.ceil(count / cols);
+  const clamp = (n, lo) => Math.min(rows, Math.max(lo, n));
+  const firstRow = clamp(Math.floor((top - over) / rowH), 0);
+  const lastRow = clamp(Math.ceil((top + viewH + over) / rowH), firstRow);
+  return {
+    first: firstRow * cols,
+    last: Math.min(count, lastRow * cols),
+    before: firstRow * rowH,
+    after: (rows - lastRow) * rowH,
+  };
+}
