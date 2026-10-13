@@ -314,18 +314,14 @@ body {
 .pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
 .pill.active .n { color: inherit; opacity: .7; }
 /* Lines up with the tab and filter groups, both measured at 35px rendered
-   (3px pad + 1px border around a 29px button). appearance:none drops the
-   native metrics that made the select sit taller, and the chevron is drawn
-   by hand to replace the lost one. */
-.controls select {
-  font: 600 12.5px inherit; color: var(--text);
-  background: var(--panel) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;
-  border: 1px solid var(--line); border-radius: 10px;
-  height: 35px; padding: 0 33px 0 12px; cursor: pointer; outline: 0;
-  appearance: none;
-}
-.controls select:focus-visible { outline: 2px solid var(--sel-ring); outline-offset: -1px; border-color: var(--line); }
-.controls select option:checked { outline: 2px solid var(--sel-ring); outline-offset: -2px; }
+   (3px pad + 1px border around a 29px button). */
+.sortsel { position: relative; }
+.sort-btn { display: flex; align-items: center; gap: 8px; height: 35px; padding: 0 11px 0 12px;
+  font: 600 12.5px inherit; color: var(--text); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.sort-btn:hover { border-color: var(--hover-line); }
+.sort-btn svg { color: var(--muted); }
+.sortsel .dl-menu { min-width: 100%; white-space: nowrap; }
 .shown { font-size: 12.5px; color: var(--muted); margin-left: auto; }
 
 /* ---------- card extras ---------- */

@@ -474,8 +474,13 @@ function renderControls(now) {
       ${now.hasMembers ? group("access", ACCESS, now.counts.access) : ""}
       ${group("have", HAVE, now.counts.have)}
       <span class="tabs-spacer"></span>
-      <select id="sort">${Object.entries(SORTS).map(([value, label]) =>
-        `<option value="${value}"${filters.sort === value ? " selected" : ""}>${label}</option>`).join("")}</select>`;
+      <div class="sortsel">
+        <button class="sort-btn" id="sort" title="Sort order">${SORTS[filters.sort]}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="dl-menu" id="sort-menu">${Object.entries(SORTS).map(([value, label]) =>
+          `<button class="cookie-item${filters.sort === value ? " active" : ""}" data-sort="${value}">${label}</button>`).join("")}</div>
+      </div>`;
     tabs += `<span class="tabs-spacer"></span>${download}`;
   }
 
@@ -485,7 +490,14 @@ function renderControls(now) {
     b.addEventListener("click", () => switchTab(b.dataset.tab)));
   controlsEl.querySelectorAll("[data-filter]").forEach((b) =>
     b.addEventListener("click", () => setFilter(b.dataset.filter, b.dataset.value)));
-  $("sort")?.addEventListener("change", (e) => setFilter("sort", e.target.value));
+  // A menu of our own, not the system's: that one opens over the button with
+  // the chosen row on top of it, where every other menu here drops below.
+  $("sort")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    $("sort-menu").classList.toggle("open");
+  });
+  controlsEl.querySelectorAll("[data-sort]").forEach((b) =>
+    b.addEventListener("click", () => setFilter("sort", b.dataset.sort)));
   $("dlshown")?.addEventListener("click", () => downloadShown());
   $("dlmore")?.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -497,6 +509,7 @@ function renderControls(now) {
 document.addEventListener("click", () => {
   $("dlmenu")?.classList.remove("open");
   $("sub-menu")?.classList.remove("open");
+  $("sort-menu")?.classList.remove("open");
 });
 
 function setFilter(name, value) {
@@ -1001,8 +1014,9 @@ $("ptabs").addEventListener("mouseover", (e) => {
     // A delisted video has no thumbnail left on YouTube.
     tipEl.querySelector("img").addEventListener("error", (ev) => ev.target.remove());
     tipEl.hidden = false;
-    // Below the bar the tabs sit in, not just below the tab.
-    tipEl.style.top = `${$("ptabs").parentElement.getBoundingClientRect().bottom + 5}px`;
+    // Hangs from the bottom edge of the bar the tabs sit in, level with the
+    // top of the picture.
+    tipEl.style.top = `${$("ptabs").parentElement.getBoundingClientRect().bottom}px`;
     tipEl.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - tipEl.offsetWidth - 8))}px`;
   }, warm ? 0 : 400);
 });
