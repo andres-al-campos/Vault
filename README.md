@@ -113,7 +113,7 @@ Two filters, each with one choice at a time, narrow each other:
 - **All / Archived / Not archived** — a video whose file has gone missing still
   counts as archived; its card says "File missing" and offers Download again.
 
-The number on each option is what choosing it would show. **Download N shown**
+The number on each option is what choosing it would show. **Download all N**
 queues everything on screen that isn't already on disk. The arrow beside it
 sets the button to queue only the first 10, 25, 50 or 100 in the order shown,
 and queueing more than 100 at once asks first.

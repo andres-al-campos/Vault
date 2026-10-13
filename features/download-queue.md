@@ -32,7 +32,7 @@ Queue videos and watch them download one at a time in the sidebar.
   archive": yt-dlp leaves a finished file alone.
 - A download only counts once its file is in the folder. If yt-dlp reports
   success and no file is there, the row fails and says so.
-- Download N shown queues what the filters have narrowed to; see
+- Download all N queues what the filters have narrowed to; see
   [browsing.md](browsing.md).
 - Every row in the queue is the same height, so cancelling one puts the next
   row's ✕ under the pointer.
@@ -43,7 +43,7 @@ Queue videos and watch them download one at a time in the sidebar.
 
 ## How to get to it
 
-A card's button on any tab; Download N shown on the tab strip. The queue is the
+A card's button on any tab; Download all N on the tab strip. The queue is the
 right-hand sidebar.
 
 ## Driving it

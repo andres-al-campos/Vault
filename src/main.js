@@ -480,7 +480,8 @@ function renderControls(now) {
           ${sizes.map((n) => `<button class="cookie-item${take === n ? " active" : ""}" data-first="${n}">First ${n}</button>`).join("")}
           <button class="cookie-item${take === jobs.length ? " active" : ""}" data-first="">All ${jobs.length}</button>
         </div>` : "";
-    const label = take < jobs.length ? `first ${take}` : `${jobs.length} shown`;
+    // "All" of what the filters leave, which the counts beside them already say.
+    const label = take < jobs.length ? `first ${take}` : jobs.length === 1 ? "1" : `all ${jobs.length}`;
     const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown">↓ Download ${label}</button>${menu}</div>`
       : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
       : ""; // nothing to queue: no button, rather than one that can't be pressed
@@ -1232,7 +1233,7 @@ async function startDownload(v) {
   if (!queue.add(jobFor(v, dir))) return;
   renderQueue();
   syncCard(v.id);
-  renderControls(currentView()); // one fewer for "Download N shown"
+  renderControls(currentView()); // one fewer for "Download all N"
   pump();
 }
 
