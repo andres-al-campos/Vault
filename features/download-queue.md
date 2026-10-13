@@ -70,9 +70,9 @@ By hand only: cancelling or pausing a running download for real (the stand-in
 has no yt-dlp to end), the queue coming back after the app itself is quit, and
 anything through the native folder picker.
 
-Last driven: 2026-10-13 in the stand-in (pause, resume, reorder, clear, restore). The live download test last passed 2026-10-12 against @billwurtz
-(12s on its own) after the move to `videos.json`. The stand-in has not been
-clicked through since.
+Last driven: 2026-10-13, in the stand-in: pause, resume, reorder, clear and
+restore. The live download test last passed on 2026-10-12 against @billwurtz
+(12s on its own), before any of those existed.
 
 ## Gotchas
 
