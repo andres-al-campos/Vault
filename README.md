@@ -1,7 +1,7 @@
-# Vault Channel Archiver
+# Vault — Channel Archiver
 
-Vault (VCA for short) is a small desktop app around
-[yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a YouTube channel: fetch a channel, see every video as a card, download the ones you want.
+A small desktop app around [yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a
+YouTube channel: fetch a channel, see every video as a card, download the ones you want.
 Downloads run one at a time and are recorded in an archive file in the channel's folder,
 so running it again later fetches only what's new.
 
