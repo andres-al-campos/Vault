@@ -29,3 +29,5 @@ Look-and-feel calls, with the reason given at the time.
   above and below it.
 - 2026-10-12. The player's top and bottom bars are the same height, and
   short: more of the window goes to the video.
+- 2026-10-12. The video is shown as sRGB, not pushed to the screen's full
+  gamut: the more saturated picture looked unrealistic.

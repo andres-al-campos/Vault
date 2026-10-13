@@ -74,6 +74,9 @@ it from 0.
 - The web view is see-through over the stage, and the window behind it is
   black. The video view is moved to match the stage after the page resizes,
   so a fast resize can show black at the stage's edge for a frame.
+- Keys pressed while the window is still animating into or out of fullscreen
+  are lost: macOS takes the keyboard from the web view for the length of the
+  animation. It's handed back every 100ms for 1.5 seconds after a switch.
 - The window leaving fullscreen by itself (green button, system shortcut) is
   noticed a second after the resize settles, not at once.
 - While the player is shown the video layer redraws on every display refresh,

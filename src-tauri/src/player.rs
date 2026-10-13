@@ -375,7 +375,9 @@ pub fn player_fullscreen(window: tauri::WebviewWindow, on: Option<bool>) -> Resu
             })?;
             // The move to or from fullscreen takes the keyboard away from the
             // web view, and the page's keys (F, Esc, Space) stop arriving.
-            // Hand it back now, and again once the animation has finished.
+            // Hand it back now and keep handing it back through the animation
+            // (well under a second), so the keys work the moment it ends
+            // instead of at some fixed time after.
             // (The window's own set_focus only raises the window; it's the
             // web view inside that has to be given the keys.)
             let focus = move || {
@@ -384,8 +386,10 @@ pub fn player_fullscreen(window: tauri::WebviewWindow, on: Option<bool>) -> Resu
             };
             focus();
             std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_millis(900));
-                focus();
+                for _ in 0..15 {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    focus();
+                }
             });
             Ok(on)
         }
