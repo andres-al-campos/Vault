@@ -115,8 +115,8 @@ Two filters, each with one choice at a time, narrow each other:
 
 The number on each option is what choosing it would show. **Download N shown**
 queues everything on screen that isn't already on disk. The arrow beside it
-queues only the first 10, 25, 50 or 100 in the order shown, and queueing more
-than 100 at once asks first.
+sets the button to queue only the first 10, 25, 50 or 100 in the order shown,
+and queueing more than 100 at once asks first.
 
 Archived videos the channel no longer lists (deleted or made private) stay on
 the Videos tab, after the listed ones, marked "Missing on YT".

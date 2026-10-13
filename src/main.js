@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import { createQueue } from "./queue.js";
 import { createTabs, resumeAt, progress } from "./player.js";
-import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, ASK_ABOVE, newVideos, ago } from "./library.js";
+import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, batchOf, ASK_ABOVE, newVideos, ago } from "./library.js";
 
 /* ---------------- theme ---------------- */
 const root = document.documentElement;
@@ -441,6 +441,10 @@ function renderList() {
   main.scrollTop = at;
 }
 
+// The size picked from the Download button's menu; null is all of them. The
+// menu only sets it: the button does the queueing.
+let batchPick = null;
+
 function renderControls(now) {
   const ch = activeChannel();
   if (!ch) { controlsEl.innerHTML = ""; return; }
@@ -462,12 +466,14 @@ function renderControls(now) {
     // The arrow offers the first few in the order on screen, so the sort
     // picks the batch: Oldest + First 50 is the 50 oldest not yet archived.
     const sizes = batchSizes(jobs.length);
+    const take = batchOf(batchPick, jobs.length);
     const menu = sizes.length ? `<button class="btn btn-primary split-arrow" id="dlmore" title="Download only the first few"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="dl-menu" id="dlmenu">
-          ${sizes.map((n) => `<button class="cookie-item" data-first="${n}">First ${n}</button>`).join("")}
-          <button class="cookie-item" data-first="${jobs.length}">All ${jobs.length}</button>
+          ${sizes.map((n) => `<button class="cookie-item${take === n ? " active" : ""}" data-first="${n}">First ${n}</button>`).join("")}
+          <button class="cookie-item${take === jobs.length ? " active" : ""}" data-first="">All ${jobs.length}</button>
         </div>` : "";
-    const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown">↓ Download ${jobs.length} shown</button>${menu}</div>`
+    const label = take < jobs.length ? `first ${take}` : `${jobs.length} shown`;
+    const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown">↓ Download ${label}</button>${menu}</div>`
       : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
       : `<button class="btn btn-primary" id="dlshown" disabled>Nothing to download</button>`;
     bar = `
@@ -518,13 +524,13 @@ function renderControls(now) {
   });
   controlsEl.querySelectorAll("[data-sort]").forEach((b) =>
     b.addEventListener("click", () => setFilter("sort", b.dataset.sort)));
-  $("dlshown")?.addEventListener("click", () => downloadShown());
+  $("dlshown")?.addEventListener("click", () => downloadShown(batchPick ?? Infinity));
   $("dlmore")?.addEventListener("click", (e) => {
     e.stopPropagation();
     $("dlmenu").classList.toggle("open");
   });
   controlsEl.querySelectorAll("[data-first]").forEach((b) =>
-    b.addEventListener("click", () => downloadShown(Number(b.dataset.first))));
+    b.addEventListener("click", () => { batchPick = Number(b.dataset.first) || null; renderControls(currentView()); }));
 }
 document.addEventListener("click", () => {
   $("dlmenu")?.classList.remove("open");
@@ -1165,7 +1171,7 @@ async function downloadShown(first = Infinity) {
   const batch = jobs.slice(0, first);
   if (batch.length > ASK_ABOVE) {
     const go = await ask(
-      `This adds ${batch.length} videos to the queue. They download one at a time, so it can run for hours and take a lot of disk space. The arrow next to the button queues a smaller batch.`,
+      `This adds ${batch.length} videos to the queue. They download one at a time, so it can run for hours and take a lot of disk space. The arrow next to the button picks a smaller batch.`,
       { title: `Queue ${batch.length} videos?`, kind: "warning", okLabel: QUEUE_THEM, cancelLabel: "Cancel" });
     if (!go) return;
   }

@@ -75,6 +75,10 @@ export function downloadable(shown, archived, { cookies, holds }) {
 export const BATCHES = [10, 25, 50, 100];
 export const batchSizes = (count) => BATCHES.filter((n) => n < count);
 
+// How many the Download button queues: the size picked from its menu, or
+// everything when none is picked or fewer than that are left.
+export const batchOf = (picked, count) => (picked && picked < count ? picked : count);
+
 // Queueing more than this asks first: one click shouldn't start a few
 // thousand downloads on a large channel.
 export const ASK_ABOVE = 100;

@@ -24,10 +24,14 @@ what you have and what you can get.
   queued, forcing the missing ones. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
   nothing to do it is disabled.
-- The arrow beside it queues only the first 10, 25, 50 or 100 of those, in the
-  order on screen, so the sort picks the batch: Oldest + First 50 is the 50
-  oldest not yet archived. Sizes that wouldn't be smaller than everything
-  aren't offered.
+- The arrow beside it picks how many the button queues: the first 10, 25, 50
+  or 100 of those, in the order on screen, so the sort picks the batch: Oldest
+  + First 50 is the 50 oldest not yet archived. Picking one only changes the
+  button, which then reads "Download first 50"; pressing the button queues
+  them. The pick stays until another is made or Vault is closed, so pressing
+  again queues the next 50. Sizes that wouldn't be smaller than everything
+  aren't offered, and with fewer left than the pick the button queues them
+  all.
 - Queueing more than 100 at once asks first.
 - Tab, filters and sort are remembered across launches.
 

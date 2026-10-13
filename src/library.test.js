@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { archiveState, view, downloadable, withUnlisted, sortVideos, batchSizes, newVideos, ago } from "./library.js";
+import { archiveState, view, downloadable, withUnlisted, sortVideos, batchSizes, batchOf, newVideos, ago } from "./library.js";
 
 const v = (id, extra = {}) => ({ id, title: id, duration: 10, view_count: 1, url: `u/${id}`, availability: null, ...extra });
 const member = (id, extra = {}) => v(id, { availability: "subscriber_only", ...extra });
@@ -136,4 +136,11 @@ test("sorts", () => {
   assert.equal(order("popular"), "yxz");
   assert.equal(order("shortest"), "zxy");
   assert.equal(order("longest"), "xzy");
+});
+
+test("the download button queues the picked size, or all when fewer are left", () => {
+  assert.equal(batchOf(null, 60), 60);
+  assert.equal(batchOf(25, 60), 25);
+  assert.equal(batchOf(25, 25), 25);
+  assert.equal(batchOf(25, 8), 8);
 });
