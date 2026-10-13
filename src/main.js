@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import { createQueue, lineAction } from "./queue.js";
 import { createTabs, resumeAt, progress } from "./player.js";
-import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, batchOf, ASK_ABOVE, newVideos, ago } from "./library.js";
+import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, batchOf, windowOf, ASK_ABOVE, newVideos, ago } from "./library.js";
 
 /* ---------------- theme ---------------- */
 const root = document.documentElement;
@@ -447,6 +447,7 @@ function renderList() {
   renderControls(now);
   renderGrid(now);
   main.scrollTop = at;
+  drawWindow(); // for where the scroll has just been put back
 }
 
 // The size picked from the Download button's menu; null is all of them. The
@@ -633,8 +634,70 @@ function renderGrid(now) {
   emptyEl.style.display = "none";
   gridEl.style.display = "grid";
   gridVideos = new Map(now.shown.map((v) => [v.id, v]));
-  gridEl.innerHTML = now.shown.map(card).join("");
+  gridList = now.shown;
+  gridCells = new Map(); // a card's contents may have changed, so none is reused
+  gridDrawn = null;
+  drawWindow();
 }
+
+// A channel can list thousands of videos, and drawing a card for each made
+// every filter and sort click wait on all of them. Only the rows near the
+// view are on the page — see windowOf — and they are swapped as it scrolls.
+let gridList = [];         // what the filters show, in order
+let gridCells = new Map(); // id -> the card on the page
+let gridDrawn = null;      // "first-last" of the cards on the page
+let gridShape = null;      // { cols, rowH }, measured from a drawn card
+const mainEl = document.querySelector(".main");
+
+function cellFor(v) {
+  let el = gridCells.get(v.id);
+  if (el) return el;
+  const t = document.createElement("template");
+  t.innerHTML = card(v).trim();
+  el = t.content.firstElementChild;
+  gridCells.set(v.id, el);
+  return el;
+}
+
+function drawWindow() {
+  if (gridEl.style.display === "none" || !gridList.length) return;
+  if (!gridShape) {
+    // Every card is the same height, so one is enough to measure by.
+    if (!gridEl.firstElementChild) gridEl.replaceChildren(cellFor(gridList[0]));
+    const css = getComputedStyle(gridEl);
+    gridShape = {
+      cols: css.gridTemplateColumns.split(" ").length,
+      // To the fraction of a pixel: a rounded height is off by a little per
+      // row, and the cards would shift by that each time the window moved.
+      rowH: gridEl.firstElementChild.getBoundingClientRect().height + parseFloat(css.rowGap),
+    };
+    gridDrawn = null;
+  }
+  const viewH = mainEl.clientHeight;
+  // Where the cards begin, not the box: the box's top padding stands in for
+  // the rows above the window.
+  const top = mainEl.getBoundingClientRect().top - gridEl.getBoundingClientRect().top;
+  const w = windowOf({ count: gridList.length, ...gridShape, top, viewH, over: viewH });
+  const key = `${w.first}-${w.last}`;
+  if (key === gridDrawn) return;
+  gridDrawn = key;
+  const cells = new Map();
+  for (const v of gridList.slice(w.first, w.last)) cells.set(v.id, cellFor(v));
+  gridCells = cells;
+  gridEl.style.paddingTop = `${w.before}px`;
+  gridEl.style.paddingBottom = `${w.after}px`;
+  gridEl.replaceChildren(...cells.values());
+}
+
+let gridFrame = null;
+const drawWindowSoon = () => { gridFrame ??= requestAnimationFrame(() => { gridFrame = null; drawWindow(); }); };
+mainEl.addEventListener("scroll", drawWindowSoon, { passive: true });
+// A new width changes how many cards fit across and how tall each is.
+let gridWidth = 0;
+new ResizeObserver(() => {
+  if (gridEl.clientWidth !== gridWidth) { gridWidth = gridEl.clientWidth; gridShape = null; }
+  drawWindowSoon();
+}).observe(mainEl);
 
 function card(v) {
   const entry = archived.get(v.id);

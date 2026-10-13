@@ -18,6 +18,7 @@
 //   &failtab=shorts     the first fetch of that tab fails
 //   &fail=<id>,<id>     those downloads fail on their first try
 //   &speed=<ms>         how long a download takes (default 1500)
+//   &many=<n>           the Videos list repeated up to n entries, for a long grid
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import recorded from "./fixtures/channel.json";
@@ -35,6 +36,10 @@ const DIR = "/Volumes/Archive/bill wurtz";
 // The recording predates dates in the listing: space them three weeks apart.
 const videos = recorded.videos.map((v, i) => ({ ...v, timestamp: Math.floor(Date.now() / 1000) - (i * 21 + 2) * 86400 })).map((v, i) =>
   scenario === "library" && [2, 6, 10].includes(i) ? { ...v, availability: "subscriber_only" } : v);
+for (let i = 0, n = videos.length; videos.length < Number(q.get("many") || 0); i++) {
+  const v = videos[i % n];
+  videos.push({ ...v, id: `${v.id.slice(0, 7)}${String(i).padStart(4, "0")}`, title: `${v.title} (${i + 2})` });
+}
 const shorts = recorded.videos.slice(40, 48).map((v) => ({ ...v, id: v.id, duration: null }));
 
 // As the real listing returns them, flattened onto the channel.

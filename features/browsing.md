@@ -45,12 +45,14 @@ main column.
 Preconditions: none.
 
 `./build.sh check` (~1s once built): the filter combinations, the counts, what
-Download shown takes, unlisted videos and the sorts, in `src/library.test.js`;
+Download shown takes, unlisted videos, the sorts, and which rows of a long
+grid are drawn, in `src/library.test.js`;
 channel art and counts from a listing, and an unlisted video's title from its
 file name, in the Rust unit tests.
 
 By click against the stand-in backend (see the README's driving conventions):
-`?scenario=library&speed=1500`. No script replays this yet.
+`?scenario=library&speed=1500`, and `&many=2000` for a long grid. No script
+replays this yet.
 
 By hand only: how it looks, in both themes and at other window sizes.
 
@@ -60,6 +62,15 @@ download", which opened the cookie menu; choosing a browser unlocked them. A
 download filled its card button to 40%, read Archived when done, then Play.
 
 ## Gotchas
+
+- Only the rows near the view are on the page: the ones in view and a
+  screen's worth above and below, swapped as it scrolls. The rest are empty
+  space of the same height, so the scrollbar still shows the whole list. It
+  relies on every card being the same height. Two things once broke that: a
+  one-line title, and the 4:3 grey picture YouTube serves for a removed
+  video. A card that isn't on the page can't be found by the browser's own
+  find, or by code that looks a card up by id; such code has to cope with
+  finding nothing.
 
 - A filter row's fill slides from the last choice to the new one. It once
   always slid from the row's left edge: the fill was measured and styled
