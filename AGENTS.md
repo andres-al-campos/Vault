@@ -41,3 +41,20 @@ Look-and-feel calls, with the reason given at the time.
   red button means something else.
 - 2026-10-12. Menus and the filter rows animate, briefly: appearing at once
   was jarring.
+- 2026-10-13. A failed download is unfinished, not finished: Clear finished
+  leaves it, Clear queue takes it, and Resume all tries it again.
+- 2026-10-13. The Downloads header is the same three buttons at all times,
+  greyed out when they have nothing to act on: four or five that came and
+  went didn't look good.
+- 2026-10-13. It's Pause all, not Stop all, since a download picks up where
+  it left off. Waiting rows read "Queued · Paused" so nobody expects them to
+  start.
+- 2026-10-13. A retried or paused download keeps its row. Rows only move
+  when dragged.
+- 2026-10-13. The best button is no button: with nothing to download there
+  is no Download button, where there used to be a disabled one.
+- 2026-10-13. Nothing on the page moves when a view changes: controls keep
+  one height and the content one width, with or without a scrollbar.
+- 2026-10-13. Open videos has no play icon, so it doesn't read as the same
+  button as Resume all.
+- 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
