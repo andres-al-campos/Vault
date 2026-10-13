@@ -68,8 +68,8 @@ Look-and-feel calls, with the reason given at the time.
   which is the part that is theirs. The plain triangle looked too much
   like YouTube, so a cut in its top edge makes it a V. It is
   equilateral: narrower ones were tried and this looked better. Its corners
-  are barely rounded. Its red is a little softer than YouTube's, which was too red in
-  the Dock.
+  are barely rounded. Its red is a little softer than YouTube's, which was
+  too red in the Dock.
 - 2026-10-13. The icon's V is large and centred top to bottom, with the same
   room above it as below its point: smaller, the white blurred into the red
   and looked pink.
@@ -82,6 +82,6 @@ Look-and-feel calls, with the reason given at the time.
   normal letter in red: with the icon's mark in its place the word read as
   "ault".
 - 2026-10-13. The name is Vault. Where there is room it is written
-  "Vault - Channel Archiver": the name, a short dash, and what it does, so nobody
-  is misled. "YouTube" stays out of both and goes in the description.
+  "Vault - Channel Archiver": the name, a short dash, and what it does, so
+  nobody is misled. "YouTube" stays out of both and goes in the description.
 - 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
