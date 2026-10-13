@@ -72,8 +72,8 @@ shows as archived; one deleted from it shows "File missing".
 Each channel has its own download folder. The first time you download a video from a
 channel that doesn't have one yet, Vault asks where to put it — the picker opens on a
 suggested `~/Downloads/Vault/<channel>` and creates it. The choice is remembered per
-channel and can be changed any time from the folder button in the top bar or the chip
-under the channel name. All of a channel's files land directly in its folder.
+channel and can be changed any time with Change, beside the folder's path under the
+channel name. All of a channel's files land directly in its folder.
 
 A channel's **archive** lives in its folder, at `.vault/videos.json`: one object
 per archived video, with its real upload date, length, views and when it was

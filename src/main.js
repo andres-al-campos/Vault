@@ -324,12 +324,10 @@ function showActive() {
   const ch = activeChannel();
   if (!ch) {
     setEmpty(`<div class="mark">VAULT</div><h2>Fetch a channel</h2><p>Paste a channel URL or type an @handle. Vault lists every video and keeps the ones you choose.</p>`);
-    $("folder").disabled = true;
     $("sync").disabled = true;
     return;
   }
   rebuildArchived();
-  $("folder").disabled = false;
   $("sync").disabled = false;
   // The field is only for adding a channel; Sync refreshes the one on screen.
   $("url").value = "";
@@ -1286,7 +1284,6 @@ $("retryall").addEventListener("click", () => {
     .filter(([, j]) => j.status === "error")
     .forEach(([id]) => retryJob(id));
 });
-$("folder").addEventListener("click", () => { const ch = activeChannel(); if (ch) changeDir(ch); });
 $("sync").addEventListener("click", () => {
   const ch = activeChannel();
   if (ch) doFetch(ch.url, { quiet: true });
