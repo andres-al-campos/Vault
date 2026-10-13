@@ -357,13 +357,13 @@ function renderHeader(ch) {
     `${ch.video_count} videos`,
   ].filter(Boolean).join(" · ");
   const dir = ch.download_dir
-    ? `<div class="dirmeta">${FOLDER_ICON}
+    ? `<div class="dirmeta">
          <a class="path" id="open-dir" title="Open this folder">${esc(ch.download_dir)}</a>
-         <button class="mini" id="change-dir">Change</button>
+         <button class="mini" id="change-dir" title="Change the download folder">${FOLDER_ICON}</button>
        </div>`
-    : `<div class="dirmeta">${FOLDER_ICON}
+    : `<div class="dirmeta">
          <span>No download folder yet — you'll be asked when you download the first video.</span>
-         <button class="mini accent" id="change-dir">Choose folder</button>
+         <button class="mini accent" id="change-dir" title="Choose the download folder">${FOLDER_ICON}</button>
        </div>`;
 
   headEl.innerHTML = `

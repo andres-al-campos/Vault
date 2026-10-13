@@ -32,6 +32,9 @@
   /* One pixel, so it has to contrast with a thumbnail right beside it. */
   --hover-line: #5d626e;
   --on-fg: #ffffff;
+  /* How much of a video has been played: YouTube's red, in the seek bar and
+     wherever else progress is drawn. */
+  --played: #ff0033;
   --sb-thumb: #cfcfc7;
   --sb-thumb-hover: #b4b4ab;
 }
@@ -196,7 +199,7 @@ body {
   color: var(--text); cursor: pointer; }
 .dirmeta .path:hover { text-decoration: underline; }
 .dirmeta .mini { border: 1px solid var(--line); background: var(--panel); color: var(--text);
-  border-radius: 7px; padding: 4px 9px; font: 600 11.5px inherit; cursor: pointer; flex: none; }
+  border-radius: 7px; padding: 4px 7px; display: grid; place-items: center; cursor: pointer; flex: none; }
 .dirmeta .mini:hover { background: var(--hover); border-color: var(--hover-line); }
 .dirmeta .mini.accent { border-color: var(--accent); color: var(--accent); }
 .dirmeta svg { flex: none; }
@@ -433,7 +436,7 @@ body {
 .ptip b { display: block; font-size: 13px; line-height: 1.35; }
 .ptip img { display: block; width: calc(100% + 24px); margin: 9px -12px -9px; aspect-ratio: 16/9; object-fit: cover; }
 /* How far through the video is, along the bottom of its thumbnail. */
-.ptip i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--accent); }
+.ptip i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--played); }
 
 .stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; }
 /* Over the stage while a video loads: the frame it was left on, or its
@@ -461,7 +464,7 @@ body {
 /* The two sliders are drawn here, not by the system: a thin track filled up
    to a round handle. */
 .pseek, .pvol { -webkit-appearance: none; appearance: none; height: 18px; background: transparent; cursor: pointer; --fill: 0%; }
-.pseek { flex: 1; min-width: 0; --bar: var(--accent); }
+.pseek { flex: 1; min-width: 0; --bar: var(--played); }
 .pvol { width: 96px; --bar: var(--muted2); }
 .pseek::-webkit-slider-runnable-track, .pvol::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
   background: linear-gradient(to right, var(--bar) var(--fill), var(--track) var(--fill)); }

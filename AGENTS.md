@@ -31,3 +31,5 @@ Look-and-feel calls, with the reason given at the time.
   short: more of the window goes to the video.
 - 2026-10-12. The video is shown as sRGB, not pushed to the screen's full
   gamut: the more saturated picture looked unrealistic.
+- 2026-10-12. The seek bar is YouTube's red, as an extra touch of YouTube. The
+  same red marks progress on a tab's hover card.
