@@ -19,6 +19,8 @@ Queue videos and watch them download one at a time in the sidebar.
   success and no file is there, the row fails and says so.
 - Download N shown queues what the filters have narrowed to; see
   [browsing.md](browsing.md).
+- Every row in the queue is the same height, so cancelling one puts the next
+  row's ✕ under the pointer.
 
 - A finished download writes the video's record to the folder's
   `.vault/videos.json`: real upload date, length, views, members flag and when
