@@ -66,9 +66,9 @@ Look-and-feel calls, with the reason given at the time.
 - 2026-10-13. The app icon is a red tile with a white play triangle turned
   to point down: a nod to YouTube's button without its rounded rectangle,
   which is the part that is theirs. The plain triangle looked too much
-  like YouTube, so a cut in its top edge makes it a V. It is 1.1 times as
-  wide as tall, a little narrower than YouTube's, with barely rounded
-  corners. Its red is a little softer than YouTube's, which was too red in
+  like YouTube, so a cut in its top edge makes it a V. It is
+  equilateral: narrower ones were tried and this looked better. Its corners
+  are barely rounded. Its red is a little softer than YouTube's, which was too red in
   the Dock.
 - 2026-10-13. The icon's V is large and centred top to bottom, with the same
   room above it as below its point: smaller, the white blurred into the red
