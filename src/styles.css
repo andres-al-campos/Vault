@@ -8,7 +8,7 @@
   --muted: #8a8a82;
   --muted2: #6b6b63;
   --line: #e7e7e3;
-  --line2: #ececE7;
+  --line2: #ecece7;
   --chip: #f4f4f0;
   --chip-line: #e6e6e0;
   /* Failures and things to retry. */
@@ -20,7 +20,6 @@
   --done: #2f9e5a;
   --hover: #f0f0ec;
   --hover-strong: #e6e6e0;
-  /* Primary button: the same fill as Subscribe and the chosen filter. */
   /* Three tiers of attention. High is --on, the one button that goes back to
      what you're watching. Mid is a grey fill, for the page's main action.
      Low is a faint tint, for what is chosen and what is rarely pressed. */
@@ -31,9 +30,7 @@
   --btn-bg: var(--mid);
   --btn-fg: var(--text);
   --btn-bg-hover: var(--mid-hover);
-  /* Ring around the currently selected tab / filter / sort option. */
-  --sel-ring: #8a8f9c;
-  /* The chosen filter: a solid fill, easier to spot in a row than an outline. */
+  /* The one loud button's fill: Open videos. */
   --on: #2b2e36;
   /* One pixel, so it has to contrast with a thumbnail right beside it. */
   --hover-line: #5d626e;
@@ -71,7 +68,6 @@
   --btn-bg: var(--mid);
   --btn-fg: var(--text);
   --btn-bg-hover: var(--mid-hover);
-  --sel-ring: #7c8494;
   /* Near white: a mid grey left the count beside the label hard to read. */
   --on: #eceef2;
   --hover-line: #c2c7d2;
@@ -369,7 +365,7 @@ body {
 .split:has(.dl-menu.open) .btn { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .chan-title { display: flex; align-items: center; gap: 14px; }
 .subscribe { position: relative; }
-/* Shares the chosen filter's fill, so "on" is one colour across the page. */
+/* The fills of the high and low tiers. */
 .btn-on { background: var(--on); color: var(--on-fg); border: 0; }
 .btn-low { background: var(--low); color: var(--text); border: 0; }
 .btn-low:hover { background: var(--low-hover); }
@@ -397,8 +393,6 @@ body {
 @keyframes pill-arrive { from { color: var(--muted2); } }
 .pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
 .pill.active .n { color: inherit; opacity: .7; }
-/* Lines up with the tab and filter groups, both measured at 35px rendered
-   (a 1px border around a 33px button). */
 /* The redrawn part of the filter row; its buttons sit in the row itself. */
 .row-bar { display: contents; }
 /* The search box ends the filter row, the same height as everything on it. */
