@@ -24,6 +24,29 @@ test("a video is none, have or missing by its archive entry", () => {
   assert.equal(archiveState("z", new Map([["z", { id: "z", path: null, pending: true }]])), "have");
 });
 
+test("a search keeps titles with every word, in any order, ignoring case and accents", () => {
+  const titled = [v("1", { title: "Night at the Café" }), v("2", { title: "night drive" }), v("3", { title: "Morning" })];
+  const find = (query) => ids(view(titled, { access: "all", have: "all", sort: "newest", query }, new Map()));
+  assert.deepEqual(find("night"), ["1", "2"]);
+  assert.deepEqual(find("CAFE night"), ["1"]);
+  assert.deepEqual(find("  "), ["1", "2", "3"]);
+  assert.deepEqual(find("noon"), []);
+});
+
+test("a search narrows the filter numbers, and total is what it finds under All", () => {
+  // a, c and d are songs: a and c archived, d not; e is archived but a talk.
+  const titled = list.map((x) => ({ ...x, title: ["a", "c", "d"].includes(x.id) ? "a song" : "a talk" }));
+  const r = view(titled, { access: "all", have: "archived", sort: "newest", query: "song" }, archived);
+  assert.deepEqual(ids(r), ["a", "c"]);
+  assert.equal(r.counts.have.not, 1);
+  assert.equal(r.total, 3);
+});
+
+test("the members filter stays while a search finds no members-only video", () => {
+  const titled = list.map((x) => ({ ...x, title: x.id === "a" ? "only this" : "other" }));
+  assert.equal(view(titled, { access: "all", have: "all", sort: "newest", query: "only" }, archived).hasMembers, true);
+});
+
 test("the two filters narrow each other", () => {
   assert.deepEqual(ids(see("all", "all")), ["a", "b", "c", "d", "e"]);
   assert.deepEqual(ids(see("all", "archived")), ["a", "c", "e"]);

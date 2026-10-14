@@ -12,7 +12,18 @@ what you have and what you can get.
 - Two filters, one choice each, that narrow each other: All / Public / Members
   (only when the tab has members-only videos) and All / Archived / Not
   archived. Each option's number is what choosing it would show.
-- Sort: Newest, Oldest, Most popular, Shortest, Longest.
+- Sort: Newest, Oldest, Most popular, Shortest, Longest. It sits after the
+  filters, on the left of their row.
+- Search, at the right of the filter row, looks through the titles of the
+  channel on screen. A title matches when it has every word typed, in any
+  order, ignoring case and accents. It searches what the filters leave, and
+  the numbers on the filters count only matches. When the filters hide some
+  matches, a "Show all N matches" button appears to the left of the box; it
+  sets both filters to All, and then has nothing left to do and goes. ⌘F
+  goes to the box; Esc clears it, and a second Esc leaves it. The search is
+  kept across tabs, cleared on moving to another channel, and not
+  remembered across launches.
+- Download all N queues the matches too: it takes what's on screen.
 - Each card's one button follows its state: Download, Queued, a percentage
   that fills the button, Play, Download again (file missing), Retry (last try
   failed), or Members only (disabled without cookies). An archived card's
@@ -47,6 +58,7 @@ main column.
 Preconditions: none.
 
 `./build.sh check` (~1s once built): the filter combinations, the counts, what
+search matches and how it narrows the counts, what
 Download all takes, unlisted videos, the sorts, and which rows of a long
 grid are drawn, in `src/library.test.js`;
 channel art and counts from a listing, and an unlisted video's title from its
@@ -62,6 +74,10 @@ Last driven: 2026-10-12, against the stand-in at 1240x820, light theme.
 Archived showed 7 cards (6 Play, 1 Download again, 1 unlisted); Members + Not archived showed 2 locked cards and "Set cookies to
 download", which opened the cookie menu; choosing a browser unlocked them. A
 download filled its card button to 40%, read Archived when done, then Play.
+Search, 2026-10-14 in the stand-in: with Archived chosen, "the" showed 2
+cards and "Show all 15 matches"; the box kept its cursor through each key;
+the button set both filters to All and went; Esc cleared the box, and a
+search with no match said so.
 
 ## Calls
 
@@ -80,8 +96,19 @@ time.
 - 2026-10-13. The chosen filter has an outline in the text colour, white in
   the dark theme, around its tint: the tint alone was too low in contrast to
   see which one was chosen.
+- 2026-10-14. Search is for the channel on screen only, for simplicity. It
+  searches what the filters leave, with one button to search under All
+  instead, which goes once pressed. The filters stay in view, and the sort
+  moved to the left of the row to make room for the box on the right.
 
 ## Gotchas
+
+- Search: titles only, every word, ignoring accents; the counts following
+  the search; the button's wording and that it shows only when the filters
+  hide matches; ⌘F and Esc; clearing on a channel change and not being
+  remembered: all an agent's guesses. At the default window with the
+  Downloads panel open and a Members row, the row can't hold the button and
+  the box, so the box drops to a second line when the button appears.
 
 - Only the rows near the view are on the page: the ones in view and a
   screen's worth above and below, swapped as it scrolls. The rest are empty

@@ -461,9 +461,49 @@ function tabVideos(ch, tab) {
 // tab has nothing to filter yet.
 function currentView() {
   const ch = activeChannel();
+  searchScope(ch);
   const list = ch && tabVideos(ch, activeTab);
-  return list ? view(list, filters, archived) : null;
+  return list ? view(list, { ...filters, query }, archived) : null;
 }
+
+// The search box. It is made once and kept, not redrawn with the rest of its
+// row: the row is rebuilt on every change, so a box inside it would lose its
+// text cursor at every key.
+let query = "";
+let queryFor = null; // the channel the search was typed on
+const findEl = document.createElement("label");
+findEl.className = "find";
+findEl.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+  <input id="find" placeholder="Search this channel" spellcheck="false" autocomplete="off">
+  <button class="find-x" id="find-x" title="Clear (Esc)" hidden><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+const findInput = findEl.querySelector("input");
+const findX = findEl.querySelector(".find-x");
+function setQuery(text) {
+  query = text;
+  findInput.value = text;
+  findX.hidden = !text;
+}
+// A search belongs to the channel it was typed on.
+function searchScope(ch) {
+  if ((ch?.url ?? null) === queryFor) return;
+  queryFor = ch?.url ?? null;
+  setQuery("");
+}
+findInput.addEventListener("input", () => { setQuery(findInput.value); renderList(); });
+findX.addEventListener("click", (e) => { e.preventDefault(); setQuery(""); renderList(); findInput.focus(); });
+// Esc clears the box, and a second Esc leaves it.
+findInput.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  e.stopPropagation();
+  if (query) { setQuery(""); renderList(); } else findInput.blur();
+});
+document.addEventListener("keydown", (e) => {
+  if (!(e.metaKey && e.key === "f") || watching() || !activeChannel()) return;
+  e.preventDefault();
+  findInput.focus();
+  findInput.select();
+});
+let findAllWas = false; // so the Show all button fades in only as it appears
 
 // Controls and grid always redraw together: every number in the controls is
 // derived from the same list the grid shows.
@@ -568,18 +608,28 @@ function renderControls(now) {
     const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown">↓ Download ${label}</button>${menu}</div>`
       : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
       : ""; // nothing to queue: no button, rather than one that can't be pressed
+    // With a search, matches the filters hide can be had back in one click,
+    // which sets both filters to All. There is nothing more to show once they
+    // are, so then the button goes.
+    const narrowed = filters.access !== "all" || filters.have !== "all";
+    const findAll = query && narrowed && now.total > now.shown.length;
     bar = `
       ${now.hasMembers ? group("access", ACCESS, now.counts.access) : ""}
       ${group("have", HAVE, now.counts.have)}
-      <span class="tabs-spacer"></span>
       <div class="sortsel">
         <button class="sort-btn" id="sort" title="Sort order">${SORTS[filters.sort]}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="dl-menu" id="sort-menu">${Object.entries(SORTS).map(([value, label]) =>
           `<button class="cookie-item${filters.sort === value ? " active" : ""}" data-sort="${value}">${label}</button>`).join("")}</div>
-      </div>`;
+      </div>
+      <span class="tabs-spacer"></span>
+      ${findAll ? `<button class="btn btn-low${findAllWas ? "" : " arriving"}" id="find-all" title="Set both filters to All">Show all ${now.total} matches</button>` : ""}`;
+    findAllWas = findAll;
     tabs += `<span class="tabs-spacer"></span>${download}`;
+  } else {
+    bar = `<span class="tabs-spacer"></span>`;
+    findAllWas = false;
   }
 
   // Where each group's fill and the tab underline sat, so they can slide from
@@ -589,7 +639,14 @@ function renderControls(now) {
   const wasTab = whereIs(controlsEl.querySelector(".tab-on"));
   const wasOpen = openMenus(controlsEl);
 
-  controlsEl.innerHTML = `<div class="tabs">${tabs}</div><div class="controls">${bar}</div>`;
+  // The two rows are made once; their contents are redrawn, and the search
+  // box stays where it is at the end of the second.
+  if (!controlsEl.querySelector(".bar")) {
+    controlsEl.innerHTML = `<div class="tabs"></div><div class="controls"><div class="bar"></div></div>`;
+    controlsEl.querySelector(".controls").append(findEl);
+  }
+  controlsEl.querySelector(".tabs").innerHTML = tabs;
+  controlsEl.querySelector(".bar").innerHTML = bar;
 
   controlsEl.querySelectorAll(".filters").forEach((row) => {
     const on = row.querySelector(".pill.active");
@@ -612,6 +669,10 @@ function renderControls(now) {
   controlsEl.querySelectorAll("[data-sort]").forEach((b) =>
     b.addEventListener("click", () => setFilter("sort", b.dataset.sort)));
   $("dlshown")?.addEventListener("click", () => downloadShown(batchPick ?? Infinity));
+  $("find-all")?.addEventListener("click", () => {
+    for (const name of ["access", "have"]) { filters[name] = "all"; localStorage.setItem(`vault-${name}`, "all"); }
+    renderList();
+  });
   $("dlmore")?.addEventListener("click", (e) => {
     e.stopPropagation();
     $("dlmenu").classList.toggle("open");
@@ -693,7 +754,9 @@ function renderGrid(now) {
   }
   if (!now.shown.length) {
     const unfiltered = filters.access === "all" && filters.have === "all";
-    message("Nothing here", `<p>${unfiltered
+    message("Nothing here", `<p>${query
+      ? `No ${TABS[activeTab].toLowerCase()} match “${esc(query.trim())}”${unfiltered ? "" : " with these filters"}.`
+      : unfiltered
       ? `No ${TABS[activeTab].toLowerCase()} on this channel.`
       : "No videos match these filters."}</p>`);
     return;

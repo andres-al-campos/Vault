@@ -38,19 +38,29 @@ export function sortVideos(list, sort) {
   return out;
 }
 
+// Search looks at titles only. Every word typed has to be in the title, in
+// any order, ignoring case and accents: "cafe night" finds "Night at the Café".
+const fold = (s) => (s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+const searchWords = (query) => fold(query).split(/\s+/).filter(Boolean);
+
 // The filtered, sorted list, plus the number behind every filter option. Each
 // number is what choosing that option would show with the other filter left
 // as it is, so the two selected options always carry the same number: the
-// length of the list on screen.
-export function view(list, { access, have, sort }, archived) {
+// length of the list on screen. A search narrows everything first, so the
+// numbers count matches; `total` is what it finds with both filters at All.
+export function view(all, { access, have, sort, query = "" }, archived) {
+  const words = searchWords(query);
+  const list = words.length ? all.filter((v) => words.every((w) => fold(v.title).includes(w))) : all;
   const count = (a, h) => list.filter((v) => accessOk(v, a) && haveOk(v, h, archived)).length;
   return {
+    total: list.length,
     shown: sortVideos(list.filter((v) => accessOk(v, access) && haveOk(v, have, archived)), sort),
     counts: {
       access: { all: count("all", have), public: count("public", have), members: count("members", have) },
       have: { all: count(access, "all"), archived: count(access, "archived"), not: count(access, "not") },
     },
-    hasMembers: list.some(isMembers),
+    // From the whole tab, so the row doesn't come and go as a search is typed.
+    hasMembers: all.some(isMembers),
   };
 }
 

@@ -391,6 +391,23 @@ body {
 .pill.active .n { color: inherit; opacity: .7; }
 /* Lines up with the tab and filter groups, both measured at 35px rendered
    (3px pad + 1px border around a 29px button). */
+/* The redrawn part of the filter row; its buttons sit in the row itself. */
+.bar { display: contents; }
+/* The search box ends the filter row, the same height as everything on it. */
+.find { flex: 0 1 240px; min-width: 150px; height: 35px; display: flex; align-items: center; gap: 7px;
+  padding: 0 5px 0 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--muted); cursor: text; transition: border-color .15s; }
+.find:hover, .find:focus-within { border-color: var(--hover-line); }
+.find input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text);
+  font: 600 12.5px inherit; }
+.find input::placeholder { color: var(--muted); }
+.find-x { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0;
+  border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.find-x[hidden] { display: none; }
+.find-x:hover { background: var(--hover); color: var(--text); }
+#find-all { height: 35px; padding: 0 13px; font-size: 12.5px; }
+#find-all.arriving { animation: fade-in .18s ease-out; }
+@keyframes fade-in { from { opacity: 0; } }
 .sortsel { position: relative; }
 .sort-btn { display: flex; align-items: center; gap: 8px; height: 35px; padding: 0 11px 0 12px;
   font: 600 12.5px inherit; color: var(--text); background: var(--panel);
