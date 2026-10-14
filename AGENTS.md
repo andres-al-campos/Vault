@@ -8,14 +8,19 @@ laws and tests; plain `./build.sh` installs and launches the app.
 Look-and-feel calls that hold across the app, with the reason given at the
 time. A call about one feature is in that feature's file, under Calls.
 
-- 2026-10-12. The chosen option in a row of filters is a solid fill, not an
-  outline: the fill is easier to see. Subscribe uses the same fill.
+- 2026-10-13. Three tiers of attention, and a control's look says its tier.
+  High is the white fill: Open videos, the way back to what's being watched,
+  and nothing else. Mid is a grey fill: Download all. Low is a faint tint:
+  the chosen filter, and Subscribe, which is rarely clicked. Until then the
+  white fill was on all of them (a 2026-10-12 call, for being easy to see),
+  and with everything loud nothing was the main thing. The tiers are fixed:
+  they don't change with what the page is being used for.
+  `laws/one-loud-button.sh` keeps the white fill to one button.
 - 2026-10-12. Hover lights the border, on cards and on bordered buttons.
   Cards don't lift or gain a shadow: the raise wasn't liked.
 - 2026-10-12. No orange: orange on black is too strongly another site's look.
-  Download is the same white fill as Subscribe and the chosen filter, for now:
-  blue was tried there and looked too light and flat. Failures and retries
-  are amber.
+  Blue was tried on Download and looked too light and flat. Failures and
+  retries are amber.
 - 2026-10-12. The logo is YouTube's red, and the app icon a red near it.
   Buttons aren't: a red button means something else.
 - 2026-10-12. One record per question: a channel folder's `.vault/videos.json`

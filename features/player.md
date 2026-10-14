@@ -74,7 +74,7 @@ time.
 - 2026-10-12. The player's tabs look and feel like a browser's tab strip
   (Chrome's was the reference, without the site icon): a raised fill for the
   one on screen, hairlines between the rest, close on hover, the full title
-  on a card below. Asked for by that look; the solid fill stays for filters.
+  on a card below. Asked for by that look; the filters keep their own.
   No hairline beside the tab on screen: it looked better without. So that
   tab's edge can mark where its neighbour ends, the bar leaves little space
   above and below it.

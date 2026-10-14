@@ -111,6 +111,7 @@ case "${1:-}" in
   check|test)
     require_mpv
     ./laws/feature-map.sh
+    ./laws/one-loud-button.sh
     # The frontend's pure modules run under node's own test runner. The glob is
     # quoted so node expands it; a bare directory argument is read as a module.
     node --test 'src/*.test.js'

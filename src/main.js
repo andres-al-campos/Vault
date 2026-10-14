@@ -383,7 +383,7 @@ function renderHeader(ch) {
         <div class="chan-title">
           <h1>${esc(ch.title)}${ch.verified ? `<span class="tick" title="Verified">✓</span>` : ""}</h1>
       <div class="subscribe">
-        <button class="btn ${sub ? "btn-icon btn-labelled" : "btn-on"}" id="sub-btn" title="Downloads new videos that haven't been archived yet, each time Vault opens or you press Sync.">${sub ? "✓ Subscribed" : "Subscribe"}</button>
+        <button class="btn ${sub ? "btn-icon btn-labelled" : "btn-low"}" id="sub-btn" title="Downloads new videos that haven't been archived yet, each time Vault opens or you press Sync.">${sub ? "✓ Subscribed" : "Subscribe"}</button>
         <div class="dl-menu sub-menu" id="sub-menu">
           <div class="cookie-hd">Download new uploads from</div>
           ${Object.entries(TABS).map(([tab, label]) =>

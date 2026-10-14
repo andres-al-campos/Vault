@@ -21,9 +21,16 @@
   --hover: #f0f0ec;
   --hover-strong: #e6e6e0;
   /* Primary button: the same fill as Subscribe and the chosen filter. */
-  --btn-bg: var(--on);
-  --btn-fg: var(--on-fg);
-  --btn-bg-hover: #40444e;
+  /* Three tiers of attention. High is --on, the one button that goes back to
+     what you're watching. Mid is a grey fill, for the page's main action.
+     Low is a faint tint, for what is chosen and what is rarely pressed. */
+  --mid: #adb1ba;
+  --mid-hover: #9ea2ac;
+  --low: color-mix(in srgb, var(--text) 10%, transparent);
+  --low-hover: color-mix(in srgb, var(--text) 16%, transparent);
+  --btn-bg: var(--mid);
+  --btn-fg: var(--text);
+  --btn-bg-hover: var(--mid-hover);
   /* Ring around the currently selected tab / filter / sort option. */
   --sel-ring: #8a8f9c;
   /* The chosen filter: a solid fill, easier to spot in a row than an outline. */
@@ -59,9 +66,11 @@
   --done: #4ade80;
   --hover: #1f222a;
   --hover-strong: #262a33;
-  --btn-bg: var(--on);
-  --btn-fg: var(--on-fg);
-  --btn-bg-hover: #d6d9e0;
+  --mid: #4b4e57;
+  --mid-hover: #5a5e68;
+  --btn-bg: var(--mid);
+  --btn-fg: var(--text);
+  --btn-bg-hover: var(--mid-hover);
   --sel-ring: #7c8494;
   /* Near white: a mid grey left the count beside the label hard to read. */
   --on: #eceef2;
@@ -343,6 +352,8 @@ body {
 .subscribe { position: relative; }
 /* Shares the chosen filter's fill, so "on" is one colour across the page. */
 .btn-on { background: var(--on); color: var(--on-fg); border: 0; }
+.btn-low { background: var(--low); color: var(--text); border: 0; }
+.btn-low:hover { background: var(--low-hover); }
 .btn-on:hover { filter: brightness(.94); }
 .subscribe > .btn { padding: 6px 13px; font-size: 13px; }
 .sub-menu { min-width: 250px; left: 0; right: auto; }
@@ -355,10 +366,10 @@ body {
 .pill { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted2); font: 600 12.5px inherit;
   padding: 6px 12px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .pill:hover { color: var(--text); }
-.pill.active { color: var(--on-fg); }
+.pill.active { color: var(--text); }
 /* The fill is its own element, so it can slide from the last choice to the
    new one; the row is redrawn on every change. */
-.pill-on { position: absolute; top: 3px; bottom: 3px; left: 0; border-radius: 7px; background: var(--on);
+.pill-on { position: absolute; top: 3px; bottom: 3px; left: 0; border-radius: 7px; background: var(--low);
   transition: transform .18s ease-out, width .18s ease-out; }
 .pill.arriving { animation: pill-arrive .18s ease-out; }
 @keyframes pill-arrive { from { color: var(--muted2); } }
