@@ -448,6 +448,9 @@ body {
 .thumb .play { position: absolute; inset: 0; display: grid; place-items: center;
   color: #fff; font-size: 26px; opacity: 0; transition: 0.18s; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
 .thumb.playable:hover .play { opacity: 1; }
+/* In the members badge's place: a video is one or the other. Grey, since it
+   says who can see it, not that anything is wrong. */
+.badge.unlisted { color: #c9ccd3; }
 /* Sits opposite the members badge, so a card can carry both. */
 .badge.gone { left: auto; right: 8px; color: #ff8f70; }
 .reason { color: var(--warn); font-size: 11.5px; }

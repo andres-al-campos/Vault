@@ -33,7 +33,8 @@ what you have and what you can get.
 - A missing file counts as archived and says so on its card.
 - Archived videos the channel no longer lists stay on the Videos tab after the
   listed ones, marked "Missing on YT". One YouTube called unlisted when it
-  was downloaded (one got from its link) is marked "Unlisted" instead.
+  was downloaded (one got from its link) has an "Unlisted" badge instead,
+  where the members-only badge goes.
 - Download all N queues everything the filters leave that isn't on disk or already
   queued, forcing the missing ones. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
@@ -110,6 +111,9 @@ time.
   button reads "Show all 15".
 - 2026-10-14. The sort button keeps one width, its longest choice, with the
   text on the left: a width that changed with the choice moved the row.
+- 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a
+  word under the title, so it takes no extra space. Its grey is an agent's
+  guess.
 
 ## Gotchas
 

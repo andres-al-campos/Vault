@@ -910,7 +910,7 @@ function card(v) {
     // The exact upload date once the video is archived, the listing's
     // approximate one until then.
     ago(entry?.timestamp ?? v.timestamp),
-    v.unlisted && (v.availability === "unlisted" ? "Unlisted" : "Missing on YT"),
+    v.unlisted && v.availability !== "unlisted" && "Missing on YT",
   ].filter(Boolean).join(" · ");
   return `
     <div class="card" data-id="${esc(v.id)}">
@@ -918,6 +918,7 @@ function card(v) {
         <img loading="lazy" src="${thumb(v.id)}" alt="">
         ${fmtDur(v.duration) ? `<span class="dur">${fmtDur(v.duration)}</span>` : ""}
         ${isMembers(v) ? `<span class="badge">Members only</span>` : ""}
+        ${v.availability === "unlisted" ? `<span class="badge unlisted">Unlisted</span>` : ""}
         ${have === "missing" ? `<span class="badge gone">File missing</span>` : ""}
         ${playable ? '<span class="play">▶</span>' : ""}
       </div>
