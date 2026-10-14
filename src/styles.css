@@ -225,7 +225,9 @@ body {
 .dirmeta svg { flex: none; }
 
 /* grid + cards */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+/* At most five cards across: a column is never narrower than a fifth of the
+   row, so on a wide window the cards grow instead of a sixth one arriving. */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(280px, calc((100% - 4 * 18px) / 5)), 1fr)); gap: 18px; }
 .card { background: var(--card); border: 1px solid var(--line2); border-radius: 16px; overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); transition: 0.18s; display: flex; flex-direction: column; }
 /* Hover lights the border, on cards and bordered buttons alike. Cards used

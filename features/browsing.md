@@ -34,6 +34,8 @@ what you have and what you can get.
   all.
 - Queueing more than 100 at once asks first.
 - Tab, filters and sort are remembered across launches.
+- The grid is at most five cards across. On a window wide enough for more,
+  the cards grow.
 
 ## How to get to it
 
@@ -72,6 +74,9 @@ time.
 - 2026-10-12. "File missing" shows on the card only, not as a filter: a file
   can only be missing if it was archived.
 - 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
+- 2026-10-13. Five cards across at most: six was too many, and a sixth
+  appearing and going as the Downloads panel closed and opened made the grid
+  jitter. With the panel hidden the cards get bigger.
 
 ## Gotchas
 
