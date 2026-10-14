@@ -215,7 +215,6 @@ body {
   font-size: 9.5px; font-weight: 800; display: grid; place-items: center; flex: none; }
 .chan-meta { color: var(--muted2); font-size: 13.5px; margin-top: 3px; }
 .chan-meta b { color: var(--text); font-weight: 600; }
-.chan-actions { margin-left: auto; display: flex; gap: 10px; }
 
 /* download-folder chip under the header */
 .dirmeta { display: flex; align-items: center; gap: 9px; margin-top: 9px;
@@ -434,7 +433,6 @@ body {
 .sort-lbls > span { grid-area: 1 / 1; }
 .sort-lbls > .off { visibility: hidden; }
 .sortsel .dl-menu { min-width: 100%; white-space: nowrap; }
-.shown { font-size: 12.5px; color: var(--muted); margin-left: auto; }
 
 /* ---------- card extras ---------- */
 /* Members-only badge. Green-on-dark like YouTube's own members label, rather
