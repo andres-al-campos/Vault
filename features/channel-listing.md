@@ -88,9 +88,11 @@ Look-and-feel calls made for this feature, with the reason given at the
 time.
 
 - 2026-10-12. Titles aren't recorded: YouTube videos get renamed.
-- 2026-10-14. Sync shows it's working: the arrow turns and the button is
-  tinted, both asked for, since a click with nothing to see read as ignored.
-  The tint (the hover grey, a step stronger), one turn a second and
+- 2026-10-14. Sync shows it's working: the arrow turns and the button
+  changes colour, both asked for, since a click with nothing to see read as
+  ignored. A grey tint was too slight; red seemed off, and the button is
+  already white. It takes the green of a card mid-download (an agent's
+  pick), so working looks one way across the app. One turn a second and
   finishing the turn are an agent's guesses.
 
 ## Gotchas

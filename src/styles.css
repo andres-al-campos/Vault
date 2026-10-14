@@ -123,8 +123,9 @@ body {
 .btn-labelled { display: flex; align-items: center; gap: 7px; }
 .btn-icon:not(:disabled):hover { background: var(--hover); border-color: var(--hover-line); }
 .btn-icon:disabled { color: var(--muted); }
-/* Sync while it runs: tinted, its arrow turning (see the click handler). */
-#sync.syncing { background: var(--hover-strong); }
+/* Sync while it runs: the green of a card mid-download, its arrow turning
+   (see the click handler). */
+#sync.syncing { background: var(--accent-soft); color: var(--accent-soft-fg); border-color: var(--accent-soft-line); }
 #sync.syncing svg { animation: spin 1s linear infinite; }
 
 /* ---------- channel selector ---------- */
