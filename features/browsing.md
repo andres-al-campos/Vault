@@ -59,6 +59,10 @@ what you have and what you can get.
   all.
 - Queueing more than 100 at once asks first.
 - Tab, filters and sort are remembered across launches.
+- A card that leaves the view on its own, like a download finishing under
+  Not archived, fades out; the rest then slide to their places, and a card
+  that comes into the drawn rows fades in. A click (a filter, a sort, a
+  search) redraws at once.
 - The grid is at most five cards across. On a window wide enough for more,
   the cards grow.
 
@@ -157,6 +161,9 @@ time.
   The message under it is faded to match, heading and text; a button or
   spinner in a message isn't, as a faded button looks disabled (that part an
   agent's call).
+- 2026-10-14. A finished download leaving the filtered view fades and the
+  others slide up: vanishing was another teleport. The 0.18s fade and 0.25s
+  slide are an agent's guesses, as is redrawing at once on a click.
 - 2026-10-14. The filter row's text is 13.5px, the Download button's size:
   at 12.5px the controls looked empty for their height.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a

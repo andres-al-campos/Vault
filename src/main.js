@@ -1610,8 +1610,34 @@ function refreshArchiveSoon() {
   archiveRefresh = setTimeout(async () => {
     archiveRefresh = null;
     await loadArchive();
-    if (activeChannel()) renderList();
+    if (activeChannel()) settleList();
   }, 600);
+}
+
+// A redraw for a change nobody clicked, like a download finishing under Not
+// archived: the cards that leave fade out, then the rest slide to their new
+// places and any that arrive fade in. A click redraws at once, through
+// renderList.
+let settling = 0;
+async function settleList() {
+  const turn = ++settling;
+  const before = new Map(Array.from(gridEl.querySelectorAll(".card"), (el) => [el.dataset.id, el.getBoundingClientRect()]));
+  const now = currentView();
+  const staying = new Set(now?.shown.map((v) => v.id));
+  const leaving = Array.from(gridEl.querySelectorAll(".card")).filter((el) => !staying.has(el.dataset.id));
+  if (leaving.length) {
+    await Promise.all(leaving.map((el) => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out", fill: "forwards" }).finished));
+    if (turn !== settling) return; // a later redraw took over
+  }
+  renderList();
+  for (const el of gridEl.querySelectorAll(".card")) {
+    const was = before.get(el.dataset.id);
+    if (!was) { if (before.size) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" }); continue; }
+    const is = el.getBoundingClientRect();
+    const dx = was.left - is.left, dy = was.top - is.top;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+    el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 250, easing: "ease-out" });
+  }
 }
 
 /* ---------------- queue rendering ---------------- */
