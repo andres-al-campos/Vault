@@ -47,6 +47,11 @@ Type a channel and see its videos as cards.
 - A channel with no Shorts or Live tab shows that tab as empty.
 - A failed Shorts or Live fetch shows the error with Try again. A failed Sync
   shows an alert and leaves the saved list as it was.
+- When YouTube's bot check stops a channel's list or a video link's lookup,
+  the message says to pick a browser in the cookie menu, or, with one picked,
+  to open youtube.com in it and check the sign-in. yt-dlp's own advice is a
+  command-line flag. On 2026-10-14 it stopped a one-video lookup without
+  cookies while channel lists still loaded without them.
 
 ## How to get to it
 

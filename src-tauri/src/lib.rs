@@ -650,6 +650,24 @@ fn classify_failure(line: &str) -> Option<&'static str> {
     None
 }
 
+/// What a failed lookup (a channel's list, or whose video a link is) tells the
+/// user: yt-dlp's last line, except for the bot check, whose own advice is a
+/// command-line flag nobody using the app can pass.
+fn lookup_failure(stderr: &str, cookies: Option<&str>) -> String {
+    let last = stderr.trim().lines().last().unwrap_or("yt-dlp failed");
+    if !last.to_lowercase().contains("sign in to confirm you're not a bot") {
+        return last.to_string();
+    }
+    match cookies.filter(|c| !c.is_empty()) {
+        None => "YouTube wants to check you're not a bot. Pick the browser you're signed into YouTube with from the cookie menu in the top bar, then try again.".to_string(),
+        Some(id) => {
+            // Named as the cookie menu names it: "firefox" reads "Firefox".
+            let browser = id[..1].to_uppercase() + &id[1..];
+            format!("YouTube wants to check you're not a bot, even with {browser}'s cookies. Open youtube.com in {browser}, check you're signed in, then try again.")
+        }
+    }
+}
+
 #[tauri::command]
 fn is_video_link(raw: String) -> bool {
     is_video_url(&raw)
@@ -673,8 +691,7 @@ fn resolve_video_blocking(raw: String, cookies: Option<String>) -> Result<VideoR
         .output()
         .map_err(|e| format!("Could not run yt-dlp ({yt}): {e}"))?;
     if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr);
-        return Err(err.trim().lines().last().unwrap_or("yt-dlp failed").to_string());
+        return Err(lookup_failure(&String::from_utf8_lossy(&out.stderr), cookies.as_deref()));
     }
     let root: serde_json::Value =
         serde_json::from_slice(&out.stdout).map_err(|e| format!("Bad JSON from yt-dlp: {e}"))?;
@@ -729,8 +746,7 @@ fn fetch_channel_blocking(raw: String, tab: String, cookies: Option<String>) -> 
                 about: ChannelAbout::default(),
             });
         }
-        let msg = err.trim().lines().last().unwrap_or("yt-dlp failed").to_string();
-        return Err(msg);
+        return Err(lookup_failure(&err, cookies.as_deref()));
     }
 
     let root: serde_json::Value =
@@ -1977,6 +1993,18 @@ mod tests {
         // Progress lines must not be mistaken for failures.
         assert_eq!(classify_failure("[download]  42.0% of 10.00MiB at 2.00MiB/s"), None);
         assert_eq!(classify_failure("[youtube] Extracting URL"), None);
+    }
+
+    #[test]
+    fn a_bot_check_on_lookup_says_what_to_do_in_the_app() {
+        let bot = "WARNING: x\nERROR: [youtube] abc: Sign in to confirm you're not a bot. Use --cookies-from-browser or --cookies";
+        let none = lookup_failure(bot, None);
+        assert!(none.contains("cookie menu") && !none.contains("--cookies"), "{none}");
+        assert_eq!(lookup_failure(bot, Some("")), none);
+        let set = lookup_failure(bot, Some("firefox"));
+        assert!(set.contains("youtube.com in Firefox"), "{set}");
+        // Anything else is yt-dlp's own last line.
+        assert_eq!(lookup_failure("ERROR: [youtube] abc: Video unavailable\n", None), "ERROR: [youtube] abc: Video unavailable");
     }
 
     #[test]
