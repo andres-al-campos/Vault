@@ -400,7 +400,7 @@ body {
 /* Lines up with the tab and filter groups, both measured at 35px rendered
    (a 1px border around a 33px button). */
 /* The redrawn part of the filter row; its buttons sit in the row itself. */
-.bar { display: contents; }
+.row-bar { display: contents; }
 /* The search box ends the filter row, the same height as everything on it. */
 .find { flex: 0 1 240px; min-width: 150px; height: 35px; display: flex; align-items: center; gap: 7px;
   padding: 0 5px 0 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;

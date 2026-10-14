@@ -702,12 +702,12 @@ function renderControls(now) {
 
   // The two rows are made once; their contents are redrawn, and the search
   // box stays where it is at the end of the second.
-  if (!controlsEl.querySelector(".bar")) {
-    controlsEl.innerHTML = `<div class="tabs"></div><div class="controls"><div class="bar"></div></div>`;
+  if (!controlsEl.querySelector(".row-bar")) {
+    controlsEl.innerHTML = `<div class="tabs"></div><div class="controls"><div class="row-bar"></div></div>`;
     controlsEl.querySelector(".controls").append(findEl);
   }
   controlsEl.querySelector(".tabs").innerHTML = tabs;
-  controlsEl.querySelector(".bar").innerHTML = bar;
+  controlsEl.querySelector(".row-bar").innerHTML = bar;
 
   controlsEl.querySelectorAll(".filters").forEach((row) => {
     const on = row.querySelector(".pill.active");
