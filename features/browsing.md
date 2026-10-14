@@ -163,7 +163,8 @@ time.
   agent's call).
 - 2026-10-14. A finished download leaving the filtered view fades and the
   others slide up: vanishing was another teleport. The 0.18s fade and 0.25s
-  slide are an agent's guesses, as is redrawing at once on a click.
+  slide are an agent's guesses. A click (a filter, a sort, a search)
+  redraws at once: you want to see the result as soon as you can.
 - 2026-10-14. The filter row's text is 13.5px, the Download button's size:
   at 12.5px the controls looked empty for their height.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a

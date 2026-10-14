@@ -428,7 +428,7 @@ function showActive() {
     return;
   }
   rebuildArchived();
-  $("sync").disabled = false;
+  $("sync").disabled = $("sync").classList.contains("syncing"); // greyed out until a Sync ends
   // The field is only for adding a channel; Sync refreshes the one on screen.
   $("url").value = "";
   renderHeader(ch);
@@ -1835,18 +1835,19 @@ $("clear").addEventListener("click", () => {
   renderQueue();
   if (activeChannel()) renderList();
 });
-// While a Sync runs, its button is tinted and its arrow turns, and a second
-// click does nothing. When it's done the arrow finishes the turn it's on
-// rather than stopping where it is.
+// While a Sync runs, its button is greyed out and can't be pressed, and its
+// arrow turns. When it's done the arrow finishes the turn it's on rather than
+// stopping where it is, and the button comes back.
 $("sync").addEventListener("click", async () => {
   const ch = activeChannel();
   const btn = $("sync");
-  if (!ch || btn.classList.contains("syncing")) return;
+  if (!ch) return;
   btn.classList.add("syncing");
+  btn.disabled = true;
   try { await doFetch(ch.url, { quiet: true }); }
   finally {
     const arrow = btn.querySelector("svg");
-    const stop = () => btn.classList.remove("syncing");
+    const stop = () => { btn.classList.remove("syncing"); btn.disabled = !activeChannel(); };
     // An arrow that never got to turn (reduced motion, say) has no turn to end.
     if (arrow.getAnimations().length) arrow.addEventListener("animationiteration", stop, { once: true });
     else stop();

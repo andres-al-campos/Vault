@@ -123,9 +123,8 @@ body {
 .btn-labelled { display: flex; align-items: center; gap: 7px; }
 .btn-icon:not(:disabled):hover { background: var(--hover); border-color: var(--hover-line); }
 .btn-icon:disabled { color: var(--muted); }
-/* Sync while it runs: the green of a card mid-download, its arrow turning
-   (see the click handler). */
-#sync.syncing { background: var(--accent-soft); color: var(--accent-soft-fg); border-color: var(--accent-soft-line); }
+/* Sync while it runs: greyed out like any button that can't be pressed, its
+   arrow turning (see the click handler). */
 #sync.syncing svg { animation: spin 1s linear infinite; }
 
 /* ---------- channel selector ---------- */
