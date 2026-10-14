@@ -143,6 +143,9 @@ time.
   red V and all, large and faded: a grey "VAULT" was a second wordmark.
   Half opacity: at 0.16 it was fainter than it needed to be.
   The V fades with the word, pinkish in the light theme; seen and kept.
+  The message under it is faded to match, heading and text; a button or
+  spinner in a message isn't, as a faded button looks disabled (that part an
+  agent's call).
 - 2026-10-14. The filter row's text is 13.5px, the Download button's size:
   at 12.5px the controls looked empty for their height.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a
