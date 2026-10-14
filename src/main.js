@@ -119,8 +119,7 @@ let archived = new Map();
 
 const TABS = { videos: "Videos", shorts: "Shorts", streams: "Live" };
 const SORTS = { newest: "Newest", oldest: "Oldest", popular: "Most popular", shortest: "Shortest", longest: "Longest" };
-// "public" was a choice until the filters became one row; a stored one reads as all.
-const ACCESS = { all: "All", members: "Members" };
+const ACCESS = { all: "All", public: "Public", members: "Members" };
 const HAVE = { all: "All", archived: "Archived", not: "Not archived" };
 
 let activeTab = remembered("vault-tab", Object.keys(TABS));
@@ -696,18 +695,19 @@ function renderControls(now) {
 
   // Each number is what switching that option on would show, so every lit one
   // matches the grid. Members is there even at 0, so the row keeps one shape
-  // from channel to channel. The line sets the two that take turns apart.
-  // Each side has its own fill: All and Members share one, the archive pair
-  // the other.
+  // from channel to channel. The line sets the two pairs apart. Each side has
+  // its own fill: All, Public and Members share one, the archive pair the
+  // other.
   const lit = {
     all: filters.access === "all" && filters.have === "all",
+    public: filters.access === "public",
     members: filters.access === "members",
     archived: filters.have === "archived",
     not: filters.have === "not",
   };
   const pill = (key, label, slot, counts) =>
     `<button class="pill ${lit[key] ? "active" : ""}" data-pick="${key}" data-slot="${slot}">${label} <span class="n">${counts[key]}</span></button>`;
-  const group = (counts) => `<div class="filters">${pill("all", "All", "access", counts)}${pill("members", "Members", "access", counts)}<span class="pill-sep"></span>${pill("archived", "Archived", "have", counts)}${pill("not", "Not archived", "have", counts)}</div>`;
+  const group = (counts) => `<div class="filters">${pill("all", "All", "access", counts)}${pill("public", "Public", "access", counts)}${pill("members", "Members", "access", counts)}<span class="pill-sep"></span>${pill("archived", "Archived", "have", counts)}${pill("not", "Not archived", "have", counts)}</div>`;
 
   // The filters and sort sit on one row; the download button rides the tab
   // strip, where there is room, so the row doesn't wrap at the default width.
@@ -827,13 +827,14 @@ function clearFilters() {
   for (const name of ["access", "have"]) { filters[name] = "all"; localStorage.setItem(`vault-${name}`, "all"); }
 }
 
-// One row of options. Members switches on and off by itself; Archived and Not
-// archived take turns, since both on would be everything; All switches every
-// one off, and is lit while none is on.
+// One row of options in two pairs: Public and Members take turns, as do
+// Archived and Not archived, since both of a pair on would be everything. One
+// of each pair can be on together. All switches every one off, and is lit
+// while none is on.
 function pickFilter(key) {
-  if (key === "all") { clearFilters(); renderList(); }
-  else if (key === "members") setFilter("access", filters.access === "members" ? "all" : "members");
-  else setFilter("have", filters.have === key ? "all" : key);
+  if (key === "all") { clearFilters(); renderList(); return; }
+  const name = key === "public" || key === "members" ? "access" : "have";
+  setFilter(name, filters[name] === key ? "all" : key);
 }
 
 async function switchTab(tab) {

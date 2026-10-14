@@ -403,7 +403,7 @@ body {
 .pill-on.coming { animation: fade-in .18s ease-out; }
 .pill-on.leaving { animation: fade-out .18s ease-out forwards; }
 @keyframes fade-out { to { opacity: 0; } }
-/* Between Members and the two archive options, which take turns. */
+/* Between the two pairs that take turns: Public and Members, and the archive pair. */
 .pill-sep { flex: none; width: 1px; margin: 6px 4px; background: var(--muted); opacity: .6; }
 @keyframes pill-arrive { from { color: var(--muted2); } }
 /* Its width is set while it counts to a new number (see rollNumbers): a

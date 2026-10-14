@@ -48,6 +48,8 @@ test("the two filters narrow each other", () => {
   assert.deepEqual(ids(see("all", "not")), ["b", "d"]);
   assert.deepEqual(ids(see("members", "archived")), ["c"]);
   assert.deepEqual(ids(see("members", "not")), ["d"]);
+  assert.deepEqual(ids(see("public", "archived")), ["a", "e"]);
+  assert.deepEqual(ids(see("public", "not")), ["b"]);
 });
 
 test("a missing file counts as archived", () => {
@@ -56,11 +58,11 @@ test("a missing file counts as archived", () => {
 });
 
 test("each option's number is what switching it on would show", () => {
-  assert.deepEqual(see("all", "all").counts, { all: 5, members: 2, archived: 3, not: 2 });
+  assert.deepEqual(see("all", "all").counts, { all: 5, public: 3, members: 2, archived: 3, not: 2 });
   // Members and Not archived lit: both carry the length of the list on screen,
   // Archived what it would show in Not archived's place, All everything.
   const r = see("members", "not");
-  assert.deepEqual(r.counts, { all: 5, members: 1, archived: 1, not: 1 });
+  assert.deepEqual(r.counts, { all: 5, public: 1, members: 1, archived: 1, not: 1 });
   assert.equal(r.shown.length, 1);
   // With no members-only video, Members is still there, at 0.
   assert.equal(view([v("a")], { access: "all", have: "all", sort: "newest" }, archived).counts.members, 0);

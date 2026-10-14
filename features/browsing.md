@@ -9,11 +9,11 @@ what you have and what you can get.
   count, video count, and the download folder. The folder path is a link that
   opens the folder; Change picks another.
 - Tabs: Videos, Shorts, Live.
-- Filters, one row: All, Members, a line, Archived, Not archived. Members
-  switches on and off by itself; Archived and Not archived take turns, since
-  both on would be everything; All switches every one off and is lit while
-  none is on. So Members + Not archived is the members-only videos left to
-  download. Each option's number is what switching it on would show, the
+- Filters, one row: All, Public, Members, a line, Archived, Not archived.
+  Public and Members take turns, as do Archived and Not archived, since both
+  of a pair on would be everything; one of each pair can be on together. All
+  switches every one off and is lit while none is on. So Members + Not
+  archived is the members-only videos left to download. Each option's number is what switching it on would show, the
   others as they are. Members is there even at 0. When they change, the
   numbers count to their new values over the fill's slide; on a new channel
   or tab they just appear.
@@ -96,6 +96,12 @@ cards); Archived took Not archived's place (Members 1); Members again left
 Archived 7; All cleared both; Not archived twice went back to All. With
 `&many=2000`, Members beside Not archived counted 1994 down to 101, the
 fill's edge within 0.4px of the option's on every frame.
+With Public back: Public lit it alone (Archived 6, Not archived 52); Not
+archived lit both; Members took Public's place (Archived 1, Not archived 2);
+Members again left Not archived 54; All cleared it.
+With Public back: Public lit it alone (Archived 6, Not archived 52); Not
+archived lit both; Members took Public's place (Archived 1, Not archived 2);
+Members again left Not archived 54; All cleared it.
 
 ## Calls
 
@@ -133,9 +139,10 @@ time.
   It is two-thirds of the option's height: shorter, it looked too small.
   Public only, hiding members-only videos, went with it; Download all already
   skips the ones it can't get. Members shows even at 0.
-- 2026-10-14. No Public option: with Download all skipping members-only
-  videos it can't get, and Members there for anyone who has a membership,
-  hiding members-only cards while browsing isn't worth a fifth option.
+- 2026-10-14. Public is an option again, beside Members: All / Public /
+  Members is what people expect from YouTube. (Earlier the same day it was
+  dropped, as not worth a fifth option while Download all skips what it
+  can't get.)
 - 2026-10-14. The filter numbers count to a new value instead of changing
   at once. The count's curve and its 0.18s, the fill's, are an agent's
   guesses.

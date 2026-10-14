@@ -17,10 +17,10 @@ export function archiveState(id, archived) {
   return e.path || e.pending ? "have" : "missing";
 }
 
-// Members narrows to the members-only videos or doesn't; `have` is one of
-// archived, not archived, or either. A missing file still counts as archived:
-// the record is there, and the card is where it says the file isn't.
-const accessOk = (v, access) => access === "all" || isMembers(v);
+// `access` is public, members-only, or either; `have` is archived, not
+// archived, or either. A missing file still counts as archived: the record
+// is there, and the card is where it says the file isn't.
+const accessOk = (v, access) => access === "all" || (access === "members") === isMembers(v);
 const haveOk = (v, have, archived) =>
   have === "all" || (have === "archived") === (archiveState(v.id, archived) !== "none");
 
@@ -57,6 +57,7 @@ export function view(list, { access, have, sort, query = "" }, archived) {
     shown: sortVideos(found.filter((v) => accessOk(v, access) && haveOk(v, have, archived)), sort),
     counts: {
       all: list.length,
+      public: count("public", have),
       members: count("members", have),
       archived: count(access, "archived"),
       not: count(access, "not"),
