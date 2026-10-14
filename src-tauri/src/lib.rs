@@ -478,6 +478,11 @@ fn normalize_input(raw: &str) -> String {
     if s.starts_with("http://") || s.starts_with("https://") {
         return s.to_string();
     }
+    // A link copied without its scheme, which would otherwise read as a handle.
+    let host = s.split('/').next().unwrap_or("").to_lowercase();
+    if s.contains('/') && ["youtube.com", "youtu.be", "youtube-nocookie.com"].iter().any(|h| host == *h || host.ends_with(&format!(".{h}"))) {
+        return format!("https://{s}");
+    }
     if s.starts_with('@') {
         return format!("https://www.youtube.com/{s}");
     }
@@ -1528,6 +1533,8 @@ mod tests {
             "https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw"
         );
         assert_eq!(normalize_input("https://youtu.be/abc"), "https://youtu.be/abc");
+        assert_eq!(normalize_input("youtube.com/@foo"), "https://youtube.com/@foo");
+        assert_eq!(normalize_input("www.youtube.com/watch?v=abc"), "https://www.youtube.com/watch?v=abc");
     }
 
     #[test]
