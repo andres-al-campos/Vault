@@ -6,6 +6,8 @@ Type a channel and see its videos as cards.
 
 - Accepts an @handle, a bare name, a `UC…` channel id, or a pasted URL, with
   or without its `https://`.
+- The add box clears like the channel's search box: its ✕, shown while
+  there's text, or Esc; a second Esc leaves the box.
 - A link to one video (a watch page, youtu.be, a Short, a live page or an
   embed) opens that video's channel, adding it first if it isn't saved. A
   channel saved by its handle or by its id is the same channel. The video's
@@ -84,6 +86,8 @@ link said "Couldn't open that video" and kept the link in the field; from
 `&retitle=1`, where the lookup's title differs from the list's, the box got
 the list's title and found the card. yt-dlp looked up
 one real video in about 2 seconds with the fields the lookup reads.
+The add box's ✕, 2026-10-14 in the stand-in: it showed on typing, at the
+size of the ＋ beside it, and the ✕ and Esc each cleared the box.
 Sync, 2026-10-14 in the stand-in: clicked twice, one fetch went out; the
 button was disabled at half opacity with its arrow turning, and came back
 when the turn ended. The bot-check message, in the Rust unit tests.

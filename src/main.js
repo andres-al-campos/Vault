@@ -308,7 +308,7 @@ async function openVideoLink(raw) {
   // say, and searching for that found nothing.
   setQuery((tab && tabVideos(ch, tab).find((v) => v.id === ref.id)?.title) || ref.title);
   pasted = { ...ref, channel: ch.url, listed: !!tab };
-  $("url").value = "";
+  setUrl("");
   showActive();
 }
 
@@ -430,7 +430,7 @@ function showActive() {
   rebuildArchived();
   $("sync").disabled = $("sync").classList.contains("syncing"); // greyed out until a Sync ends
   // The field is only for adding a channel; Sync refreshes the one on screen.
-  $("url").value = "";
+  setUrl("");
   renderHeader(ch);
   renderList();
   // The tab is remembered across launches but Shorts and Live aren't saved,
@@ -1927,6 +1927,19 @@ for (const el of [document.querySelector(".main"), queueEl]) {
 /* ---------------- boot ---------------- */
 $("fetch").addEventListener("click", () => doFetch($("url").value));
 $("url").addEventListener("keydown", (e) => { if (e.key === "Enter") doFetch($("url").value); });
+// The add box clears the way the channel's search box does: its ✕, or Esc,
+// and a second Esc leaves it.
+function setUrl(text) {
+  $("url").value = text;
+  $("url-x").hidden = !text;
+}
+$("url").addEventListener("input", () => setUrl($("url").value));
+$("url-x").addEventListener("click", (e) => { e.preventDefault(); setUrl(""); $("url").focus(); });
+$("url").addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  e.stopPropagation();
+  if ($("url").value) setUrl(""); else $("url").blur();
+});
 
 async function boot() {
   try { state = await invoke("load_state"); }
