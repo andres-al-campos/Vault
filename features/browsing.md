@@ -111,6 +111,9 @@ time.
   button reads "Show all 15".
 - 2026-10-14. The sort button keeps one width, its longest choice, with the
   text on the left: a width that changed with the choice moved the row.
+- 2026-10-14. The chosen filter's outline is the group's full height, on
+  the group's own border, so it is as tall as the sort button and search box
+  beside it: a shorter box next to taller ones looked off.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a
   word under the title, so it takes no extra space. Its grey is an agent's
   guess.
