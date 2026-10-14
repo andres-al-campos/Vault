@@ -19,6 +19,8 @@
 //   &fail=<id>,<id>     those downloads fail on their first try
 //   &speed=<ms>         how long a download takes (default 1500)
 //   &many=<n>           the Videos list repeated up to n entries, for a long grid
+//   &retitle=1          a video's own lookup returns another title than the
+//                       channel's list, as YouTube's translated titles do
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import recorded from "./fixtures/channel.json";
@@ -132,7 +134,8 @@ const commands = {
     const id = url.match(/(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/)?.[1] ?? "unlisted001";
     const v = [...videos, ...shorts].find((x) => x.id === id);
     if (!v) linkTitles.set(id, "a video only its link finds");
-    return { id, title: v?.title ?? linkTitles.get(id), url: `https://www.youtube.com/watch?v=${id}`,
+    const title = v && q.get("retitle") ? `${v.title} (translated)` : v?.title ?? linkTitles.get(id);
+    return { id, title, url: `https://www.youtube.com/watch?v=${id}`,
       channel_url: URL_, channel_urls: [URL_, "https://www.youtube.com/channel/UCq6aw03lNILzV96UvEAASfQ"],
       availability: v ? "public" : "unlisted" };
   },

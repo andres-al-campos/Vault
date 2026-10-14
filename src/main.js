@@ -303,7 +303,10 @@ async function openVideoLink(raw) {
   localStorage.setItem("vault-tab", activeTab);
   clearFilters();
   queryFor = ch.url;
-  setQuery(ref.title);
+  // The title the channel's list gives, which is the one its card shows. A
+  // video looked up on its own can come back under another, a translation
+  // say, and searching for that found nothing.
+  setQuery((tab && tabVideos(ch, tab).find((v) => v.id === ref.id)?.title) || ref.title);
   pasted = { ...ref, channel: ch.url, listed: !!tab };
   $("url").value = "";
   showActive();

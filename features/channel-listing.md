@@ -9,7 +9,9 @@ Type a channel and see its videos as cards.
 - A link to one video (a watch page, youtu.be, a Short, a live page or an
   embed) opens that video's channel, adding it first if it isn't saved. A
   channel saved by its handle or by its id is the same channel. The video's
-  title goes in the channel's search box, both filters go to All and the
+  title, as the channel's list gives it, goes in the channel's search box (a
+  video looked up on its own can come back under another title, a
+  translation say, which found nothing), the filters go off and the
   tab is the one that lists it, so its card is what's on screen. Nothing is
   downloaded until its button is pressed. While it works the page reads
   "Finding the video's channel…", then the usual "Fetching…" for a new
@@ -72,7 +74,9 @@ with "in the future" searched, both filters at All, "1" in the box; an
 unknown id showed "An unlisted video" and its button queued it, after which
 its card had the "Unlisted" badge and Play; a failing
 link said "Couldn't open that video" and kept the link in the field; from
-`fresh` the link added the channel and searched the video. yt-dlp looked up
+`fresh` the link added the channel and searched the video. With
+`&retitle=1`, where the lookup's title differs from the list's, the box got
+the list's title and found the card. yt-dlp looked up
 one real video in about 2 seconds with the fields the lookup reads.
 Sync, 2026-10-14 in the stand-in: clicked twice, one fetch went out; the
 button was tinted with its arrow turning, and stopped at the end of the
