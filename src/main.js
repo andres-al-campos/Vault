@@ -212,6 +212,9 @@ const headEl = $("chanhead");
 const controlsEl = $("controls");
 // What the page says with no channel: written once, in index.html.
 const welcome = emptyEl.innerHTML;
+// The faded wordmark over every message in the main column; index.html's
+// own copy is the welcome above.
+const MARK = emptyEl.querySelector(".mark").outerHTML;
 
 function setEmpty(html) {
   emptyEl.innerHTML = html;
@@ -225,12 +228,12 @@ async function doFetch(raw, { quiet = false } = {}) {
   raw = (raw || "").trim();
   if (!raw) return;
   if (!quiet && await invoke("is_video_link", { raw }).catch(() => false)) return openVideoLink(raw);
-  if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>Fetching…</h2><p>Reading the channel's video list.</p><div class="spin"></div>`);
+  if (!quiet) setEmpty(`${MARK}<h2>Fetching…</h2><p>Reading the channel's video list.</p><div class="spin"></div>`);
   $("fetch").disabled = true;
   try {
     const info = await invoke("fetch_channel", { url: raw, tab: "videos", cookies: state.cookies_browser ?? null });
     if (!info.videos || !info.videos.length) {
-      if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>No videos found</h2><p>That returned nothing. Check the URL or @handle and try again.</p>`);
+      if (!quiet) setEmpty(`${MARK}<h2>No videos found</h2><p>That returned nothing. Check the URL or @handle and try again.</p>`);
       else alert(`Couldn't refresh ${raw}.\n\nYouTube returned no videos. The saved list is unchanged — try again in a moment.`);
       return;
     }
@@ -253,7 +256,7 @@ async function doFetch(raw, { quiet = false } = {}) {
     await queueNew(ch, before);
     fillDates(ch);
   } catch (e) {
-    if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>Couldn't fetch that</h2><p>${esc(String(e))}</p>`);
+    if (!quiet) setEmpty(`${MARK}<h2>Couldn't fetch that</h2><p>${esc(String(e))}</p>`);
     // Sync keeps the list on screen, so its failure has nowhere to show. Say
     // it rather than leave the click looking ignored.
     else alert(`Couldn't refresh ${raw}.\n\n${e}\n\nThe saved list is unchanged.`);
@@ -267,13 +270,13 @@ async function doFetch(raw, { quiet = false } = {}) {
 // what's on screen. Nothing is downloaded: the card's button does that.
 let pasted = null; // the video a link asked for, while its title is searched
 async function openVideoLink(raw) {
-  setEmpty(`<div class="mark">VAULT</div><h2>Finding the video’s channel…</h2><p>Asking YouTube whose video this is.</p><div class="spin"></div>`);
+  setEmpty(`${MARK}<h2>Finding the video’s channel…</h2><p>Asking YouTube whose video this is.</p><div class="spin"></div>`);
   $("fetch").disabled = true;
   let ref;
   try {
     ref = await invoke("resolve_video", { url: raw, cookies: state.cookies_browser ?? null });
   } catch (e) {
-    setEmpty(`<div class="mark">VAULT</div><h2>Couldn't open that video</h2><p>${esc(String(e))}</p>`);
+    setEmpty(`${MARK}<h2>Couldn't open that video</h2><p>${esc(String(e))}</p>`);
     return;
   } finally {
     $("fetch").disabled = false;
@@ -289,7 +292,7 @@ async function openVideoLink(raw) {
     await persist();
     renderSelector();
   }
-  setEmpty(`<div class="mark">VAULT</div><h2>Finding the video…</h2><p>Looking through the channel’s tabs.</p><div class="spin"></div>`);
+  setEmpty(`${MARK}<h2>Finding the video…</h2><p>Looking through the channel’s tabs.</p><div class="spin"></div>`);
   let tab = await tabOf(ch, ref.id);
   // A saved channel may not list a video newer than its last Sync.
   if (!tab && ch.fetched_at < Date.now() / 1000 - 60) {
@@ -875,7 +878,7 @@ function renderGrid(now) {
   const message = (title, body) => {
     gridEl.style.display = "none";
     emptyEl.style.display = "flex";
-    emptyEl.innerHTML = `<div class="mark">VAULT</div><h2>${title}</h2>${body}`;
+    emptyEl.innerHTML = `${MARK}<h2>${title}</h2>${body}`;
   };
 
   const failed = tabErrors.get(tabId(ch, activeTab));
@@ -1872,7 +1875,7 @@ async function boot() {
   try { state = await invoke("load_state"); }
   catch (e) {
     stateError = String(e);
-    setEmpty(`<div class="mark">VAULT</div><h2>Your saved channels couldn't be read</h2><p>${esc(stateError)}</p>`);
+    setEmpty(`${MARK}<h2>Your saved channels couldn't be read</h2><p>${esc(stateError)}</p>`);
     $("url").disabled = true;
     $("fetch").disabled = true;
     return;
