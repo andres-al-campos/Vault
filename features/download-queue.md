@@ -41,7 +41,9 @@ Queue videos and watch them download one at a time in the sidebar.
   carries the number of downloads still to finish (running, waiting or
   failed). Vault opens with the panel hidden, unless something was still in
   line when it last closed (waiting, paused or failed); then it opens with
-  the panel showing. Downloads carry on either way.
+  the panel showing. Queueing something when nothing else is left to do
+  brings a hidden panel back; hidden while downloads run, it stays hidden.
+  Downloads carry on either way.
 
 - A finished download writes the video's record to the folder's
   `.vault/videos.json`: real upload date, length, views, members flag and when
@@ -81,7 +83,8 @@ restore. The live download test last passed on 2026-10-12 against @billwurtz
 (12s on its own), before any of those existed.
 The panel at launch, 2026-10-14 in the stand-in: an empty queue opened with
 it hidden; a paused job left in storage opened it, reading "Paused · 1
-waiting".
+waiting". Queueing onto an empty queue brought a hidden panel back; queueing
+a second while the first ran left it hidden.
 
 ## Calls
 
@@ -101,12 +104,14 @@ time.
 - 2026-10-14. The panel starts hidden when the queue is empty and showing
   when it isn't, instead of as it was left: you come to Vault to watch, and
   an empty panel took a third of the window to say nothing was queued.
+  Queueing onto an empty queue opens it again, so a new download is seen.
 
 ## Gotchas
 
-- The panel button: its place and icon, the count on it, the 0.2-second
-  slide, and that queueing a download doesn't bring a hidden panel back are
-  all an agent's guesses. Clicked through in the stand-in on 2026-10-13, not
+- The panel button: its place and icon, the count on it and the 0.2-second
+  slide are an agent's guesses, as is "nothing left to do" meaning nothing
+  waiting, running or failed (finished rows don't count) when a new download
+  decides whether to bring the panel back. Clicked through in the stand-in on 2026-10-13, not
   in the app.
 - The queue is saved in the web view's own storage, not in `~/.vault`: it is
   what this window was doing, not a fact about the library.

@@ -1680,7 +1680,13 @@ function renderSummary() {
   // A failed download is unfinished, so it counts as queue, not as finished.
   $("clearq").disabled = !(q || err);
   $("clear").disabled = !done;
-  if (unfinished !== live + err) { unfinished = live + err; renderSide(); }
+  if (unfinished !== live + err) {
+    // Something queued when nothing was left to do brings a hidden panel
+    // back, so the new download is seen starting. Finished rows don't count.
+    if (!unfinished) sideShown = true;
+    unfinished = live + err;
+    renderSide();
+  }
   saveQueueSoon();
 }
 
