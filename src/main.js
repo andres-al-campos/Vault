@@ -27,6 +27,7 @@ const queue = createQueue((() => { try { return JSON.parse(localStorage.getItem(
 const appEl = document.querySelector(".app");
 const sideBtn = document.getElementById("side-toggle");
 let sideShown = queue.jobs.size > 0;
+localStorage.removeItem("vault-side"); // where the panel's state was kept until 2026-10-14
 let unfinished = 0;
 function renderSide() {
   appEl.classList.toggle("side-off", !sideShown);
