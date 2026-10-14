@@ -67,3 +67,5 @@ time. A call about one feature is in that feature's file, under Calls.
 - 2026-10-14. The loading spinner is an ensō: one brush stroke round a
   circle, thick where the brush comes down and thinning as it goes, asked
   for by that look. The open gap, its size and speed are an agent's guesses.
+  Its width holds near the head and eases off (a cosine), since thinning
+  straight after the head looked like a ball with a trail (2026-10-14).
