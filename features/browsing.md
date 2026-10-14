@@ -77,6 +77,9 @@ time.
 - 2026-10-13. Five cards across at most: six was too many, and a sixth
   appearing and going as the Downloads panel closed and opened made the grid
   jitter. With the panel hidden the cards get bigger.
+- 2026-10-13. The chosen filter has an outline in the text colour, white in
+  the dark theme, around its tint: the tint alone was too low in contrast to
+  see which one was chosen.
 
 ## Gotchas
 

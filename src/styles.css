@@ -383,6 +383,7 @@ body {
 /* The fill is its own element, so it can slide from the last choice to the
    new one; the row is redrawn on every change. */
 .pill-on { position: absolute; top: 3px; bottom: 3px; left: 0; border-radius: 7px; background: var(--low);
+  box-shadow: inset 0 0 0 1px var(--text);
   transition: transform .18s ease-out, width .18s ease-out; }
 .pill.arriving { animation: pill-arrive .18s ease-out; }
 @keyframes pill-arrive { from { color: var(--muted2); } }

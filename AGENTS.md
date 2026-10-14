@@ -11,7 +11,8 @@ time. A call about one feature is in that feature's file, under Calls.
 - 2026-10-13. Three tiers of attention, and a control's look says its tier.
   High is the white fill: Open videos, the way back to what's being watched,
   and nothing else. Mid is a grey fill: Download all. Low is a faint tint:
-  the chosen filter, and Subscribe, which is rarely clicked. Until then the
+  the chosen filter (with a thin outline, so it can be told from the rest),
+  and Subscribe, which is rarely clicked. Until then the
   white fill was on all of them (a 2026-10-12 call, for being easy to see),
   and with everything loud nothing was the main thing. The tiers are fixed:
   they don't change with what the page is being used for.
