@@ -14,8 +14,10 @@ Type a channel and see its videos as cards.
   downloaded until its button is pressed. While it works the page reads
   "Finding the video's channel…", then the usual "Fetching…" for a new
   channel, then "Finding the video…". A saved channel that doesn't list the
-  video is synced once first. A video no tab lists (an unlisted one) says so,
-  with a button to download it into the channel's folder anyway.
+  video is synced once first. A video no tab lists says so, and says it's
+  unlisted when YouTube does, with a button to download it into the
+  channel's folder anyway. Once downloaded its card reads "Unlisted"; see
+  [browsing.md](browsing.md).
 - However it was typed, a channel has one identity:
   `https://www.youtube.com/@handle` (or `/channel/…`, `/c/…`, `/user/…`). Host,
   tab, query, trailing slash and the handle's case don't make a second entry.
@@ -66,7 +68,8 @@ Last driven: 2026-10-12, tests only. The `net` tests were not run that day.
 Video links, 2026-10-14 in the stand-in (`?scenario=library`, and `fresh` for
 a channel not yet saved): a watch link with Not archived chosen opened Videos
 with "in the future" searched, both filters at All, "1" in the box; an
-unknown id showed the unlisted message and its button queued it; a failing
+unknown id showed "An unlisted video" and its button queued it, after which
+its card read "Unlisted" with Play; a failing
 link said "Couldn't open that video" and kept the link in the field; from
 `fresh` the link added the channel and searched the video. yt-dlp looked up
 one real video in about 2 seconds with the fields the lookup reads.

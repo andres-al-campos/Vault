@@ -567,6 +567,8 @@ struct VideoRef {
     /// Every spelling the channel may be saved under: by its handle and by its
     /// id. A channel added either way is the same channel.
     channel_urls: Vec<String>,
+    /// Who can see it: `unlisted` for a video only its link finds.
+    availability: Option<String>,
 }
 
 /// The video and channel in yt-dlp's `-J` output for one video.
@@ -581,6 +583,7 @@ fn video_ref(root: &serde_json::Value) -> Option<VideoRef> {
         url: format!("https://www.youtube.com/watch?v={id}"),
         channel_url: channel_urls.first()?.clone(),
         channel_urls,
+        availability: text("availability"),
         id,
     })
 }
@@ -1118,6 +1121,9 @@ struct ArchiveEntry {
     path: Option<String>,
     /// The real upload date, when it has been recorded.
     timestamp: Option<i64>,
+    /// YouTube's word for who can see it (`public`, `unlisted`,
+    /// `subscriber_only`…): the listing's when listed, else what was recorded.
+    availability: Option<String>,
 }
 
 /// Read an archive file into ids, in file order (oldest download first).
@@ -1337,6 +1343,7 @@ fn archive_entries(state: &PersistedState) -> Vec<ArchiveEntry> {
                 channel,
                 channel_url: Some(owner_url),
                 timestamp,
+                availability: v.as_ref().and_then(|v| v.availability.clone()).or(record.availability),
                 dir: owner_dir,
                 path,
             }
@@ -1688,7 +1695,7 @@ mod tests {
     fn a_video_names_its_channel_both_ways() {
         let root = serde_json::json!({
             "id": "abc12345678", "title": "a video",
-            "uploader_id": "@FoO", "channel_id": "UCXuqSBlHAE6Xw-yeJA0Tunw",
+            "uploader_id": "@FoO", "channel_id": "UCXuqSBlHAE6Xw-yeJA0Tunw", "availability": "unlisted",
         });
         assert_eq!(video_ref(&root), Some(VideoRef {
             id: "abc12345678".into(),
@@ -1699,6 +1706,7 @@ mod tests {
                 "https://www.youtube.com/@foo".into(),
                 "https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw".into(),
             ],
+            availability: Some("unlisted".into()),
         }));
         // An old channel with no handle is known by its id alone.
         let root = serde_json::json!({ "id": "abc12345678", "title": "t", "uploader_id": "oldname", "channel_id": "UCx" });

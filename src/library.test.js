@@ -138,6 +138,11 @@ test("archived videos the channel no longer lists are added after the listed one
   assert.equal(withUnlisted(list, [{ id: "a" }], new Set(["a"])), list);
 });
 
+test("an off-list video keeps what YouTube called it, so an unlisted one can say so", () => {
+  const out = withUnlisted([], [{ id: "u", title: "By link", availability: "unlisted" }, { id: "g", title: "Gone" }], new Set());
+  assert.deepEqual(out.map((x) => x.availability), ["unlisted", null]);
+});
+
 test("an unlisted video with an upload date sits among the listed ones by date", () => {
   const l = [v("new", { timestamp: 300 }), v("mid", { timestamp: 200 }), v("old", { timestamp: 100 })];
   const entries = [

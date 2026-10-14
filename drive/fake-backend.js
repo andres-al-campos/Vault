@@ -50,6 +50,9 @@ const about = {
   verified: true,
 };
 // Archived once, since deleted from the channel: in the archive, in no listing.
+// Titles of videos known only from a pasted link, which a download names its
+// file by, as yt-dlp would.
+const linkTitles = new Map();
 const UNLISTED = { id: "gone0000001", title: "a video the channel took down" };
 
 let state = { active: null, channels: [], cookies_browser: null };
@@ -100,7 +103,7 @@ function download({ id, dir }) {
       return;
     }
     const v = [...videos, ...shorts].find((x) => x.id === id);
-    archive.set(id, `${dir}/${v?.title ?? id} [${id}].mp4`);
+    archive.set(id, `${dir}/${v?.title ?? linkTitles.get(id) ?? id} [${id}].mp4`);
     emit("download-done", { id, ok: true, cancelled: false, reason: null });
   }, speed / 10));
 }
@@ -128,8 +131,10 @@ const commands = {
     if (/fail/i.test(url)) throw "ERROR: [youtube] fail: Video unavailable";
     const id = url.match(/(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/)?.[1] ?? "unlisted001";
     const v = [...videos, ...shorts].find((x) => x.id === id);
-    return { id, title: v?.title ?? "a video only its link finds", url: `https://www.youtube.com/watch?v=${id}`,
-      channel_url: URL_, channel_urls: [URL_, "https://www.youtube.com/channel/UCq6aw03lNILzV96UvEAASfQ"] };
+    if (!v) linkTitles.set(id, "a video only its link finds");
+    return { id, title: v?.title ?? linkTitles.get(id), url: `https://www.youtube.com/watch?v=${id}`,
+      channel_url: URL_, channel_urls: [URL_, "https://www.youtube.com/channel/UCq6aw03lNILzV96UvEAASfQ"],
+      availability: v ? "public" : "unlisted" };
   },
   list_archive() {
     const ch = state.channels.find((c) => c.url === URL_);
@@ -137,9 +142,11 @@ const commands = {
     return [...archive].map(([id, path]) => {
       const v = [...videos, ...shorts, UNLISTED].find((x) => x.id === id);
       return {
-        id, title: v?.title ?? id, duration: v?.duration ?? null, view_count: v?.view_count ?? null,
+        id, title: v?.title ?? linkTitles.get(id) ?? id, duration: v?.duration ?? null, view_count: v?.view_count ?? null,
         url: v?.url ?? `https://www.youtube.com/watch?v=${id}`,
         channel: ch.title, channel_url: ch.url, dir: ch.download_dir, path,
+        // One downloaded from a link alone is an unlisted video.
+        availability: v ? v.availability ?? "public" : id === UNLISTED.id ? null : "unlisted",
       };
     });
   },

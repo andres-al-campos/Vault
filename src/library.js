@@ -121,8 +121,10 @@ export function ago(timestamp, now = Date.now() / 1000) {
 }
 
 // Archived videos the channel no longer lists (deleted or made private on
-// YouTube) have no card of their own, and they are the ones an archive most
-// needs to keep showing.
+// YouTube, or unlisted ones downloaded from their link) have no card of their
+// own, and they are the ones an archive most needs to keep showing. They are
+// marked `unlisted` here in the sense of "not in the listing"; one YouTube
+// itself calls unlisted has that as its `availability`.
 //
 // The list is in upload order, newest first, and that order is what Newest
 // and Oldest sort by. An unlisted video has no place in it, so one with a
@@ -133,7 +135,7 @@ export function withUnlisted(list, entries, knownIds) {
     .filter((e) => !knownIds.has(e.id))
     .map((e) => ({
       id: e.id, title: e.title, duration: e.duration, view_count: e.view_count, url: e.url,
-      availability: null, unlisted: true, timestamp: e.timestamp ?? null,
+      availability: e.availability ?? null, unlisted: true, timestamp: e.timestamp ?? null,
     }));
   if (!extra.length) return list;
   // A listed video's date: the exact one when it's archived, else the

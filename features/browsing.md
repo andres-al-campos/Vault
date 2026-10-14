@@ -32,7 +32,8 @@ what you have and what you can get.
   thumbnail also plays it.
 - A missing file counts as archived and says so on its card.
 - Archived videos the channel no longer lists stay on the Videos tab after the
-  listed ones, marked "Missing on YT".
+  listed ones, marked "Missing on YT". One YouTube called unlisted when it
+  was downloaded (one got from its link) is marked "Unlisted" instead.
 - Download all N queues everything the filters leave that isn't on disk or already
   queued, forcing the missing ones. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
@@ -112,6 +113,8 @@ time.
 
 ## Gotchas
 
+- "Unlisted" is what YouTube said when the video was downloaded. A video
+  made private or deleted since still reads "Unlisted".
 - Search: titles only, every word, ignoring accents; that the button shows
   only when the filters hide matches; Esc; clearing on a channel change and
   not being remembered: all an agent's guesses. At the default window with

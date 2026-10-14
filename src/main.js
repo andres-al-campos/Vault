@@ -815,7 +815,10 @@ function renderGrid(now) {
   }
   const wanted = pasted && !pasted.listed && pasted.channel === ch.url && query === pasted.title ? pasted : null;
   if (!now.shown.length && wanted) {
-    message("Not on the channel’s pages", `<p>“${esc(wanted.title)}” isn't listed on any of this channel's tabs: it may be unlisted. It can still be downloaded into this channel's folder.</p>
+    const unlisted = wanted.availability === "unlisted";
+    message(unlisted ? "An unlisted video" : "Not on the channel’s pages", `<p>“${esc(wanted.title)}” ${unlisted
+      ? "is unlisted: only its link finds it, so it isn't on the channel's tabs"
+      : "isn't listed on any of this channel's tabs"}. It can still be downloaded into this channel's folder.</p>
       <div style="margin-top:18px"><button class="btn btn-primary" id="dl-pasted">↓ Download it</button></div>`);
     $("dl-pasted").addEventListener("click", () => startDownload({ id: wanted.id, title: wanted.title, url: wanted.url }));
     return;
@@ -907,7 +910,7 @@ function card(v) {
     // The exact upload date once the video is archived, the listing's
     // approximate one until then.
     ago(entry?.timestamp ?? v.timestamp),
-    v.unlisted && "Missing on YT",
+    v.unlisted && (v.availability === "unlisted" ? "Unlisted" : "Missing on YT"),
   ].filter(Boolean).join(" · ");
   return `
     <div class="card" data-id="${esc(v.id)}">
