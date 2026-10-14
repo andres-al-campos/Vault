@@ -39,7 +39,8 @@ what you have and what you can get.
   was downloaded (one got from its link) has an "Unlisted" badge instead,
   where the members-only badge goes.
 - Download all N queues everything the filters leave that isn't on disk or already
-  queued, forcing the missing ones. With only locked members-only videos on
+  queued, forcing the missing ones. Without cookies it leaves members-only
+  videos out, and pointing at it says how many. With only locked members-only videos on
   screen it reads "Set cookies to download" and opens the cookie menu; with
   nothing to do there is no button.
 - The arrow beside it picks how many the button queues: the first 10, 25, 50

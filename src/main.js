@@ -684,7 +684,10 @@ function renderControls(now) {
         </div>` : "";
     // "All" of what the filters leave, which the counts beside them already say.
     const label = take < jobs.length ? `first ${take}` : jobs.length === 1 ? "1" : `all ${jobs.length}`;
-    const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown">↓ Download ${label}</button>${menu}</div>`
+    // Members-only videos it can't get are left out without a word on the
+    // button; pointing at it says how many, and what would bring them in.
+    const skipped = locked ? ` title="${locked} members-only ${locked === 1 ? "video isn't" : "videos aren't"} included: ${locked === 1 ? "it needs" : "they need"} cookies. Pick the browser you're signed into YouTube with from the cookie menu in the top bar."` : "";
+    const download = jobs.length ? `<div class="split"><button class="btn btn-primary" id="dlshown"${skipped}>↓ Download ${label}</button>${menu}</div>`
       : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
       : ""; // nothing to queue: no button, rather than one that can't be pressed
     // With a search, matches the filters hide can be had back in one click,
