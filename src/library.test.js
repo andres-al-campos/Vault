@@ -33,13 +33,13 @@ test("a search keeps titles with every word, in any order, ignoring case and acc
   assert.deepEqual(find("noon"), []);
 });
 
-test("a search narrows the filter numbers, and total is what it finds under All", () => {
+test("a search leaves the filter numbers alone, and counts its matches under All", () => {
   // a, c and d are songs: a and c archived, d not; e is archived but a talk.
   const titled = list.map((x) => ({ ...x, title: ["a", "c", "d"].includes(x.id) ? "a song" : "a talk" }));
   const r = view(titled, { access: "all", have: "archived", sort: "newest", query: "song" }, archived);
   assert.deepEqual(ids(r), ["a", "c"]);
-  assert.equal(r.counts.have.not, 1);
-  assert.equal(r.total, 3);
+  assert.deepEqual(r.counts, see("all", "archived").counts);
+  assert.equal(r.matches, 3);
 });
 
 test("the members filter stays while a search finds no members-only video", () => {

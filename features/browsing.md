@@ -13,12 +13,14 @@ what you have and what you can get.
   (only when the tab has members-only videos) and All / Archived / Not
   archived. Each option's number is what choosing it would show.
 - Sort: Newest, Oldest, Most popular, Shortest, Longest. It sits after the
-  filters, on the left of their row.
+  filters, on the left of their row, and is as wide as its longest choice
+  whichever is picked.
 - Search, at the right of the filter row, looks through the titles of the
   channel on screen. A title matches when it has every word typed, in any
-  order, ignoring case and accents. It searches what the filters leave, and
-  the numbers on the filters count only matches. When the filters hide some
-  matches, a "Show all N matches" button appears to the left of the box; it
+  order, ignoring case and accents. It searches what the filters leave; the
+  numbers on the filters stay those of the whole tab. The box says how many
+  matches there are, and when the filters hide some, how many are on screen
+  ("2 of 15"); then a "Show all 15" button appears to the left of the box. It
   sets both filters to All, and then has nothing left to do and goes. ⌘F
   goes to the box; Esc clears it, and a second Esc leaves it. The search is
   kept across tabs, cleared on moving to another channel, and not
@@ -58,7 +60,7 @@ main column.
 Preconditions: none.
 
 `./build.sh check` (~1s once built): the filter combinations, the counts, what
-search matches and how it narrows the counts, what
+what search matches and that it leaves the counts alone, what
 Download all takes, unlisted videos, the sorts, and which rows of a long
 grid are drawn, in `src/library.test.js`;
 channel art and counts from a listing, and an unlisted video's title from its
@@ -75,9 +77,11 @@ Archived showed 7 cards (6 Play, 1 Download again, 1 unlisted); Members + Not ar
 download", which opened the cookie menu; choosing a browser unlocked them. A
 download filled its card button to 40%, read Archived when done, then Play.
 Search, 2026-10-14 in the stand-in: with Archived chosen, "the" showed 2
-cards and "Show all 15 matches"; the box kept its cursor through each key;
-the button set both filters to All and went; Esc cleared the box, and a
-search with no match said so.
+cards, "2 of 15" in the box and "Show all 15", with the filter numbers
+unchanged; the box kept its cursor through each key; the button set both
+filters to All and went, leaving "15"; Esc cleared the box. The sort button
+measured 124px for all five choices. In the app, by the user: ⌘F and Esc
+work, and search is fast on a big channel.
 
 ## Calls
 
@@ -100,15 +104,20 @@ time.
   searches what the filters leave, with one button to search under All
   instead, which goes once pressed. The filters stay in view, and the sort
   moved to the left of the row to make room for the box on the right.
+- 2026-10-14. A search doesn't change the numbers on the filters. Instead
+  the box says how many of its matches are on screen, "2 of 15", and the
+  button reads "Show all 15".
+- 2026-10-14. The sort button keeps one width, its longest choice, with the
+  text on the left: a width that changed with the choice moved the row.
 
 ## Gotchas
 
-- Search: titles only, every word, ignoring accents; the counts following
-  the search; the button's wording and that it shows only when the filters
-  hide matches; ⌘F and Esc; clearing on a channel change and not being
-  remembered: all an agent's guesses. At the default window with the
-  Downloads panel open and a Members row, the row can't hold the button and
-  the box, so the box drops to a second line when the button appears.
+- Search: titles only, every word, ignoring accents; that the button shows
+  only when the filters hide matches; Esc; clearing on a channel change and
+  not being remembered: all an agent's guesses. At the default window with
+  the Downloads panel open and a Members row, the row can't hold the button
+  and the box, so the box drops to a second line when the button appears.
+  The user said that is fine on a small window.
 
 - Only the rows near the view are on the page: the ones in view and a
   screen's worth above and below, swapped as it scrolls. The rest are empty

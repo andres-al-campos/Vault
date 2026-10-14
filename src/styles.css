@@ -401,6 +401,7 @@ body {
 .find input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text);
   font: 600 12.5px inherit; }
 .find input::placeholder { color: var(--muted); }
+.find-n { flex: none; font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
 .find-x { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0;
   border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
 .find-x[hidden] { display: none; }
@@ -414,6 +415,12 @@ body {
   border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
 .sort-btn:hover { border-color: var(--hover-line); }
 .sort-btn svg { color: var(--muted); }
+/* Every choice is laid in the same spot and only the chosen one shows, so the
+   button is as wide as the longest and keeps that width: the row doesn't
+   shift when the sort changes. */
+.sort-lbls { display: grid; text-align: left; }
+.sort-lbls > span { grid-area: 1 / 1; }
+.sort-lbls > .off { visibility: hidden; }
 .sortsel .dl-menu { min-width: 100%; white-space: nowrap; }
 .shown { font-size: 12.5px; color: var(--muted); margin-left: auto; }
 

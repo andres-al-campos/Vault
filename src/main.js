@@ -475,9 +475,11 @@ const findEl = document.createElement("label");
 findEl.className = "find";
 findEl.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
   <input id="find" placeholder="Search this channel" spellcheck="false" autocomplete="off">
+  <span class="find-n" id="find-n"></span>
   <button class="find-x" id="find-x" title="Clear (Esc)" hidden><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
 const findInput = findEl.querySelector("input");
 const findX = findEl.querySelector(".find-x");
+const findN = findEl.querySelector(".find-n");
 function setQuery(text) {
   query = text;
   findInput.value = text;
@@ -612,24 +614,28 @@ function renderControls(now) {
     // which sets both filters to All. There is nothing more to show once they
     // are, so then the button goes.
     const narrowed = filters.access !== "all" || filters.have !== "all";
-    const findAll = query && narrowed && now.total > now.shown.length;
+    const findAll = query && narrowed && now.matches > now.shown.length;
+    // How many of the matches are on screen, as a browser's find bar says it.
+    findN.textContent = !query ? "" : findAll ? `${now.shown.length} of ${now.matches}` : `${now.matches}`;
     bar = `
       ${now.hasMembers ? group("access", ACCESS, now.counts.access) : ""}
       ${group("have", HAVE, now.counts.have)}
       <div class="sortsel">
-        <button class="sort-btn" id="sort" title="Sort order">${SORTS[filters.sort]}
+        <button class="sort-btn" id="sort" title="Sort order"><span class="sort-lbls">${Object.entries(SORTS).map(([value, label]) =>
+          `<span${filters.sort === value ? "" : ` class="off"`}>${label}</span>`).join("")}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="dl-menu" id="sort-menu">${Object.entries(SORTS).map(([value, label]) =>
           `<button class="cookie-item${filters.sort === value ? " active" : ""}" data-sort="${value}">${label}</button>`).join("")}</div>
       </div>
       <span class="tabs-spacer"></span>
-      ${findAll ? `<button class="btn btn-low${findAllWas ? "" : " arriving"}" id="find-all" title="Set both filters to All">Show all ${now.total} matches</button>` : ""}`;
+      ${findAll ? `<button class="btn btn-low${findAllWas ? "" : " arriving"}" id="find-all" title="Set both filters to All">Show all ${now.matches}</button>` : ""}`;
     findAllWas = findAll;
     tabs += `<span class="tabs-spacer"></span>${download}`;
   } else {
     bar = `<span class="tabs-spacer"></span>`;
     findAllWas = false;
+    findN.textContent = "";
   }
 
   // Where each group's fill and the tab underline sat, so they can slide from

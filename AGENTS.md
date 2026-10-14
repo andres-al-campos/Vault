@@ -39,7 +39,10 @@ time. A call about one feature is in that feature's file, under Calls.
 - 2026-10-13. The best button is no button: with nothing to download there
   is no Download button, where there used to be a disabled one.
 - 2026-10-13. Nothing on the page moves when a view changes: controls keep
-  one height and the content one width, with or without a scrollbar.
+  one height and the content one width, with or without a scrollbar. A
+  control whose label changes keeps the width of its longest label. Some
+  movement while resizing, or on a small window where a row has to wrap, is
+  fine (2026-10-14).
 - 2026-10-13. Open videos has no play icon, so it doesn't read as the same
   button as Resume all. Resume all is the same grey as the buttons beside
   it: it doesn't need to stand out.
