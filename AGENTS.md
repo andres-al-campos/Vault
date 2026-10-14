@@ -64,3 +64,6 @@ time. A call about one feature is in that feature's file, under Calls.
   `src-tauri/Vault.icon`) with the glass turned off.
 - 2026-10-13. The wordmark's V is a normal letter in red: with the icon's
   mark in its place the word read as "ault".
+- 2026-10-14. The loading spinner is an ensō: one brush stroke round a
+  circle, thick where the brush comes down and thinning as it goes, asked
+  for by that look. The open gap, its size and speed are an agent's guesses.
