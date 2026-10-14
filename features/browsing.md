@@ -14,7 +14,9 @@ what you have and what you can get.
   both on would be everything; All switches every one off and is lit while
   none is on. So Members + Not archived is the members-only videos left to
   download. Each option's number is what switching it on would show, the
-  others as they are. Members is there even at 0.
+  others as they are. Members is there even at 0. When they change, the
+  numbers count to their new values over the fill's slide; on a new channel
+  or tab they just appear.
 - Sort: Newest, Oldest, Most popular, Shortest, Longest. It sits after the
   filters, on the left of their row, and is as wide as its longest choice
   whichever is picked.
@@ -91,7 +93,9 @@ work, and search is fast on a big channel.
 One row of filters, 2026-10-14 in the stand-in: from All, Members lit it
 alone (Members 3, Archived 1, Not archived 2); Not archived lit both (2
 cards); Archived took Not archived's place (Members 1); Members again left
-Archived 7; All cleared both; Not archived twice went back to All.
+Archived 7; All cleared both; Not archived twice went back to All. With
+`&many=2000`, Members beside Not archived counted 1994 down to 101, the
+fill's edge within 0.4px of the option's on every frame.
 
 ## Calls
 
@@ -129,6 +133,12 @@ time.
   It is two-thirds of the option's height: shorter, it looked too small.
   Public only, hiding members-only videos, went with it; Download all already
   skips the ones it can't get. Members shows even at 0.
+- 2026-10-14. No Public option: with Download all skipping members-only
+  videos it can't get, and Members there for anyone who has a membership,
+  hiding members-only cards while browsing isn't worth a fifth option.
+- 2026-10-14. The filter numbers count to a new value instead of changing
+  at once. The count's curve and its 0.18s, the fill's, are an agent's
+  guesses.
 - 2026-10-14. The filter row's text is 13.5px, the Download button's size:
   at 12.5px the controls looked empty for their height.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a

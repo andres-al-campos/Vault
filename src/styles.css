@@ -400,7 +400,10 @@ body {
 /* Between Members and the two archive options, which take turns. */
 .pill-sep { flex: none; width: 1px; margin: 6px 4px; background: var(--muted); opacity: .6; }
 @keyframes pill-arrive { from { color: var(--muted2); } }
-.pill .n { font: 600 var(--ctl-n) ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
+/* Its width is set while it counts to a new number (see rollNumbers): a
+   digit is 1ch in a monospace face. */
+.pill .n { font: 600 var(--ctl-n) ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2);
+  text-align: right; white-space: nowrap; overflow: hidden; transition: width .18s ease-out; }
 .pill.active .n { color: inherit; opacity: .7; }
 /* The redrawn part of the filter row; its buttons sit in the row itself. */
 .row-bar { display: contents; }

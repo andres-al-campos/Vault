@@ -623,6 +623,40 @@ function slideMark(row, cls, on, from, slot = "") {
   }
 }
 
+// The numbers on the filters count from what they read to what they read
+// now, over the fill's slide, instead of changing at once. A number with
+// more or fewer digits eases to its new width too, so the fills, measured
+// against the new widths, slide alongside the options they belong to. `was`
+// is what each number read before the redraw, or null for a new channel or
+// tab, whose numbers just appear.
+function rollNumbers(row, was) {
+  if (!row || !was) return;
+  const rolls = [];
+  for (const b of row.querySelectorAll("[data-pick]")) {
+    const n = b.querySelector(".n");
+    const to = Number(n.textContent), from = was[b.dataset.pick];
+    if (from == null || from === to) continue;
+    // Put back as it read, after the fills were measured on the new layout.
+    n.style.width = `${String(from).length}ch`;
+    n.textContent = from;
+    rolls.push({ n, from, to });
+  }
+  if (!rolls.length) return;
+  // Two frames on, like the fills' slide, so both start together.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const t0 = performance.now();
+    for (const r of rolls) r.n.style.width = `${String(r.to).length}ch`;
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / 180);
+      const eased = 1 - (1 - k) ** 3; // out: quick to leave, slow to settle
+      for (const r of rolls) r.n.textContent = Math.round(r.from + (r.to - r.from) * eased);
+      if (k < 1) requestAnimationFrame(step);
+      else for (const r of rolls) r.n.style.width = "";
+    };
+    requestAnimationFrame(step);
+  }));
+}
+
 // A menu whose row was picked is redrawn along with everything around it,
 // which would make it vanish. The new copy starts open and is shut at once,
 // so it fades like one closed by a click elsewhere.
@@ -720,6 +754,11 @@ function renderControls(now) {
   // to the new choice, and which menus were open, so they can fade.
   const was = {};
   controlsEl.querySelectorAll(".pill-on:not(.leaving)").forEach((m) => { was[m.dataset.slot] = whereIs(m); });
+  const view = `${ch.url}|${activeTab}`;
+  const numbersWere = controlsEl.dataset.view === view
+    ? Object.fromEntries(Array.from(controlsEl.querySelectorAll("[data-pick]"), (b) => [b.dataset.pick, Number(b.querySelector(".n").textContent)]))
+    : null;
+  controlsEl.dataset.view = view;
   const wasTab = whereIs(controlsEl.querySelector(".tab-on"));
   const wasOpen = openMenus(controlsEl);
 
@@ -735,6 +774,7 @@ function renderControls(now) {
   controlsEl.querySelectorAll(".filters").forEach((row) => {
     for (const slot of ["access", "have"]) slideMark(row, "pill-on", row.querySelector(`.pill.active[data-slot="${slot}"]`), was[slot], slot);
   });
+  rollNumbers(controlsEl.querySelector(".filters"), numbersWere);
   const tabsRow = controlsEl.querySelector(".tabs");
   slideMark(tabsRow, "tab-on", tabsRow.querySelector(".tab.active"), wasTab);
   fadeShut(wasOpen);
