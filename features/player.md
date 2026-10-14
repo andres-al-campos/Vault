@@ -31,6 +31,8 @@ videos sit in browser tabs through a day.
   leaves; a second Esc goes back to the channel. A window that was already
   fullscreen stays so on the way out.
 - Pointing along the seek bar shows the time a click there would land on.
+  Pointing ahead of the handle also fills the bar from the handle to the
+  pointer in grey: the stretch a click there would skip.
 - Starting or stopping playback blinks a play or pause mark in the middle of
   the picture, and muting or unmuting blinks a speaker the same way.
 - The keyboard's play/pause key, headphone buttons and Control Center toggle
@@ -86,9 +88,14 @@ time.
   same red marks progress on a tab's hover card.
 - 2026-10-13. Fullscreen is the button or F. No double-click: two ways in
   are enough.
+- 2026-10-13. Pointing ahead on the seek bar shows a grey bar up to the
+  pointer, as most players do, in the volume bar's grey.
 
 ## Gotchas
 
+- The seek bar's grey bar: its 0.12-second fade, and that nothing shows when
+  pointing behind the handle, are an agent's guesses. Seen in a mockup on
+  2026-10-13, not in the app.
 - Needs mpv from Homebrew (`brew install mpv`). The build fails with that
   instruction when it's missing. The installed app loads libmpv from
   Homebrew's folder at launch, so removing mpv afterwards stops Vault from

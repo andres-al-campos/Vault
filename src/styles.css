@@ -561,6 +561,16 @@ body {
   background: linear-gradient(to right, var(--bar) var(--fill), var(--track) var(--fill)); }
 .pseek::-webkit-slider-thumb, .pvol::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
   width: 13px; height: 13px; margin-top: -4.5px; border: 0; border-radius: 50%; background: var(--bar); }
+/* Pointing ahead of the handle fills the stretch a click there would skip,
+   in the volume bar's grey, under the red. Its colour is a registered
+   property so it can fade in and out. */
+@property --ghost-c { syntax: "<color>"; inherits: true; initial-value: transparent; }
+.pseek { --ghost: 0px; --ghost-c: transparent; transition: --ghost-c .12s ease-out; }
+.pseek:hover { --ghost-c: var(--muted2); }
+.pseek::-webkit-slider-runnable-track { background:
+  linear-gradient(to right, var(--bar) var(--fill), transparent var(--fill)),
+  linear-gradient(to right, var(--ghost-c) var(--ghost), transparent var(--ghost)),
+  var(--track); }
 .pseek-tip { position: fixed; z-index: 60; padding: 3px 7px; border-radius: 7px; pointer-events: none;
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
   font: 600 11.5px ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); }

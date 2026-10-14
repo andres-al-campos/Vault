@@ -1197,17 +1197,19 @@ $("ptabs").addEventListener("mouseover", (e) => {
 $("ptabs").addEventListener("mouseleave", hideTip);
 $("ptabs").addEventListener("mousedown", hideTip);
 
-// Pointing along the seek bar shows the time a click there would land on.
+// Pointing along the seek bar shows the time a click there would land on,
+// and fills the bar up to the pointer.
 const HANDLE = 13; // the handle's width: its centre can't reach the bar's ends
 const seekTip = $("pseek-tip");
 seekEl.addEventListener("pointermove", (e) => {
   const duration = tabs.active?.duration ?? 0;
-  if (!(duration > 0)) return;
+  if (!(duration > 0)) { seekEl.style.setProperty("--ghost", "0px"); return; }
   const r = seekEl.getBoundingClientRect();
   const along = Math.min(1, Math.max(0, (e.clientX - r.left - HANDLE / 2) / (r.width - HANDLE)));
   seekTip.textContent = fmtDur(along * duration);
   seekTip.hidden = false;
   const x = r.left + HANDLE / 2 + along * (r.width - HANDLE);
+  seekEl.style.setProperty("--ghost", `${x - r.left}px`);
   seekTip.style.left = `${Math.max(6, Math.min(x - seekTip.offsetWidth / 2, window.innerWidth - seekTip.offsetWidth - 6))}px`;
   seekTip.style.top = `${r.top - seekTip.offsetHeight - 6}px`;
 });
