@@ -142,6 +142,7 @@ time.
 - 2026-10-14. The wordmark over the main column's messages is the header's,
   red V and all, large and faded: a grey "VAULT" was a second wordmark.
   Half opacity: at 0.16 it was fainter than it needed to be.
+  The V fades with the word, pinkish in the light theme; seen and kept.
 - 2026-10-14. The filter row's text is 13.5px, the Download button's size:
   at 12.5px the controls looked empty for their height.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a
