@@ -992,11 +992,17 @@ function card(v) {
   const entry = archived.get(v.id);
   const have = archiveState(v.id, archived);
   const playable = have === "have" && !!entry?.path;
+  // The exact upload date once the video is archived, the listing's
+  // approximate one until then; pointing at it says which, as a date.
+  const when = entry?.timestamp ?? v.timestamp;
+  const day = when && new Date(when * 1000).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  const exactly = entry?.timestamp ? `Uploaded ${day}`
+    : entry ? `Uploaded around ${day}. Sync fills in the exact day.`
+    : `Uploaded around ${day}. The exact day is known once it's downloaded.`;
+  const date = ago(when) && `<span title="${exactly}">${ago(when)}</span>`;
   const meta = [
     fmtViews(v.view_count) && `${fmtViews(v.view_count)} views`,
-    // The exact upload date once the video is archived, the listing's
-    // approximate one until then.
-    ago(entry?.timestamp ?? v.timestamp),
+    date,
     v.unlisted && v.availability !== "unlisted" && "Missing on YT",
   ].filter(Boolean).join(" · ");
   return `
@@ -1010,7 +1016,7 @@ function card(v) {
         ${playable ? '<span class="play">▶</span>' : ""}
       </div>
       <div class="card-body">
-        <h3>${esc(v.title)}</h3>
+        <h3 title="${esc(v.title)}">${esc(v.title)}</h3>
         <div class="sub">${meta || "&nbsp;"}</div>
         <div class="card-foot">${cardButton(v)}</div>
       </div>

@@ -35,6 +35,10 @@ what you have and what you can get.
   that fills the button, Play, Download again (file missing), Retry (last try
   failed), or Members only (disabled without cookies). An archived card's
   thumbnail also plays it.
+- Pointing at a card's title shows the whole title; pointing at its date
+  ("3 weeks ago") shows it as a day: the exact one once the video is
+  archived with its date recorded, otherwise "around" that day, with when
+  the exact one will be known.
 - A missing file counts as archived and says so on its card.
 - Archived videos the channel no longer lists stay on the Videos tab after the
   listed ones, marked "Missing on YT". One YouTube called unlisted when it
