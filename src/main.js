@@ -1800,9 +1800,22 @@ $("clear").addEventListener("click", () => {
   renderQueue();
   if (activeChannel()) renderList();
 });
-$("sync").addEventListener("click", () => {
+// While a Sync runs, its button is tinted and its arrow turns, and a second
+// click does nothing. When it's done the arrow finishes the turn it's on
+// rather than stopping where it is.
+$("sync").addEventListener("click", async () => {
   const ch = activeChannel();
-  if (ch) doFetch(ch.url, { quiet: true });
+  const btn = $("sync");
+  if (!ch || btn.classList.contains("syncing")) return;
+  btn.classList.add("syncing");
+  try { await doFetch(ch.url, { quiet: true }); }
+  finally {
+    const arrow = btn.querySelector("svg");
+    const stop = () => btn.classList.remove("syncing");
+    // An arrow that never got to turn (reduced motion, say) has no turn to end.
+    if (arrow.getAnimations().length) arrow.addEventListener("animationiteration", stop, { once: true });
+    else stop();
+  }
 });
 
 /* ---------------- cookie source picker ---------------- */

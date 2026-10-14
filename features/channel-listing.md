@@ -26,7 +26,8 @@ Type a channel and see its videos as cards.
 - The listing also brings the channel's avatar, banner, subscriber count and
   verified flag, when YouTube has them.
 - Sync re-fetches the Videos list of the channel on screen and rescans its
-  folder. A finished file there with no record in `.vault/videos.json` gets
+  folder. While it runs the button is tinted and its arrow turns; a second
+  click does nothing; when it's done the arrow finishes its turn and stops. A finished file there with no record in `.vault/videos.json` gets
   one, so a video copied in by hand shows as archived. Records also take the
   length and views the listing has, so they outlive the listing. Titles are
   not recorded: a delisted video is titled by its file's name, and one whose
@@ -73,6 +74,9 @@ its card had the "Unlisted" badge and Play; a failing
 link said "Couldn't open that video" and kept the link in the field; from
 `fresh` the link added the channel and searched the video. yt-dlp looked up
 one real video in about 2 seconds with the fields the lookup reads.
+Sync, 2026-10-14 in the stand-in: clicked twice, one fetch went out; the
+button was tinted with its arrow turning, and stopped at the end of the
+turn, about a second in.
 
 ## Calls
 
@@ -80,6 +84,10 @@ Look-and-feel calls made for this feature, with the reason given at the
 time.
 
 - 2026-10-12. Titles aren't recorded: YouTube videos get renamed.
+- 2026-10-14. Sync shows it's working: the arrow turns and the button is
+  tinted, both asked for, since a click with nothing to see read as ignored.
+  The tint (the hover grey, a step stronger), one turn a second and
+  finishing the turn are an agent's guesses.
 
 ## Gotchas
 
