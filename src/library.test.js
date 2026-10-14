@@ -42,19 +42,12 @@ test("a search leaves the filter numbers alone, and counts its matches under All
   assert.equal(r.matches, 3);
 });
 
-test("the members filter stays while a search finds no members-only video", () => {
-  const titled = list.map((x) => ({ ...x, title: x.id === "a" ? "only this" : "other" }));
-  assert.equal(view(titled, { access: "all", have: "all", sort: "newest", query: "only" }, archived).hasMembers, true);
-});
-
 test("the two filters narrow each other", () => {
   assert.deepEqual(ids(see("all", "all")), ["a", "b", "c", "d", "e"]);
   assert.deepEqual(ids(see("all", "archived")), ["a", "c", "e"]);
   assert.deepEqual(ids(see("all", "not")), ["b", "d"]);
   assert.deepEqual(ids(see("members", "archived")), ["c"]);
   assert.deepEqual(ids(see("members", "not")), ["d"]);
-  assert.deepEqual(ids(see("public", "archived")), ["a", "e"]);
-  assert.deepEqual(ids(see("public", "not")), ["b"]);
 });
 
 test("a missing file counts as archived", () => {
@@ -62,18 +55,15 @@ test("a missing file counts as archived", () => {
   assert.ok(!ids(see("all", "not")).includes("e"));
 });
 
-test("each option's number is what choosing it would show", () => {
+test("each option's number is what switching it on would show", () => {
+  assert.deepEqual(see("all", "all").counts, { all: 5, members: 2, archived: 3, not: 2 });
+  // Members and Not archived lit: both carry the length of the list on screen,
+  // Archived what it would show in Not archived's place, All everything.
   const r = see("members", "not");
-  assert.deepEqual(r.counts.access, { all: 2, public: 1, members: 1 });
-  assert.deepEqual(r.counts.have, { all: 2, archived: 1, not: 1 });
-  // The selected options both carry the length of the list on screen.
-  assert.equal(r.counts.access.members, r.shown.length);
-  assert.equal(r.counts.have.not, r.shown.length);
-});
-
-test("hasMembers says whether the access filter has anything to offer", () => {
-  assert.equal(see("all", "all").hasMembers, true);
-  assert.equal(view([v("a")], { access: "all", have: "all", sort: "newest" }, archived).hasMembers, false);
+  assert.deepEqual(r.counts, { all: 5, members: 1, archived: 1, not: 1 });
+  assert.equal(r.shown.length, 1);
+  // With no members-only video, Members is still there, at 0.
+  assert.equal(view([v("a")], { access: "all", have: "all", sort: "newest" }, archived).counts.members, 0);
 });
 
 test("Download all takes what isn't on disk, missing files included", () => {

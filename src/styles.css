@@ -40,6 +40,10 @@
   --played: #ff0033;
   --sb-thumb: #cfcfc7;
   --sb-thumb-hover: #b4b4ab;
+  /* Text on the 35px controls: buttons, the filter row, sort and search. The
+     count beside a label is a step smaller. */
+  --ctl-text: 13.5px;
+  --ctl-n: 11.5px;
 }
 [data-theme="dark"] {
   /* Tells the system which side its own drawing is on: scrollbar tracks and
@@ -111,7 +115,7 @@ body {
 .search input { flex: 1; border: 0; outline: 0; font-weight: 400; font-size: 14px; font-family: inherit; background: transparent; color: inherit; }
 .search input::placeholder { color: var(--muted); }
 
-.btn { border: 0; border-radius: 10px; padding: 9px 15px; font-weight: 600; font-size: 13.5px; font-family: inherit; cursor: pointer; transition: 0.15s; }
+.btn { border: 0; border-radius: 10px; padding: 9px 15px; font-weight: 600; font-size: var(--ctl-text); font-family: inherit; cursor: pointer; transition: 0.15s; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .btn-primary { background: var(--btn-bg); color: var(--btn-fg); }
 .btn-primary:not(:disabled):hover { background: var(--btn-bg-hover); }
@@ -378,7 +382,7 @@ body {
 .sub-menu .btn { width: 100%; margin-top: 6px; }
 .filters { position: relative; display: flex; gap: 2px; background: var(--chip); border: 1px solid var(--chip-line);
   border-radius: 10px; }
-.pill { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted2); font-weight: 600; font-size: 12.5px; font-family: inherit;
+.pill { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted2); font-weight: 600; font-size: var(--ctl-text); font-family: inherit;
   height: 33px; padding: 0 12px; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .pill:hover { color: var(--text); }
 .pill.active { color: var(--text); }
@@ -390,8 +394,14 @@ body {
   box-shadow: 0 0 0 1px var(--text);
   transition: transform .18s ease-out, width .18s ease-out; }
 .pill.arriving { animation: pill-arrive .18s ease-out; }
+/* A fill that comes or goes without sliding fades. */
+.pill-on.coming { animation: fade-in .18s ease-out; }
+.pill-on.leaving { animation: fade-out .18s ease-out forwards; }
+@keyframes fade-out { to { opacity: 0; } }
+/* Between Members and the two archive options, which take turns. */
+.pill-sep { flex: none; width: 1px; margin: 9px 4px; background: var(--muted); opacity: .6; }
 @keyframes pill-arrive { from { color: var(--muted2); } }
-.pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
+.pill .n { font: 600 var(--ctl-n) ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
 .pill.active .n { color: inherit; opacity: .7; }
 /* The redrawn part of the filter row; its buttons sit in the row itself. */
 .row-bar { display: contents; }
@@ -401,19 +411,19 @@ body {
   color: var(--muted); cursor: text; transition: border-color .15s; }
 .find:hover, .find:focus-within { border-color: var(--hover-line); }
 .find input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text);
-  font-weight: 600; font-size: 12.5px; font-family: inherit; }
+  font-weight: 600; font-size: var(--ctl-text); font-family: inherit; }
 .find input::placeholder { color: var(--muted); }
-.find-n { flex: none; font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
+.find-n { flex: none; font: 600 var(--ctl-n) ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
 .find-x { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0;
   border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
 .find-x[hidden] { display: none; }
 .find-x:hover { background: var(--hover); color: var(--text); }
-#find-all { height: 35px; padding: 0 13px; font-size: 12.5px; }
+#find-all { height: 35px; padding: 0 13px; }
 #find-all.arriving { animation: fade-in .18s ease-out; }
 @keyframes fade-in { from { opacity: 0; } }
 .sortsel { position: relative; }
 .sort-btn { display: flex; align-items: center; gap: 8px; height: 35px; padding: 0 11px 0 12px;
-  font-weight: 600; font-size: 12.5px; font-family: inherit; color: var(--text); background: var(--panel);
+  font-weight: 600; font-size: var(--ctl-text); font-family: inherit; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
 .sort-btn:hover { border-color: var(--hover-line); }
 .sort-btn svg { color: var(--muted); }

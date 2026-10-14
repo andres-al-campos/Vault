@@ -117,7 +117,8 @@ let archived = new Map();
 
 const TABS = { videos: "Videos", shorts: "Shorts", streams: "Live" };
 const SORTS = { newest: "Newest", oldest: "Oldest", popular: "Most popular", shortest: "Shortest", longest: "Longest" };
-const ACCESS = { all: "All", public: "Public", members: "Members" };
+// "public" was a choice until the filters became one row; a stored one reads as all.
+const ACCESS = { all: "All", members: "Members" };
 const HAVE = { all: "All", archived: "Archived", not: "Not archived" };
 
 let activeTab = remembered("vault-tab", Object.keys(TABS));
@@ -294,7 +295,7 @@ async function openVideoLink(raw) {
   }
   activeTab = tab ?? "videos";
   localStorage.setItem("vault-tab", activeTab);
-  for (const name of ["access", "have"]) { filters[name] = "all"; localStorage.setItem(`vault-${name}`, "all"); }
+  clearFilters();
   queryFor = ch.url;
   setQuery(ref.title);
   pasted = { ...ref, channel: ch.url, listed: !!tab };
@@ -582,15 +583,26 @@ function renderList() {
 // is its own element, placed over `on`, since the row itself is redrawn on
 // every change. It slides there from `from`: where the last mark was when
 // the row was redrawn (see whereIs), which may be partway through a slide.
+// A mark with nowhere it was fades in; one with nowhere to go fades out
+// where it was. `slot` names which mark it is when a row has more than one.
 const whereIs = (mark) => {
   if (!mark) return null;
   const css = getComputedStyle(mark);
   return { width: css.width, transform: css.transform };
 };
-function slideMark(row, cls, on, from) {
-  if (!on) return;
+function slideMark(row, cls, on, from, slot = "") {
   const mark = document.createElement("i");
   mark.className = cls;
+  mark.dataset.slot = slot;
+  if (!on) {
+    if (!from) return;
+    Object.assign(mark.style, from);
+    mark.classList.add("leaving");
+    mark.addEventListener("animationend", () => mark.remove());
+    row.prepend(mark);
+    return;
+  }
+  if (!from) mark.classList.add("coming");
   // Measured before the mark goes in and before any of it is styled:
   // reading a size lays the page out, and a mark laid out half-placed
   // starts its slide from the row's left edge instead of the last choice.
@@ -641,10 +653,20 @@ function renderControls(now) {
   let tabs = Object.entries(TABS).map(([t, label]) =>
     `<button class="tab ${activeTab === t ? "active" : ""}" data-tab="${t}">${label}</button>`).join("");
 
-  // One choice per group, like the tabs. Each number is what that choice
-  // would show, so the two selected ones always match the grid.
-  const group = (name, labels, counts) => `<div class="filters">${Object.entries(labels).map(([value, label]) =>
-    `<button class="pill ${filters[name] === value ? "active" : ""}" data-filter="${name}" data-value="${value}">${label} <span class="n">${counts[value]}</span></button>`).join("")}</div>`;
+  // Each number is what switching that option on would show, so every lit one
+  // matches the grid. Members is there even at 0, so the row keeps one shape
+  // from channel to channel. The line sets the two that take turns apart.
+  // Each side has its own fill: All and Members share one, the archive pair
+  // the other.
+  const lit = {
+    all: filters.access === "all" && filters.have === "all",
+    members: filters.access === "members",
+    archived: filters.have === "archived",
+    not: filters.have === "not",
+  };
+  const pill = (key, label, slot, counts) =>
+    `<button class="pill ${lit[key] ? "active" : ""}" data-pick="${key}" data-slot="${slot}">${label} <span class="n">${counts[key]}</span></button>`;
+  const group = (counts) => `<div class="filters">${pill("all", "All", "access", counts)}${pill("members", "Members", "access", counts)}<span class="pill-sep"></span>${pill("archived", "Archived", "have", counts)}${pill("not", "Not archived", "have", counts)}</div>`;
 
   // The filters and sort sit on one row; the download button rides the tab
   // strip, where there is room, so the row doesn't wrap at the default width.
@@ -666,15 +688,13 @@ function renderControls(now) {
       : locked ? `<button class="btn btn-primary" id="dlshown" title="These are members-only. Pick the browser you're signed into YouTube with.">Set cookies to download</button>`
       : ""; // nothing to queue: no button, rather than one that can't be pressed
     // With a search, matches the filters hide can be had back in one click,
-    // which sets both filters to All. There is nothing more to show once they
+    // which switches the filters off. There is nothing more to show once they
     // are, so then the button goes.
-    const narrowed = filters.access !== "all" || filters.have !== "all";
-    const findAll = query && narrowed && now.matches > now.shown.length;
+    const findAll = query && !lit.all && now.matches > now.shown.length;
     // How many of the matches are on screen, as a browser's find bar says it.
     findN.textContent = !query ? "" : findAll ? `${now.shown.length} of ${now.matches}` : `${now.matches}`;
     bar = `
-      ${now.hasMembers ? group("access", ACCESS, now.counts.access) : ""}
-      ${group("have", HAVE, now.counts.have)}
+      ${group(now.counts)}
       <div class="sortsel">
         <button class="sort-btn" id="sort" title="Sort order"><span class="sort-lbls">${Object.entries(SORTS).map(([value, label]) =>
           `<span${filters.sort === value ? "" : ` class="off"`}>${label}</span>`).join("")}</span>
@@ -684,7 +704,7 @@ function renderControls(now) {
           `<button class="cookie-item${filters.sort === value ? " active" : ""}" data-sort="${value}">${label}</button>`).join("")}</div>
       </div>
       <span class="tabs-spacer"></span>
-      ${findAll ? `<button class="btn btn-low${findAllWas ? "" : " arriving"}" id="find-all" title="Set both filters to All">Show all ${now.matches}</button>` : ""}`;
+      ${findAll ? `<button class="btn btn-low${findAllWas ? "" : " arriving"}" id="find-all" title="Switch the filters off">Show all ${now.matches}</button>` : ""}`;
     findAllWas = findAll;
     tabs += `<span class="tabs-spacer"></span>${download}`;
   } else {
@@ -693,10 +713,10 @@ function renderControls(now) {
     findN.textContent = "";
   }
 
-  // Where each group's fill and the tab underline sat, so they can slide from
-  // there to the new choice, and which menus were open, so they can fade.
+  // Where each fill and the tab underline sat, so they can slide from there
+  // to the new choice, and which menus were open, so they can fade.
   const was = {};
-  controlsEl.querySelectorAll(".pill-on").forEach((m) => { was[m.nextElementSibling?.dataset.filter] = whereIs(m); });
+  controlsEl.querySelectorAll(".pill-on:not(.leaving)").forEach((m) => { was[m.dataset.slot] = whereIs(m); });
   const wasTab = whereIs(controlsEl.querySelector(".tab-on"));
   const wasOpen = openMenus(controlsEl);
 
@@ -710,8 +730,7 @@ function renderControls(now) {
   controlsEl.querySelector(".row-bar").innerHTML = bar;
 
   controlsEl.querySelectorAll(".filters").forEach((row) => {
-    const on = row.querySelector(".pill.active");
-    slideMark(row, "pill-on", on, was[on?.dataset.filter]);
+    for (const slot of ["access", "have"]) slideMark(row, "pill-on", row.querySelector(`.pill.active[data-slot="${slot}"]`), was[slot], slot);
   });
   const tabsRow = controlsEl.querySelector(".tabs");
   slideMark(tabsRow, "tab-on", tabsRow.querySelector(".tab.active"), wasTab);
@@ -719,8 +738,8 @@ function renderControls(now) {
 
   controlsEl.querySelectorAll("[data-tab]").forEach((b) =>
     b.addEventListener("click", () => switchTab(b.dataset.tab)));
-  controlsEl.querySelectorAll("[data-filter]").forEach((b) =>
-    b.addEventListener("click", () => setFilter(b.dataset.filter, b.dataset.value)));
+  controlsEl.querySelectorAll("[data-pick]").forEach((b) =>
+    b.addEventListener("click", () => pickFilter(b.dataset.pick)));
   // A menu of our own, not the system's: that one opens over the button with
   // the chosen row on top of it, where every other menu here drops below.
   $("sort")?.addEventListener("click", (e) => {
@@ -731,7 +750,7 @@ function renderControls(now) {
     b.addEventListener("click", () => setFilter("sort", b.dataset.sort)));
   $("dlshown")?.addEventListener("click", () => downloadShown(batchPick ?? Infinity));
   $("find-all")?.addEventListener("click", () => {
-    for (const name of ["access", "have"]) { filters[name] = "all"; localStorage.setItem(`vault-${name}`, "all"); }
+    clearFilters();
     renderList();
   });
   $("dlmore")?.addEventListener("click", (e) => {
@@ -751,6 +770,20 @@ function setFilter(name, value) {
   filters[name] = value;
   localStorage.setItem(`vault-${name}`, value);
   renderList();
+}
+
+// Every filter off: what All does, and Show all beside the search.
+function clearFilters() {
+  for (const name of ["access", "have"]) { filters[name] = "all"; localStorage.setItem(`vault-${name}`, "all"); }
+}
+
+// One row of options. Members switches on and off by itself; Archived and Not
+// archived take turns, since both on would be everything; All switches every
+// one off, and is lit while none is on.
+function pickFilter(key) {
+  if (key === "all") { clearFilters(); renderList(); }
+  else if (key === "members") setFilter("access", filters.access === "members" ? "all" : "members");
+  else setFilter("have", filters.have === key ? "all" : key);
 }
 
 async function switchTab(tab) {

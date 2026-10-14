@@ -17,10 +17,10 @@ export function archiveState(id, archived) {
   return e.path || e.pending ? "have" : "missing";
 }
 
-// Two questions, each with one answer at a time. A missing file still counts
-// as archived: the record is there, and the card is where it says the file
-// isn't.
-const accessOk = (v, access) => access === "all" || (access === "members") === isMembers(v);
+// Members narrows to the members-only videos or doesn't; `have` is one of
+// archived, not archived, or either. A missing file still counts as archived:
+// the record is there, and the card is where it says the file isn't.
+const accessOk = (v, access) => access === "all" || isMembers(v);
 const haveOk = (v, have, archived) =>
   have === "all" || (have === "archived") === (archiveState(v.id, archived) !== "none");
 
@@ -44,11 +44,10 @@ const fold = (s) => (s || "").normalize("NFD").replace(/\p{M}/gu, "").toLowerCas
 const searchWords = (query) => fold(query).split(/\s+/).filter(Boolean);
 
 // The filtered, sorted list, plus the number behind every filter option. Each
-// number is what choosing that option would show with the other filter left
-// as it is, so the two selected options always carry the same number: the
-// length of the list on screen. A search narrows only what is shown: the
-// numbers stay those of the whole tab, and `matches` is what the search finds
-// with both filters at All.
+// number is what switching that option on would show, the others left as they
+// are, so every lit option carries the length of the list on screen. All is
+// everything. A search narrows only what is shown: the numbers stay those of
+// the whole tab, and `matches` is what the search finds with the filters off.
 export function view(list, { access, have, sort, query = "" }, archived) {
   const words = searchWords(query);
   const found = words.length ? list.filter((v) => words.every((w) => fold(v.title).includes(w))) : list;
@@ -57,10 +56,11 @@ export function view(list, { access, have, sort, query = "" }, archived) {
     matches: found.length,
     shown: sortVideos(found.filter((v) => accessOk(v, access) && haveOk(v, have, archived)), sort),
     counts: {
-      access: { all: count("all", have), public: count("public", have), members: count("members", have) },
-      have: { all: count(access, "all"), archived: count(access, "archived"), not: count(access, "not") },
+      all: list.length,
+      members: count("members", have),
+      archived: count(access, "archived"),
+      not: count(access, "not"),
     },
-    hasMembers: list.some(isMembers),
   };
 }
 

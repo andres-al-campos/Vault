@@ -9,9 +9,12 @@ what you have and what you can get.
   count, video count, and the download folder. The folder path is a link that
   opens the folder; Change picks another.
 - Tabs: Videos, Shorts, Live.
-- Two filters, one choice each, that narrow each other: All / Public / Members
-  (only when the tab has members-only videos) and All / Archived / Not
-  archived. Each option's number is what choosing it would show.
+- Filters, one row: All, Members, a line, Archived, Not archived. Members
+  switches on and off by itself; Archived and Not archived take turns, since
+  both on would be everything; All switches every one off and is lit while
+  none is on. So Members + Not archived is the members-only videos left to
+  download. Each option's number is what switching it on would show, the
+  others as they are. Members is there even at 0.
 - Sort: Newest, Oldest, Most popular, Shortest, Longest. It sits after the
   filters, on the left of their row, and is as wide as its longest choice
   whichever is picked.
@@ -21,7 +24,7 @@ what you have and what you can get.
   numbers on the filters stay those of the whole tab. The box says how many
   matches there are, and when the filters hide some, how many are on screen
   ("2 of 15"); then a "Show all 15" button appears to the left of the box. It
-  sets both filters to All, and then has nothing left to do and goes. ⌘F
+  switches the filters off, and then has nothing left to do and goes. ⌘F
   goes to the box; Esc clears it, and a second Esc leaves it. The search is
   kept across tabs, cleared on moving to another channel, and not
   remembered across launches.
@@ -80,10 +83,14 @@ download", which opened the cookie menu; choosing a browser unlocked them. A
 download filled its card button to 40%, read Archived when done, then Play.
 Search, 2026-10-14 in the stand-in: with Archived chosen, "the" showed 2
 cards, "2 of 15" in the box and "Show all 15", with the filter numbers
-unchanged; the box kept its cursor through each key; the button set both
-filters to All and went, leaving "15"; Esc cleared the box. The sort button
+unchanged; the box kept its cursor through each key; the button switched
+the filters off and went, leaving "15"; Esc cleared the box. The sort button
 measured 124px for all five choices. In the app, by the user: ⌘F and Esc
 work, and search is fast on a big channel.
+One row of filters, 2026-10-14 in the stand-in: from All, Members lit it
+alone (Members 3, Archived 1, Not archived 2); Not archived lit both (2
+cards); Archived took Not archived's place (Members 1); Members again left
+Archived 7; All cleared both; Not archived twice went back to All.
 
 ## Calls
 
@@ -114,6 +121,14 @@ time.
 - 2026-10-14. The chosen filter's outline is the group's full height, on
   the group's own border, so it is as tall as the sort button and search box
   beside it: a shorter box next to taller ones looked off.
+- 2026-10-14. The filters are one row with one All. Two groups each with
+  its own All was weird. Members and an archive state can still be on
+  together. The line between Members and the archive pair was the user's
+  condition for it: without it, which ones take turns would be confusing.
+  Public only, hiding members-only videos, went with it; Download all already
+  skips the ones it can't get. Members shows even at 0.
+- 2026-10-14. The filter row's text is 13.5px, the Download button's size:
+  at 12.5px the controls looked empty for their height.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a
   word under the title, so it takes no extra space. Its grey is an agent's
   guess.
@@ -125,7 +140,7 @@ time.
 - Search: titles only, every word, ignoring accents; that the button shows
   only when the filters hide matches; Esc; clearing on a channel change and
   not being remembered: all an agent's guesses. At the default window with
-  the Downloads panel open and a Members row, the row can't hold the button
+  the Downloads panel open, the row can't hold the button
   and the box, so the box drops to a second line when the button appears.
   The user said that is fine on a small window.
 
@@ -138,6 +153,10 @@ time.
   find, or by code that looks a card up by id; such code has to cope with
   finding nothing.
 
+- The filter row has two fills: one for All or Members, one for the archive
+  pair. Each slides within its side; one with nowhere to go fades out and one
+  that comes from nothing fades in. Their 0.18s and the line's grey are an
+  agent's guesses.
 - A filter row's fill slides from the last choice to the new one. It once
   always slid from the row's left edge: the fill was measured and styled
   after going into the page, and reading a size laid it out half-placed. No
@@ -162,5 +181,5 @@ time.
   and exact. A "Missing on YT" video isn't in the listing: with an upload date
   it sits among the listed ones by date, without one it goes after them.
 - Shorts use the same 16:9 cards as videos.
-- Numbers on both filter groups, and the download button riding the tab strip,
+- Numbers on the filters, and the download button riding the tab strip,
   are an agent's guesses at the layout.
