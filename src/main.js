@@ -209,6 +209,8 @@ const emptyEl = $("empty");
 const gridEl = $("grid");
 const headEl = $("chanhead");
 const controlsEl = $("controls");
+// What the page says with no channel: written once, in index.html.
+const welcome = emptyEl.innerHTML;
 
 function setEmpty(html) {
   emptyEl.innerHTML = html;
@@ -414,7 +416,7 @@ async function setSubscription(ch, sub) {
 function showActive() {
   const ch = activeChannel();
   if (!ch) {
-    setEmpty(`<div class="mark">VAULT</div><h2>Fetch a channel</h2><p>Paste a channel URL or type an @handle. Vault lists every video and keeps the ones you choose.</p>`);
+    setEmpty(welcome);
     $("sync").disabled = true;
     return;
   }
