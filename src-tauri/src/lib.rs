@@ -533,6 +533,58 @@ fn is_channel_url(u: &str) -> bool {
     channelish && !u.contains("/watch") && !u.contains("youtu.be/")
 }
 
+/// Whether a link is to one YouTube video: a watch page, a youtu.be link, a
+/// Short, a live page or an embed. Such a link opens the video's channel.
+fn is_video_url(raw: &str) -> bool {
+    let url = normalize_input(raw);
+    let Some((_, rest)) = url.split_once("://") else { return false };
+    let (host, tail) = rest.split_once('/').unwrap_or((rest, ""));
+    let host = host.to_lowercase();
+    let path = tail.split(['?', '#']).next().unwrap_or("");
+    let first = path.split('/').next().unwrap_or("");
+    let has_id = || path.split('/').nth(1).map_or(false, |id| !id.is_empty());
+    if host == "youtu.be" {
+        return !first.is_empty();
+    }
+    if host != "youtube.com" && !host.ends_with(".youtube.com") && host != "youtube-nocookie.com" && !host.ends_with(".youtube-nocookie.com") {
+        return false;
+    }
+    match first {
+        "watch" => tail.contains("v="),
+        "shorts" | "live" | "embed" => has_id(),
+        _ => false,
+    }
+}
+
+/// One video a pasted link points at, and its channel.
+#[derive(Serialize, Debug, PartialEq)]
+struct VideoRef {
+    id: String,
+    title: String,
+    url: String,
+    /// The channel to add when it isn't saved yet.
+    channel_url: String,
+    /// Every spelling the channel may be saved under: by its handle and by its
+    /// id. A channel added either way is the same channel.
+    channel_urls: Vec<String>,
+}
+
+/// The video and channel in yt-dlp's `-J` output for one video.
+fn video_ref(root: &serde_json::Value) -> Option<VideoRef> {
+    let text = |k: &str| root.get(k).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(str::to_string);
+    let id = text("id")?;
+    let by_handle = text("uploader_id").filter(|h| h.starts_with('@')).map(|h| canonical_channel_url(&h));
+    let by_id = text("channel_id").map(|c| format!("https://www.youtube.com/channel/{c}"));
+    let channel_urls: Vec<String> = by_handle.into_iter().chain(by_id).collect();
+    Some(VideoRef {
+        title: text("title").unwrap_or_else(|| id.clone()),
+        url: format!("https://www.youtube.com/watch?v={id}"),
+        channel_url: channel_urls.first()?.clone(),
+        channel_urls,
+        id,
+    })
+}
+
 /// Whether yt-dlp failed only because the channel has no such tab, e.g.
 /// "ERROR: [youtube:tab] @jawed: This channel does not have a shorts tab".
 fn is_missing_tab(stderr: &str) -> bool {
@@ -593,6 +645,39 @@ fn classify_failure(line: &str) -> Option<&'static str> {
         return Some("Post-processing failed");
     }
     None
+}
+
+#[tauri::command]
+fn is_video_link(raw: String) -> bool {
+    is_video_url(&raw)
+}
+
+/// Asks YouTube which channel a video belongs to: a few seconds, one request.
+#[tauri::command]
+async fn resolve_video(url: String, cookies: Option<String>) -> Result<VideoRef, String> {
+    tauri::async_runtime::spawn_blocking(move || resolve_video_blocking(url, cookies))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn resolve_video_blocking(raw: String, cookies: Option<String>) -> Result<VideoRef, String> {
+    let yt = ytdlp_path();
+    let mut args = vec!["-J".to_string(), "--no-warnings".to_string(), "--no-playlist".to_string(), "--skip-download".to_string()];
+    args.extend(cookies_args(cookies.as_deref().unwrap_or("")).map_err(|e| format!("Cookies: {e}"))?);
+    args.push(normalize_input(&raw));
+    let out = Command::new(&yt)
+        .args(&args)
+        .output()
+        .map_err(|e| format!("Could not run yt-dlp ({yt}): {e}"))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        return Err(err.trim().lines().last().unwrap_or("yt-dlp failed").to_string());
+    }
+    let root: serde_json::Value =
+        serde_json::from_slice(&out.stdout).map_err(|e| format!("Bad JSON from yt-dlp: {e}"))?;
+    video_ref(&root).ok_or_else(|| {
+        "YouTube didn't say whose video this is. Check the link opens a video in a browser, then try again.".to_string()
+    })
 }
 
 #[tauri::command]
@@ -1571,6 +1656,56 @@ mod tests {
         }
     }
 
+    #[test]
+    fn video_links_are_told_from_channels() {
+        for raw in [
+            "https://www.youtube.com/watch?v=abc12345678",
+            "youtube.com/watch?feature=share&v=abc12345678",
+            "https://m.youtube.com/watch?v=abc12345678&t=30s",
+            "https://youtu.be/abc12345678?si=x",
+            "https://www.youtube.com/shorts/abc12345678",
+            "https://www.youtube.com/live/abc12345678",
+            "https://www.youtube-nocookie.com/embed/abc12345678",
+        ] {
+            assert!(is_video_url(raw), "{raw} is a video");
+        }
+        for raw in [
+            "@foo",
+            "https://www.youtube.com/@foo",
+            "https://www.youtube.com/@foo/shorts",
+            "https://www.youtube.com/@foo/streams",
+            "https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw",
+            "https://www.youtube.com/playlist?list=PLabc",
+            "https://www.youtube.com/watch",
+            "https://www.youtube.com/shorts/",
+            "https://example.com/watch?v=abc12345678",
+        ] {
+            assert!(!is_video_url(raw), "{raw} is not a video");
+        }
+    }
+
+    #[test]
+    fn a_video_names_its_channel_both_ways() {
+        let root = serde_json::json!({
+            "id": "abc12345678", "title": "a video",
+            "uploader_id": "@FoO", "channel_id": "UCXuqSBlHAE6Xw-yeJA0Tunw",
+        });
+        assert_eq!(video_ref(&root), Some(VideoRef {
+            id: "abc12345678".into(),
+            title: "a video".into(),
+            url: "https://www.youtube.com/watch?v=abc12345678".into(),
+            channel_url: "https://www.youtube.com/@foo".into(),
+            channel_urls: vec![
+                "https://www.youtube.com/@foo".into(),
+                "https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw".into(),
+            ],
+        }));
+        // An old channel with no handle is known by its id alone.
+        let root = serde_json::json!({ "id": "abc12345678", "title": "t", "uploader_id": "oldname", "channel_id": "UCx" });
+        assert_eq!(video_ref(&root).unwrap().channel_url, "https://www.youtube.com/channel/UCx");
+        assert_eq!(video_ref(&serde_json::json!({ "id": "abc12345678" })), None);
+    }
+
     fn temp_state_file(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("vault-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -2173,6 +2308,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             fetch_channel,
+            is_video_link,
+            resolve_video,
             fetch_dates,
             download_video,
             cancel_download,

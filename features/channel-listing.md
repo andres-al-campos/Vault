@@ -4,7 +4,18 @@ Type a channel and see its videos as cards.
 
 ## Sub-features
 
-- Accepts an @handle, a bare name, a `UC…` channel id, or a pasted URL.
+- Accepts an @handle, a bare name, a `UC…` channel id, or a pasted URL, with
+  or without its `https://`.
+- A link to one video (a watch page, youtu.be, a Short, a live page or an
+  embed) opens that video's channel, adding it first if it isn't saved. A
+  channel saved by its handle or by its id is the same channel. The video's
+  title goes in the channel's search box, both filters go to All and the
+  tab is the one that lists it, so its card is what's on screen. Nothing is
+  downloaded until its button is pressed. While it works the page reads
+  "Finding the video's channel…", then the usual "Fetching…" for a new
+  channel, then "Finding the video…". A saved channel that doesn't list the
+  video is synced once first. A video no tab lists (an unlisted one) says so,
+  with a button to download it into the channel's folder anyway.
 - However it was typed, a channel has one identity:
   `https://www.youtube.com/@handle` (or `/channel/…`, `/c/…`, `/user/…`). Host,
   tab, query, trailing slash and the handle's case don't make a second entry.
@@ -33,16 +44,16 @@ Type a channel and see its videos as cards.
 
 ## How to get to it
 
-The field in the top bar adds a channel, with Enter or the + inside it, and is
-empty otherwise. Sync, next to it, refreshes the channel on screen. The tabs
+The field in the top bar adds a channel or opens a video's, with Enter or the
++ inside it, and is empty otherwise. Sync, next to it, refreshes the channel on screen. The tabs
 are under the channel header.
 
 ## Driving it
 
 Preconditions: none for the default run; network and yt-dlp for `net`.
 
-`./build.sh check` (~1s once built): URL forms and channel identity, entry
-order, failure classification, what the folder rescan records and leaves
+`./build.sh check` (~1s once built): URL forms and channel identity, which
+links are one video and the channel a video names, entry order, failure classification, what the folder rescan records and leaves
 alone, the import of a folder that still has `archive.txt`, and a damaged
 `videos.json` never being replaced, in the Rust unit tests.
 
@@ -52,6 +63,13 @@ members-only flag arrives in the listing.
 By hand only: the tabs, and how a failed fetch looks.
 
 Last driven: 2026-10-12, tests only. The `net` tests were not run that day.
+Video links, 2026-10-14 in the stand-in (`?scenario=library`, and `fresh` for
+a channel not yet saved): a watch link with Not archived chosen opened Videos
+with "in the future" searched, both filters at All, "1" in the box; an
+unknown id showed the unlisted message and its button queued it; a failing
+link said "Couldn't open that video" and kept the link in the field; from
+`fresh` the link added the channel and searched the video. yt-dlp looked up
+one real video in about 2 seconds with the fields the lookup reads.
 
 ## Calls
 
@@ -70,3 +88,10 @@ time.
 - The tab is remembered across launches but Shorts and Live aren't saved, so a
   remembered tab is fetched on arrival.
 - The alert on a failed Sync is an agent's guess at where that message belongs.
+- Video links: searching by the video's title can show a few cards when
+  titles share words. Setting both filters to All, syncing a saved channel
+  once when the video isn't listed, and the unlisted message are an agent's
+  guesses. A channel saved by an old `/c/` or `/user/` name won't be matched
+  by a video link and gets a second entry by its handle. Opening a Short on
+  the Shorts tab isn't seen in the stand-in, whose Shorts reuse ids from its
+  Videos list.

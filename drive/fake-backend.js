@@ -121,6 +121,16 @@ const commands = {
     const list = tab === "videos" ? videos : tab === "shorts" ? shorts : [];
     return { url: URL_, title: recorded.title, uploader: recorded.uploader, tab, video_count: list.length, videos: list, ...about };
   },
+  // A video link: the recorded channel's videos and Shorts resolve to it;
+  // any other id is a video the channel doesn't list.
+  is_video_link: ({ raw }) => /youtu\.be\/|\/watch\?|\/shorts\/|\/live\/[\w-]/.test(raw),
+  resolve_video({ url }) {
+    if (/fail/i.test(url)) throw "ERROR: [youtube] fail: Video unavailable";
+    const id = url.match(/(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/)?.[1] ?? "unlisted001";
+    const v = [...videos, ...shorts].find((x) => x.id === id);
+    return { id, title: v?.title ?? "a video only its link finds", url: `https://www.youtube.com/watch?v=${id}`,
+      channel_url: URL_, channel_urls: [URL_, "https://www.youtube.com/channel/UCq6aw03lNILzV96UvEAASfQ"] };
+  },
   list_archive() {
     const ch = state.channels.find((c) => c.url === URL_);
     if (!ch?.download_dir) return [];

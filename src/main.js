@@ -220,6 +220,7 @@ function setEmpty(html) {
 async function doFetch(raw, { quiet = false } = {}) {
   raw = (raw || "").trim();
   if (!raw) return;
+  if (!quiet && await invoke("is_video_link", { raw }).catch(() => false)) return openVideoLink(raw);
   if (!quiet) setEmpty(`<div class="mark">VAULT</div><h2>Fetching…</h2><p>Reading the channel's video list.</p><div class="spin"></div>`);
   $("fetch").disabled = true;
   try {
@@ -255,6 +256,60 @@ async function doFetch(raw, { quiet = false } = {}) {
   } finally {
     $("fetch").disabled = false;
   }
+}
+
+// A link to one video opens its channel, adding it first if it's new, with
+// the video's title in the search box and both filters at All, so its card is
+// what's on screen. Nothing is downloaded: the card's button does that.
+let pasted = null; // the video a link asked for, while its title is searched
+async function openVideoLink(raw) {
+  setEmpty(`<div class="mark">VAULT</div><h2>Finding the video’s channel…</h2><p>Asking YouTube whose video this is.</p><div class="spin"></div>`);
+  $("fetch").disabled = true;
+  let ref;
+  try {
+    ref = await invoke("resolve_video", { url: raw, cookies: state.cookies_browser ?? null });
+  } catch (e) {
+    setEmpty(`<div class="mark">VAULT</div><h2>Couldn't open that video</h2><p>${esc(String(e))}</p>`);
+    return;
+  } finally {
+    $("fetch").disabled = false;
+  }
+  const known = () => state.channels.find((c) => ref.channel_urls.includes(c.url));
+  let ch = known();
+  if (!ch) {
+    await doFetch(ref.channel_url);
+    ch = known();
+    if (!ch || activeChannel() !== ch) return; // the fetch failed and said why
+  } else {
+    state.active = ch.url;
+    await persist();
+    renderSelector();
+  }
+  setEmpty(`<div class="mark">VAULT</div><h2>Finding the video…</h2><p>Looking through the channel’s tabs.</p><div class="spin"></div>`);
+  let tab = await tabOf(ch, ref.id);
+  // A saved channel may not list a video newer than its last Sync.
+  if (!tab && ch.fetched_at < Date.now() / 1000 - 60) {
+    await doFetch(ch.url, { quiet: true });
+    tab = await tabOf(ch, ref.id);
+  }
+  activeTab = tab ?? "videos";
+  localStorage.setItem("vault-tab", activeTab);
+  for (const name of ["access", "have"]) { filters[name] = "all"; localStorage.setItem(`vault-${name}`, "all"); }
+  queryFor = ch.url;
+  setQuery(ref.title);
+  pasted = { ...ref, channel: ch.url, listed: !!tab };
+  $("url").value = "";
+  showActive();
+}
+
+// The tab a video is on, fetching Shorts and Live if they haven't been, or
+// null when the channel doesn't list it anywhere.
+async function tabOf(ch, id) {
+  for (const tab of Object.keys(TABS)) {
+    if (isLazyTab(tab) && !tabVideos(ch, tab)) await loadTab(ch, tab);
+    if (tabVideos(ch, tab)?.some((v) => v.id === id)) return tab;
+  }
+  return null;
 }
 
 // Puts a fresh Videos listing on a channel. Returns the ids it had before, or
@@ -756,6 +811,13 @@ function renderGrid(now) {
   }
   if (!now) {
     message("One moment", `<p>Loading ${TABS[activeTab]}…</p><div class="spin"></div>`);
+    return;
+  }
+  const wanted = pasted && !pasted.listed && pasted.channel === ch.url && query === pasted.title ? pasted : null;
+  if (!now.shown.length && wanted) {
+    message("Not on the channel’s pages", `<p>“${esc(wanted.title)}” isn't listed on any of this channel's tabs: it may be unlisted. It can still be downloaded into this channel's folder.</p>
+      <div style="margin-top:18px"><button class="btn btn-primary" id="dl-pasted">↓ Download it</button></div>`);
+    $("dl-pasted").addEventListener("click", () => startDownload({ id: wanted.id, title: wanted.title, url: wanted.url }));
     return;
   }
   if (!now.shown.length) {
