@@ -1,5 +1,10 @@
 # Vault
 
+You come to Vault to watch what you've kept. Archiving a channel is the chore
+that makes that possible, so once it's set going it should ask for little
+attention. Every part of the app serves that, and it's what to compare a
+screen against when stepping back from it.
+
 Read `features/README.md` before adding anything. `./build.sh check` runs the
 laws and tests; plain `./build.sh` installs and launches the app.
 
