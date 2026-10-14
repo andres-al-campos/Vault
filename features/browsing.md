@@ -126,6 +126,7 @@ time.
   its own All was weird. Members and an archive state can still be on
   together. The line between Members and the archive pair was the user's
   condition for it: without it, which ones take turns would be confusing.
+  It is two-thirds of the option's height: shorter, it looked too small.
   Public only, hiding members-only videos, went with it; Download all already
   skips the ones it can't get. Members shows even at 0.
 - 2026-10-14. The filter row's text is 13.5px, the Download button's size:

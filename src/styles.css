@@ -398,7 +398,7 @@ body {
 .pill-on.leaving { animation: fade-out .18s ease-out forwards; }
 @keyframes fade-out { to { opacity: 0; } }
 /* Between Members and the two archive options, which take turns. */
-.pill-sep { flex: none; width: 1px; margin: 9px 4px; background: var(--muted); opacity: .6; }
+.pill-sep { flex: none; width: 1px; margin: 6px 4px; background: var(--muted); opacity: .6; }
 @keyframes pill-arrive { from { color: var(--muted2); } }
 .pill .n { font: 600 var(--ctl-n) ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
 .pill.active .n { color: inherit; opacity: .7; }
