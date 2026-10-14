@@ -373,7 +373,7 @@ body {
   transition: transform .18s ease-out, width .18s ease-out; }
 .pill.arriving { animation: pill-arrive .18s ease-out; }
 @keyframes pill-arrive { from { color: var(--muted2); } }
-.pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+.pill .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted2); }
 .pill.active .n { color: inherit; opacity: .7; }
 /* Lines up with the tab and filter groups, both measured at 35px rendered
    (3px pad + 1px border around a 29px button). */
