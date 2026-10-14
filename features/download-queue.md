@@ -39,8 +39,9 @@ Queue videos and watch them download one at a time in the sidebar.
 - The panel button at the end of the top bar hides the Downloads panel and
   shows it again; the channel takes the freed width. Hidden, the button
   carries the number of downloads still to finish (running, waiting or
-  failed). Whether it's hidden is remembered across launches. Downloads
-  carry on either way.
+  failed). Vault opens with the panel hidden, unless something was still in
+  line when it last closed (waiting, paused or failed); then it opens with
+  the panel showing. Downloads carry on either way.
 
 - A finished download writes the video's record to the folder's
   `.vault/videos.json`: real upload date, length, views, members flag and when
@@ -78,6 +79,9 @@ anything through the native folder picker.
 Last driven: 2026-10-13, in the stand-in: pause, resume, reorder, clear and
 restore. The live download test last passed on 2026-10-12 against @billwurtz
 (12s on its own), before any of those existed.
+The panel at launch, 2026-10-14 in the stand-in: an empty queue opened with
+it hidden; a paused job left in storage opened it, reading "Paused · 1
+waiting".
 
 ## Calls
 
@@ -94,6 +98,9 @@ time.
   start.
 - 2026-10-13. A retried or paused download keeps its row. Rows only move
   when dragged.
+- 2026-10-14. The panel starts hidden when the queue is empty and showing
+  when it isn't, instead of as it was left: you come to Vault to watch, and
+  an empty panel took a third of the window to say nothing was queued.
 
 ## Gotchas
 

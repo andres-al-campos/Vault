@@ -15,12 +15,18 @@ document.getElementById("theme").addEventListener("click", () => {
   localStorage.setItem("vault-theme", next);
 });
 
+// The download jobs and their order — see queue.js. What hadn't finished when
+// Vault last closed comes back, paused if it was paused.
+const QUEUE_KEY = "vault-queue";
+const queue = createQueue((() => { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)); } catch { return null; } })());
+
 /* ---------------- downloads panel ---------------- */
-// Whether the panel is showing is this window's own state, like the theme.
-const SIDE_KEY = "vault-side";
+// Vault opens on what you've kept, so the panel starts hidden unless
+// something is still in line from last time. After that it stays where the
+// button puts it.
 const appEl = document.querySelector(".app");
 const sideBtn = document.getElementById("side-toggle");
-let sideShown = localStorage.getItem(SIDE_KEY) !== "off";
+let sideShown = queue.jobs.size > 0;
 let unfinished = 0;
 function renderSide() {
   appEl.classList.toggle("side-off", !sideShown);
@@ -31,14 +37,13 @@ function renderSide() {
   n.hidden = sideShown || unfinished === 0;
   n.textContent = unfinished;
 }
-// A panel that was hidden last time starts hidden, without sliding shut.
+// A panel that starts hidden is hidden from the first frame, without sliding shut.
 appEl.style.transition = "none";
 renderSide();
 void appEl.offsetWidth;
 appEl.style.transition = "";
 sideBtn.addEventListener("click", () => {
   sideShown = !sideShown;
-  localStorage.setItem(SIDE_KEY, sideShown ? "on" : "off");
   renderSide();
 });
 
@@ -81,10 +86,6 @@ const remembered = (key, options) => {
 
 /* ---------------- state ---------------- */
 let state = { active: null, channels: [] };
-// The download jobs and their order — see queue.js. What hadn't finished when
-// Vault last closed comes back, paused if it was paused.
-const QUEUE_KEY = "vault-queue";
-const queue = createQueue((() => { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)); } catch { return null; } })());
 const saveQueue = () => { try { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.snapshot())); } catch { /* a full store only costs the restore */ } };
 let queueSave = null;
 // Progress reports arrive several times a second; the line itself changes rarely.
