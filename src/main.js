@@ -15,6 +15,33 @@ document.getElementById("theme").addEventListener("click", () => {
   localStorage.setItem("vault-theme", next);
 });
 
+/* ---------------- downloads panel ---------------- */
+// Whether the panel is showing is this window's own state, like the theme.
+const SIDE_KEY = "vault-side";
+const appEl = document.querySelector(".app");
+const sideBtn = document.getElementById("side-toggle");
+let sideShown = localStorage.getItem(SIDE_KEY) !== "off";
+let unfinished = 0;
+function renderSide() {
+  appEl.classList.toggle("side-off", !sideShown);
+  sideBtn.setAttribute("aria-pressed", String(sideShown));
+  sideBtn.title = sideShown ? "Hide downloads" : "Show downloads";
+  // Hidden, the button says how many downloads are still to finish.
+  const n = document.getElementById("side-n");
+  n.hidden = sideShown || unfinished === 0;
+  n.textContent = unfinished;
+}
+// A panel that was hidden last time starts hidden, without sliding shut.
+appEl.style.transition = "none";
+renderSide();
+void appEl.offsetWidth;
+appEl.style.transition = "";
+sideBtn.addEventListener("click", () => {
+  sideShown = !sideShown;
+  localStorage.setItem(SIDE_KEY, sideShown ? "on" : "off");
+  renderSide();
+});
+
 /* ---------------- helpers ---------------- */
 const $ = (id) => document.getElementById(id);
 
@@ -1434,6 +1461,7 @@ function renderSummary() {
   // A failed download is unfinished, so it counts as queue, not as finished.
   $("clearq").disabled = !(q || err);
   $("clear").disabled = !done;
+  if (unfinished !== live + err) { unfinished = live + err; renderSide(); }
   saveQueueSoon();
 }
 

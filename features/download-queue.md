@@ -36,6 +36,11 @@ Queue videos and watch them download one at a time in the sidebar.
   [browsing.md](browsing.md).
 - Every row in the queue is the same height, so cancelling one puts the next
   row's ✕ under the pointer.
+- The panel button at the end of the top bar hides the Downloads panel and
+  shows it again; the channel takes the freed width. Hidden, the button
+  carries the number of downloads still to finish (running, waiting or
+  failed). Whether it's hidden is remembered across launches. Downloads
+  carry on either way.
 
 - A finished download writes the video's record to the folder's
   `.vault/videos.json`: real upload date, length, views, members flag and when
@@ -92,6 +97,10 @@ time.
 
 ## Gotchas
 
+- The panel button: its place and icon, the count on it, the 0.2-second
+  slide, and that queueing a download doesn't bring a hidden panel back are
+  all an agent's guesses. Clicked through in the stand-in on 2026-10-13, not
+  in the app.
 - The queue is saved in the web view's own storage, not in `~/.vault`: it is
   what this window was doing, not a fact about the library.
 - Pause all, Clear queue and the grip were clicked through in the stand-in on

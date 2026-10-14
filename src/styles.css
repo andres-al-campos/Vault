@@ -258,8 +258,19 @@ body {
   color: var(--accent-soft-fg); border-color: var(--accent-soft-line); cursor: default; }
 
 /* ---------- sidebar queue ---------- */
-.side { width: 372px; flex: none; background: var(--panel); border-left: 1px solid var(--line);
-  display: flex; flex-direction: column; }
+/* The Downloads panel's width is a registered length, so it can be animated
+   and the main column, whose content is sized from it, follows frame by
+   frame. Hidden, the panel is as wide as nothing; its content keeps its own
+   width and is cut off, so it slides out of the window instead of squeezing. */
+@property --side-w { syntax: "<length>"; inherits: true; initial-value: 372px; }
+.app { --side-w: 372px; transition: --side-w .2s ease-out; }
+.app.side-off { --side-w: 0px; }
+.side { width: var(--side-w); flex: none; background: var(--panel); border-left: 1px solid var(--line);
+  display: flex; flex-direction: column; overflow: hidden; }
+.side > * { min-width: 371px; }
+.side-off .side { border-left-color: transparent; visibility: hidden; transition: visibility 0s .2s; }
+#side-toggle .n { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; opacity: .7; }
+#side-toggle[aria-pressed="false"] { color: var(--muted2); }
 .side-hd { padding: 17px 20px 14px; border-bottom: 1px solid var(--line2); }
 .side-hd .t { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 .side-hd .s { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
@@ -432,7 +443,7 @@ body {
    bar is there, and a column with nothing to scroll (.still, set by the
    script) has no bar to draw. */
 .main, .queue { overflow-x: hidden; }
-.main > * { width: calc(100vw - 372px - 12px); }
+.main > * { width: calc(100vw - var(--side-w) - 12px); }
 .queue > * { width: calc(372px - 1px - 12px); }
 .main.still, .queue.still { overflow-y: hidden; }
 .main::-webkit-scrollbar, .queue::-webkit-scrollbar, .chansel-menu::-webkit-scrollbar {
