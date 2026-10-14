@@ -185,7 +185,7 @@ body {
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; padding: 90px 20px; color: var(--muted); }
 /* The header's wordmark, large and faded, red V and all. */
-.empty .mark { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; color: var(--text); opacity: 0.16; margin-bottom: 18px; }
+.empty .mark { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; color: var(--text); opacity: 0.5; margin-bottom: 18px; }
 .empty .mark span { color: var(--played); }
 .empty h2 { font-size: 19px; color: var(--text); font-weight: 650; margin-bottom: 6px; }
 .empty p { font-size: 13.5px; max-width: 380px; }
