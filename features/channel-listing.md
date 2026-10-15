@@ -49,6 +49,10 @@ Type a channel and see its videos as cards.
 - A channel with no Shorts or Live tab shows that tab as empty.
 - A failed Shorts or Live fetch shows the error with Try again. A failed Sync
   shows an alert and leaves the saved list as it was.
+- A video link finds its channel from the video's own web page, which has no
+  bot check and names the owner even of a members-only video it won't play.
+  If the page doesn't say, YouTube's oEmbed answer is asked (public and
+  unlisted videos, by handle), and last yt-dlp, which the bot check can stop.
 - When YouTube's bot check stops a channel's list or a video link's lookup,
   the message says to pick a browser in the cookie menu, or, with one picked,
   to open youtube.com in it and check the sign-in. yt-dlp's own advice is a
@@ -66,12 +70,14 @@ are under the channel header.
 Preconditions: none for the default run; network and yt-dlp for `net`.
 
 `./build.sh check` (~1s once built): URL forms and channel identity, which
-links are one video and the channel a video names, entry order, failure classification, what the folder rescan records and leaves
+links are one video, their ids, the channel a video's page or oEmbed
+names, entry order, failure classification, what the folder rescan records and leaves
 alone, the import of a folder that still has `archive.txt`, and a damaged
 `videos.json` never being replaced, in the Rust unit tests.
 
 `./build.sh check net` (~80s): fetches two real channels and checks the
-members-only flag arrives in the listing.
+members-only flag arrives in the listing, and reads a real video's page for
+its channel.
 
 By hand only: the tabs, and how a failed fetch looks.
 
@@ -86,6 +92,10 @@ link said "Couldn't open that video" and kept the link in the field; from
 `&retitle=1`, where the lookup's title differs from the list's, the box got
 the list's title and found the card. yt-dlp looked up
 one real video in about 2 seconds with the fields the lookup reads.
+Video lookup, 2026-10-14 against YouTube with no cookies: a members-only
+video's link named `@nara.asmr.` and its channel id from its page in under a
+second, where yt-dlp's lookup had met the bot check; oEmbed named `@jawed`
+for a public video. The stand-in fakes the lookup, so it doesn't show this.
 The add box's ✕, 2026-10-14 in the stand-in: it showed on typing, at the
 size of the ＋ beside it, and the ✕ and Esc each cleared the box.
 Sync, 2026-10-14 in the stand-in: clicked twice, one fetch went out; the
@@ -122,3 +132,9 @@ time.
   by a video link and gets a second entry by its handle. Opening a Short on
   the Shorts tab isn't seen in the stand-in, whose Shorts reuse ids from its
   Videos list.
+- A video's page is read for keys YouTube can rename at any time
+  (`ownerProfileUrl`, `externalChannelId`, its canonical link). If they go,
+  lookups fall to oEmbed and yt-dlp, and members-only links meet the bot
+  check again: `./build.sh check net` notices. oEmbed gives the channel by
+  handle only, so a channel saved by its id alone isn't matched through it.
+  The page and oEmbed are asked without cookies.

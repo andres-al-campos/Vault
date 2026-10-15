@@ -673,7 +673,102 @@ fn is_video_link(raw: String) -> bool {
     is_video_url(&raw)
 }
 
+/// The 11-character id in a link to one video, whichever form it takes.
+fn video_id(raw: &str) -> Option<String> {
+    let url = normalize_input(raw);
+    let (_, rest) = url.split_once("://")?;
+    let (host, tail) = rest.split_once('/').unwrap_or((rest, ""));
+    let (path, query) = tail.split_once('?').unwrap_or((tail, ""));
+    let path = path.split('#').next().unwrap_or("");
+    let mut parts = path.split('/').filter(|p| !p.is_empty());
+    let id = if host.eq_ignore_ascii_case("youtu.be") {
+        parts.next()?.to_string()
+    } else {
+        match parts.next()? {
+            "watch" => query.split(['&', '#']).find_map(|kv| kv.strip_prefix("v="))?.to_string(),
+            "shorts" | "live" | "embed" => parts.next()?.to_string(),
+            _ => return None,
+        }
+    };
+    let ok = id.len() == 11 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    ok.then_some(id)
+}
+
+/// A page from YouTube the way a browser asks for it, or nothing.
+fn get_page(url: &str) -> Option<String> {
+    let out = Command::new("/usr/bin/curl")
+        .args(["-sSfL", "--max-time", "15", "-H", "Accept-Language: en"])
+        .args(["-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"])
+        .arg(url)
+        .output()
+        .ok()?;
+    out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+/// The string value of the first `"key":"…"` in a page's embedded JSON.
+fn json_string_after(page: &str, key: &str) -> Option<String> {
+    let open = format!("\"{key}\":\"");
+    let start = page.find(&open)? + open.len();
+    let mut end = start;
+    let bytes = page.as_bytes();
+    while end < bytes.len() && bytes[end] != b'"' {
+        end += if bytes[end] == b'\\' { 2 } else { 1 };
+    }
+    serde_json::from_str(&format!("\"{}\"", page.get(start..end)?)).ok().filter(|s: &String| !s.is_empty())
+}
+
+fn html_unescape(s: &str) -> String {
+    s.replace("&quot;", "\"").replace("&#39;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+}
+
+/// The video and its channel from the video's own web page. The page loads
+/// without the bot check, which stops yt-dlp's lookup, and it names the owner
+/// even of a members-only video it won't play. Its keys are YouTube's to
+/// change, so anything missing means nothing, and the next way is tried.
+fn page_ref(page: &str, id: &str) -> Option<VideoRef> {
+    if !page.contains(&format!("<link rel=\"canonical\" href=\"https://www.youtube.com/watch?v={id}\"")) {
+        return None;
+    }
+    let by_handle = json_string_after(page, "ownerProfileUrl").map(|u| canonical_channel_url(&u)).filter(|u| is_channel_url(u));
+    let by_id = json_string_after(page, "externalChannelId").map(|c| format!("https://www.youtube.com/channel/{c}"));
+    let channel_urls: Vec<String> = by_handle.into_iter().chain(by_id).collect();
+    let title = page
+        .split_once("<meta name=\"title\" content=\"")
+        .and_then(|(_, rest)| rest.split_once('"'))
+        .map(|(t, _)| html_unescape(t))
+        .filter(|t| !t.is_empty());
+    Some(VideoRef {
+        id: id.to_string(),
+        title: title.unwrap_or_else(|| id.to_string()),
+        url: format!("https://www.youtube.com/watch?v={id}"),
+        channel_url: channel_urls.first()?.clone(),
+        channel_urls,
+        availability: page.contains("\"isUnlisted\":true").then(|| "unlisted".to_string()),
+    })
+}
+
+/// The video and its channel from YouTube's oEmbed answer, which it gives for
+/// public and unlisted videos (not members-only ones). It names the channel by
+/// handle only.
+fn oembed_ref(json: &str, id: &str) -> Option<VideoRef> {
+    let root: serde_json::Value = serde_json::from_str(json).ok()?;
+    let channel_url = canonical_channel_url(root.get("author_url")?.as_str()?);
+    if !is_channel_url(&channel_url) {
+        return None;
+    }
+    Some(VideoRef {
+        id: id.to_string(),
+        title: root.get("title").and_then(|t| t.as_str()).filter(|t| !t.is_empty()).unwrap_or(id).to_string(),
+        url: format!("https://www.youtube.com/watch?v={id}"),
+        channel_urls: vec![channel_url.clone()],
+        channel_url,
+        availability: None,
+    })
+}
+
 /// Asks YouTube which channel a video belongs to: a few seconds, one request.
+/// The video's page first, then oEmbed, then yt-dlp, each only when the one
+/// before couldn't say. yt-dlp's lookup is the one the bot check stops.
 #[tauri::command]
 async fn resolve_video(url: String, cookies: Option<String>) -> Result<VideoRef, String> {
     tauri::async_runtime::spawn_blocking(move || resolve_video_blocking(url, cookies))
@@ -682,6 +777,16 @@ async fn resolve_video(url: String, cookies: Option<String>) -> Result<VideoRef,
 }
 
 fn resolve_video_blocking(raw: String, cookies: Option<String>) -> Result<VideoRef, String> {
+    if let Some(id) = video_id(&raw) {
+        let page = get_page(&format!("https://www.youtube.com/watch?v={id}"));
+        if let Some(r) = page.and_then(|p| page_ref(&p, &id)) {
+            return Ok(r);
+        }
+        let oembed = get_page(&format!("https://www.youtube.com/oembed?format=json&url=https://www.youtube.com/watch?v={id}"));
+        if let Some(r) = oembed.and_then(|j| oembed_ref(&j, &id)) {
+            return Ok(r);
+        }
+    }
     let yt = ytdlp_path();
     let mut args = vec!["-J".to_string(), "--no-warnings".to_string(), "--no-playlist".to_string(), "--skip-download".to_string()];
     args.extend(cookies_args(cookies.as_deref().unwrap_or("")).map_err(|e| format!("Cookies: {e}"))?);
@@ -1993,6 +2098,58 @@ mod tests {
         // Progress lines must not be mistaken for failures.
         assert_eq!(classify_failure("[download]  42.0% of 10.00MiB at 2.00MiB/s"), None);
         assert_eq!(classify_failure("[youtube] Extracting URL"), None);
+    }
+
+    #[test]
+    fn a_video_link_gives_its_id_in_every_form() {
+        for link in [
+            "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+            "youtube.com/watch?feature=share&v=jNQXAC9IVRw&t=4",
+            "https://youtu.be/jNQXAC9IVRw?si=abc",
+            "https://m.youtube.com/shorts/jNQXAC9IVRw",
+            "https://www.youtube.com/live/jNQXAC9IVRw",
+            "https://www.youtube-nocookie.com/embed/jNQXAC9IVRw",
+        ] {
+            assert_eq!(video_id(link).as_deref(), Some("jNQXAC9IVRw"), "{link}");
+        }
+        assert_eq!(video_id("https://www.youtube.com/@jawed"), None);
+        assert_eq!(video_id("https://www.youtube.com/watch?v=short"), None);
+    }
+
+    // The parts of a members-only video's page that name it and its owner,
+    // as YouTube served them on 2026-10-14 (the page is over a megabyte).
+    const MEMBERS_PAGE: &str = r#"<meta name="title" content="Q&amp;A &quot;night&quot;"><link rel="canonical" href="https://www.youtube.com/watch?v=38QwNqMBQzg">
+        "playabilityStatus":{"status":"UNPLAYABLE"},"canonicalBaseUrl":"/@someoneelse",
+        "ownerProfileUrl":"http://www.youtube.com/@nara.asmr.","externalChannelId":"UCJXuQ9aRkS_HaFEBhiHFpWw","isUnlisted":false"#;
+
+    #[test]
+    fn a_video_page_names_its_owner_even_when_it_wont_play() {
+        let r = page_ref(MEMBERS_PAGE, "38QwNqMBQzg").expect("the page names its owner");
+        assert_eq!(r.channel_url, "https://www.youtube.com/@nara.asmr.");
+        assert_eq!(r.channel_urls[1], "https://www.youtube.com/channel/UCJXuQ9aRkS_HaFEBhiHFpWw");
+        assert_eq!(r.title, "Q&A \"night\"");
+        assert_eq!(r.availability, None);
+        let unlisted = MEMBERS_PAGE.replace("\"isUnlisted\":false", "\"isUnlisted\":true");
+        assert_eq!(page_ref(&unlisted, "38QwNqMBQzg").unwrap().availability.as_deref(), Some("unlisted"));
+        // Another video's page, or a page without the owner, is no answer.
+        assert_eq!(page_ref(MEMBERS_PAGE, "jNQXAC9IVRw"), None);
+        assert_eq!(page_ref(&MEMBERS_PAGE.replace("ownerProfileUrl", "x").replace("externalChannelId", "y"), "38QwNqMBQzg"), None);
+    }
+
+    #[test]
+    fn oembed_names_the_channel_by_handle() {
+        let r = oembed_ref(r#"{"title":"Me at the zoo","author_url":"https://www.youtube.com/@jawed"}"#, "jNQXAC9IVRw").unwrap();
+        assert_eq!((r.channel_url.as_str(), r.title.as_str()), ("https://www.youtube.com/@jawed", "Me at the zoo"));
+        assert_eq!(oembed_ref("Unauthorized", "jNQXAC9IVRw"), None);
+    }
+
+    #[test]
+    #[ignore]
+    fn a_real_video_page_names_its_channel() {
+        let page = get_page("https://www.youtube.com/watch?v=jNQXAC9IVRw").expect("the page loads");
+        let r = page_ref(&page, "jNQXAC9IVRw").expect("the page names its owner");
+        assert_eq!(r.channel_url, "https://www.youtube.com/@jawed");
+        assert_eq!(r.title, "Me at the zoo");
     }
 
     #[test]
