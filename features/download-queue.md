@@ -21,6 +21,14 @@ Queue videos and watch them download one at a time in the sidebar.
   same order, and starts again at launch unless the queue was paused.
   Finished and failed rows aren't remembered.
 - A failed row shows why and gets its own Retry and ✕.
+- A download stopped by YouTube's bot check doesn't fail. The check is on
+  the network, not the video, so the whole line rests: the video goes back
+  to its place, its row reads "Bot check · again at 14:32", the header says
+  the same, and nothing starts until then. The waits are 1, 5, 15, 30 and 60
+  minutes; a download that gets through resets them. After the last wait
+  the row fails, saying the bot check is still there, and the line pauses,
+  so the rest don't each meet it too. Pause all then Resume all ends a rest
+  early; Resume all after the line gave up tries again.
 - A failed download is unfinished: it counts as queue, not as finished. Clear
   finished removes done rows only. Clear queue asks, then drops everything
   waiting or failed and leaves the running download alone.
@@ -62,7 +70,9 @@ Preconditions: none.
 order, one at a time, no double-queuing, retry and re-queue of a failed job, a
 second completion report changing nothing, cancelling a waiting job, pause and
 resume (including a resume before the paused download has exited), moving a
-waiting job, clearing the queue, and a saved queue coming back. How a
+waiting job, clearing the queue, a saved queue coming back, and a bot check
+resting the line, counting until a download gets through, and ending on
+Resume. How a
 finished download becomes a record, in the Rust unit tests.
 
 `./build.sh check net` (~100s): really downloads two short videos from a live
@@ -74,6 +84,9 @@ By click against the stand-in backend (see the README's driving conventions):
 `?scenario=library&fail=<id>&speed=300` — Download on a Shorts card, Download
 again on a missing file, its failure, Retry. No script replays this yet.
 
+`?scenario=library&bot=7&speed=300` — the next 7 downloads meet the bot
+check. Queue two, then Pause all and Resume all to end each rest.
+
 By hand only: cancelling or pausing a running download for real (the stand-in
 has no yt-dlp to end), the queue coming back after the app itself is quit, and
 anything through the native folder picker.
@@ -81,6 +94,11 @@ anything through the native folder picker.
 Last driven: 2026-10-13, in the stand-in: pause, resume, reorder, clear and
 restore. The live download test last passed on 2026-10-12 against @billwurtz
 (12s on its own), before any of those existed.
+The bot check, 2026-10-14 in the stand-in with `&bot=7`: the row and the
+header read "Bot check · again at 7:49 PM", paused they read "Queued ·
+Paused"; the waits came to 1, 5, 15, 30 and 60 minutes; the sixth check
+failed the row ("still there after 6 tries") and paused the line with the
+second video still queued; with the check gone, Resume all downloaded both.
 The panel at launch, 2026-10-14 in the stand-in: an empty queue opened with
 it hidden; a paused job left in storage opened it, reading "Paused · 1
 waiting". Queueing onto an empty queue brought a hidden panel back; queueing
@@ -101,6 +119,10 @@ time.
   start.
 - 2026-10-13. A retried or paused download keeps its row. Rows only move
   when dragged.
+- 2026-10-14. A bot check waits and tries again by itself rather than
+  asking for cookies: cookies tie the downloads to your account, which can
+  get it flagged, so they're for when nothing else works (members-only
+  videos). The waits and their number are an agent's guesses.
 - 2026-10-14. The panel starts hidden when the queue is empty and showing
   when it isn't, instead of as it was left: you come to Vault to watch, and
   an empty panel took a third of the window to say nothing was queued.

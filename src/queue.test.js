@@ -182,3 +182,53 @@ test("a retried job keeps its row and its turn", () => {
 test("a queue saved as stopped by an earlier build comes back paused", () => {
   assert.equal(createQueue({ stopped: true, jobs: [job("a")] }).paused, true);
 });
+
+test("a bot check rests the line, with the video back in its place", () => {
+  const q = createQueue();
+  q.add(job("a"));
+  q.add(job("b"));
+  q.next();
+  assert.equal(q.rest("a"), 1);
+  assert.equal(q.jobs.get("a").status, "queued");
+  assert.equal(q.next(), null, "nothing starts while the line rests");
+  q.wake();
+  assert.equal(q.next().id, "a", "it takes its own turn again, ahead of b");
+});
+
+test("bot checks are counted until a download gets through", () => {
+  const q = createQueue();
+  q.add(job("a"));
+  q.next();
+  q.rest("a");
+  q.wake();
+  q.next();
+  assert.equal(q.rest("a"), 2);
+  q.wake();
+  q.next();
+  q.settle("a", true);
+  assert.equal(q.strikes, 0);
+});
+
+test("resume ends a rest, and rest only takes the running job", () => {
+  const q = createQueue();
+  q.add(job("a"));
+  q.add(job("b"));
+  q.next();
+  assert.equal(q.rest("b"), 0, "b isn't running");
+  q.rest("a");
+  q.pause();
+  q.resume();
+  assert.equal(q.resting, false);
+  assert.equal(q.next().id, "a");
+});
+
+test("the job that met the bot check is marked until it starts again", () => {
+  const q = createQueue();
+  q.add(job("a"));
+  q.next();
+  q.rest("a");
+  assert.equal(q.jobs.get("a").rested, true);
+  q.wake();
+  q.next();
+  assert.equal(q.jobs.get("a").rested, false);
+});

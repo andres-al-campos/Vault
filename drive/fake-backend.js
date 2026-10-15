@@ -17,6 +17,7 @@
 //   ?scenario=corrupt   the state file can't be read
 //   &failtab=shorts     the first fetch of that tab fails
 //   &fail=<id>,<id>     those downloads fail on their first try
+//   &bot=<n>            the next n downloads meet YouTube's bot check
 //   &speed=<ms>         how long a download takes (default 1500)
 //   &many=<n>           the Videos list repeated up to n entries, for a long grid
 //   &retitle=1          a video's own lookup returns another title than the
@@ -29,6 +30,7 @@ const q = new URLSearchParams(location.search);
 const scenario = q.get("scenario") || "fresh";
 const speed = Number(q.get("speed") || 1500);
 const failOnce = new Set((q.get("fail") || "").split(",").filter(Boolean));
+let botChecks = Number(q.get("bot") || 0);
 const failTabOnce = new Set((q.get("failtab") || "").split(",").filter(Boolean));
 
 const URL_ = "https://www.youtube.com/@billwurtz";
@@ -100,6 +102,11 @@ function download({ id, dir }) {
     }
     clearInterval(running.get(id));
     running.delete(id);
+    if (botChecks > 0) {
+      botChecks--;
+      emit("download-done", { id, ok: false, cancelled: false, reason: "YouTube bot check" });
+      return;
+    }
     if (failOnce.delete(id)) {
       emit("download-done", { id, ok: false, cancelled: false, reason: "Network error" });
       return;

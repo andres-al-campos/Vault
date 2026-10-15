@@ -25,6 +25,11 @@ function build(saved) {
   // and until it reports, the job still counts as running: resuming in that
   // moment must not start it a second time.
   let halting = null;
+  // YouTube's bot check is on the network, not the video, so after one the
+  // line rests until wake(): the next download would meet it too. `strikes`
+  // counts checks since the last download that got through.
+  let resting = false;
+  let strikes = 0;
 
   // A queued, running or finished job holds its id. A failed one doesn't, so
   // the same video can be queued again.
@@ -54,10 +59,10 @@ function build(saved) {
 
   // Starts the next waiting job when nothing is running, and returns it.
   function next() {
-    if (paused || activeId || waiting.length === 0) return null;
+    if (paused || resting || activeId || waiting.length === 0) return null;
     activeId = waiting.shift();
     const j = jobs.get(activeId);
-    Object.assign(j, { status: "downloading", stat: "Starting…", pct: 0 });
+    Object.assign(j, { status: "downloading", stat: "Starting…", pct: 0, rested: false });
     return { id: activeId, ...j };
   }
 
@@ -80,11 +85,28 @@ function build(saved) {
     }
     waiting = waiting.filter((w) => w !== id);
     if (activeId === id) activeId = null;
+    if (ok) strikes = 0;
     j.status = ok ? "done" : "error";
     if (ok) j.pct = 100;
     j.stat = stat || (ok ? "Complete" : "Failed");
     return true;
   }
+
+  // The running job met the bot check: it goes back in line where its row
+  // is, and the line rests. Returns how many checks in a row this makes.
+  function rest(id) {
+    const j = jobs.get(id);
+    if (!j || id !== activeId) return 0;
+    if (halting === id) halting = null;
+    activeId = null;
+    waiting.push(id);
+    inRowOrder();
+    Object.assign(j, { status: "queued", stat: "Queued", rested: true });
+    resting = true;
+    return ++strikes;
+  }
+
+  function wake() { resting = false; }
 
   function remove(id) {
     jobs.delete(id);
@@ -111,7 +133,8 @@ function build(saved) {
     return activeId;
   }
 
-  function resume() { paused = false; }
+  // Resume also ends a rest: it's the way to try again now.
+  function resume() { paused = false; resting = false; }
 
   // Moves a waiting job to just ahead of another, or to the end with no
   // `beforeId`. The rows are listed in the map's order, so the waiting ones
@@ -155,8 +178,10 @@ function build(saved) {
   paused = !!(saved?.paused ?? saved?.stopped);
 
   return {
-    jobs, holds, add, retry, next, settle, remove, clearFinished, clearFailed, pause, resume, move, clearWaiting, snapshot,
+    jobs, holds, add, retry, next, settle, rest, wake, remove, clearFinished, clearFailed, pause, resume, move, clearWaiting, snapshot,
     isWaiting: (id) => waiting.includes(id),
     get paused() { return paused; },
+    get resting() { return resting; },
+    get strikes() { return strikes; },
   };
 }

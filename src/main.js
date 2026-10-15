@@ -1646,7 +1646,11 @@ const queueEl = $("queue");
 const GRIP_ICON = '<svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="2" r="1.2"/><circle cx="6" cy="2" r="1.2"/><circle cx="2" cy="7" r="1.2"/><circle cx="6" cy="7" r="1.2"/><circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/></svg>';
 
 // A waiting row says the line is held, so "Queued" never reads as "about to start".
-const statOf = (j) => (queue.paused && j.status === "queued" && j.stat === "Queued" ? "Queued · Paused" : j.stat);
+const statOf = (j) =>
+  j.status !== "queued" || j.stat !== "Queued" ? j.stat
+  : queue.paused ? "Queued · Paused"
+  : queue.resting && j.rested ? `Bot check · again at ${clock(restUntil)}`
+  : j.stat;
 
 function renderQueue() {
   if (queue.jobs.size === 0) {
@@ -1704,7 +1708,9 @@ function renderSummary() {
   const live = down + q;
   $("qsum").textContent = queue.jobs.size === 0
     ? "Idle"
-    : [queue.paused && live ? `Paused · ${live} waiting` : [`${down} downloading`, `${q} queued`].join(" · "),
+    : [queue.paused && live ? `Paused · ${live} waiting`
+       : queue.resting ? `Bot check · again at ${clock(restUntil)} · ${q} waiting`
+       : [`${down} downloading`, `${q} queued`].join(" · "),
        done && `${done} done`, err && `${err} failed`].filter(Boolean).join(" · ");
 
   // Pause all holds the line; while held, the same button releases it.
@@ -1905,8 +1911,35 @@ listen("download-skipped", (e) => finish(e.payload.id, true, "Already in archive
 listen("download-done", (e) => {
   const { id, ok, cancelled, reason } = e.payload;
   if (cancelled) finish(id, false, "Cancelled");
+  else if (!ok && reason === BOT_CHECK) botCheck(id);
   else finish(id, ok, ok ? "Complete" : `Failed — ${reason || "unknown reason"}`);
 });
+
+// YouTube's bot check is waited out rather than answered with cookies, which
+// tie the downloads to an account that can then be flagged. The line rests
+// for each wait in turn; a download that gets through starts them over.
+const BOT_CHECK = "YouTube bot check"; // the reason the backend gives it
+const BOT_WAITS = [1, 5, 15, 30, 60].map((m) => m * 60_000);
+let restTimer = null;
+let restUntil = 0;
+const clock = (t) => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+function botCheck(id) {
+  // Still there after every wait: this row fails and the line holds, so the
+  // rest don't each go and meet the check. Resume all tries again.
+  if (queue.strikes >= BOT_WAITS.length) {
+    queue.settle(id, false, `Failed — ${BOT_CHECK}, still there after ${BOT_WAITS.length + 1} tries`);
+    queue.pause();
+    renderQueue();
+    syncCard(id);
+    return;
+  }
+  const wait = BOT_WAITS[queue.rest(id) - 1];
+  restUntil = Date.now() + wait;
+  clearTimeout(restTimer);
+  restTimer = setTimeout(() => { queue.wake(); renderQueue(); pump(); }, wait);
+  renderQueue();
+  syncCard(id);
+}
 
 // Marks a column that has nothing to scroll, so it is drawn without a
 // scrollbar; see .still in the stylesheet.
