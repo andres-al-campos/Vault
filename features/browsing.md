@@ -16,7 +16,9 @@ what you have and what you can get.
   archived is the members-only videos left to download. Each option's number is what switching it on would show, the
   others as they are. Members is there even at 0. When they change, the
   numbers count to their new values over the fill's slide; on a new channel
-  or tab they just appear.
+  or tab they just appear. Each number keeps room for the most it can show
+  on this channel (its count with the other filter at All), so the buttons
+  don't move when a count drops and the pointer stays on the one it was on.
 - Sort: Newest, Oldest, Most popular, Shortest, Longest. It sits after the
   filters, on the left of their row, and is as wide as its longest choice
   whichever is picked.
@@ -165,6 +167,9 @@ time.
   others slide up: vanishing was another teleport. The 0.18s fade and 0.25s
   slide are an agent's guesses. A click (a filter, a sort, a search)
   redraws at once: you want to see the result as soon as you can.
+- 2026-10-14. The filter buttons hold still when their numbers change:
+  switching to Archived on a big channel shrank Public's and Members'
+  numbers, the buttons slid, and the next click landed on the wrong one.
 - 2026-10-14. The filter row's text is 13.5px, the Download button's size:
   at 12.5px the controls looked empty for their height.
 - 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a

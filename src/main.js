@@ -708,9 +708,9 @@ function renderControls(now) {
     archived: filters.have === "archived",
     not: filters.have === "not",
   };
-  const pill = (key, label, slot, counts) =>
-    `<button class="pill ${lit[key] ? "active" : ""}" data-pick="${key}" data-slot="${slot}">${label} <span class="n">${counts[key]}</span></button>`;
-  const group = (counts) => `<div class="filters">${pill("all", "All", "access", counts)}${pill("public", "Public", "access", counts)}${pill("members", "Members", "access", counts)}<span class="pill-sep"></span>${pill("archived", "Archived", "have", counts)}${pill("not", "Not archived", "have", counts)}</div>`;
+  const pill = (key, label, slot, { counts, widest }) =>
+    `<button class="pill ${lit[key] ? "active" : ""}" data-pick="${key}" data-slot="${slot}">${label} <span class="n" style="min-width: ${String(widest[key]).length}ch">${counts[key]}</span></button>`;
+  const group = (v) => `<div class="filters">${pill("all", "All", "access", v)}${pill("public", "Public", "access", v)}${pill("members", "Members", "access", v)}<span class="pill-sep"></span>${pill("archived", "Archived", "have", v)}${pill("not", "Not archived", "have", v)}</div>`;
 
   // The filters and sort sit on one row; the download button rides the tab
   // strip, where there is room, so the row doesn't wrap at the default width.
@@ -741,7 +741,7 @@ function renderControls(now) {
     // How many of the matches are on screen, as a browser's find bar says it.
     findN.textContent = !query ? "" : findAll ? `${now.shown.length} of ${now.matches}` : `${now.matches}`;
     bar = `
-      ${group(now.counts)}
+      ${group(now)}
       <div class="sortsel">
         <button class="sort-btn" id="sort" title="Sort order"><span class="sort-lbls">${Object.entries(SORTS).map(([value, label]) =>
           `<span${filters.sort === value ? "" : ` class="off"`}>${label}</span>`).join("")}</span>

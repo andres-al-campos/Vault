@@ -182,3 +182,11 @@ test("a long grid draws the rows in view and a margin around them", () => {
   assert.equal(windowOf({ ...grid, count: 10, top: 0 }).last, 10);
   assert.deepEqual(windowOf({ ...grid, count: 0, top: 0 }), { first: 0, last: 0, before: 0, after: 0 });
 });
+
+test("each filter's widest count is with the other filter at All", () => {
+  const list = [{ id: "a" }, { id: "b" }, { id: "m", availability: "subscriber_only" }];
+  const archived = new Map([["a", { id: "a", path: "/x" }]]);
+  const { counts, widest } = view(list, { access: "all", have: "archived", sort: "newest" }, archived);
+  assert.equal(counts.public, 1);
+  assert.deepEqual(widest, { all: 3, public: 2, members: 1, archived: 1, not: 2 });
+});

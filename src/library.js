@@ -62,6 +62,15 @@ export function view(list, { access, have, sort, query = "" }, archived) {
       archived: count(access, "archived"),
       not: count(access, "not"),
     },
+    // The most each button can count, with the other filter at All: its
+    // number keeps this many digits of room, so the buttons stay put.
+    widest: {
+      all: list.length,
+      public: count("public", "all"),
+      members: count("members", "all"),
+      archived: count("all", "archived"),
+      not: count("all", "not"),
+    },
   };
 }
 
