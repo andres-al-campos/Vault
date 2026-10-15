@@ -113,7 +113,7 @@ body {
 .search .add:not(:disabled):hover { background: var(--hover); color: var(--text); }
 .search .add:disabled { opacity: .4; cursor: default; }
 .search .add[hidden] { display: none; }
-.search input { flex: 1; border: 0; outline: 0; font-weight: 400; font-size: 14px; font-family: inherit; background: transparent; color: inherit; }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; font-weight: 400; font-size: 14px; font-family: inherit; background: transparent; color: inherit; }
 .search input::placeholder { color: var(--muted); }
 
 .btn { border: 0; border-radius: 10px; padding: 9px 15px; font-weight: 600; font-size: var(--ctl-text); font-family: inherit; cursor: pointer; transition: 0.15s; }
