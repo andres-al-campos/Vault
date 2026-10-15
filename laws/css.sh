@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Two ways the stylesheet has failed without a sound:
+# Three ways the stylesheet has failed without a sound:
 #
 # - `font: 600 12.5px inherit` is invalid (a CSS-wide keyword can't stand in
 #   for one part of a shorthand), so the browser drops the whole line. Fourteen
@@ -9,6 +9,9 @@
 # - A class's base rule written in two places. When the filter row's wrapper
 #   was given `.bar { display: contents; }`, the Downloads panel's progress
 #   bars, already called .bar, turned into tall green blocks.
+# - A text box set to grow (`flex: 1`) without `min-width: 0`. An input won't
+#   shrink below its natural width otherwise, so in a narrow window the add
+#   box's + button spilled out of the box and under Sync.
 #
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -26,5 +29,10 @@ twice=$(grep -oE '^\.[a-zA-Z][a-zA-Z0-9_-]* \{' src/styles.css | sort | uniq -d 
 $twice
 If they are one thing, merge the rules. If they are two things that share a name, rename one."
 
-[ "$fail" -eq 0 ] && echo "✓ css: every font line applies, and each class's base rule is in one place"
+stiff=$(grep -nE '^[^{]*input[^{]*\{[^}]*flex: *1' src/styles.css | grep -v 'min-width: *0' || true)
+[ -z "$stiff" ] || say "an input in src/styles.css grows with flex but can't shrink, so in a narrow window it pushes the buttons beside it out of their box:
+$stiff
+Add min-width: 0; to the rule."
+
+[ "$fail" -eq 0 ] && echo "✓ css: every font line applies, each class's base rule is in one place, and every growing input can shrink"
 exit "$fail"
