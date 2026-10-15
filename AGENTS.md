@@ -70,3 +70,7 @@ time. A call about one feature is in that feature's file, under Calls.
   Its width holds near the head and eases off (a cosine), since thinning
   straight after the head looked like a ball with a trail (2026-10-14). The
   more even taper felt better.
+- 2026-10-14. Cookies are a last resort: they tie what Vault does to your
+  YouTube account, which can get it flagged. Vault works without them and
+  waits out a bot check before suggesting them. Members-only videos are
+  the one thing that needs them.
