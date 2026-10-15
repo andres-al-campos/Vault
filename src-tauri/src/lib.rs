@@ -595,6 +595,12 @@ fn is_missing_tab(stderr: &str) -> bool {
     l.contains("this channel does not have a") && l.contains(" tab")
 }
 
+/// Whether a line of yt-dlp output is YouTube's bot check. yt-dlp writes it
+/// with a curly apostrophe ("you’re"); older versions used a straight one.
+fn is_bot_check(line: &str) -> bool {
+    line.to_lowercase().replace('’', "'").contains("sign in to confirm you're not a bot")
+}
+
 /// Map a line of yt-dlp output to a short, human reason. The first match wins,
 /// so the specific cases are checked before the generic ones.
 fn classify_failure(line: &str) -> Option<&'static str> {
@@ -606,10 +612,10 @@ fn classify_failure(line: &str) -> Option<&'static str> {
     if has("private video") || has("this video is private") {
         return Some("Private");
     }
-    // The bot check names the fix in its own message, so the reason does too:
-    // cookies are the workaround when YouTube starts rate-limiting this IP.
-    if has("sign in to confirm you're not a bot") {
-        return Some("YouTube bot check — set cookies");
+    // The queue waits this one out and tries again (see botCheck in
+    // main.js), so the reason is matched there word for word.
+    if is_bot_check(line) {
+        return Some("YouTube bot check");
     }
     // Wrong/keyring-locked browser or no logged-in session: yt-dlp names the
     // browser and the operation in its message.
@@ -655,11 +661,11 @@ fn classify_failure(line: &str) -> Option<&'static str> {
 /// command-line flag nobody using the app can pass.
 fn lookup_failure(stderr: &str, cookies: Option<&str>) -> String {
     let last = stderr.trim().lines().last().unwrap_or("yt-dlp failed");
-    if !last.to_lowercase().contains("sign in to confirm you're not a bot") {
+    if !is_bot_check(last) {
         return last.to_string();
     }
     match cookies.filter(|c| !c.is_empty()) {
-        None => "YouTube wants to check you're not a bot. Pick the browser you're signed into YouTube with from the cookie menu in the top bar, then try again.".to_string(),
+        None => "YouTube wants to check you're not a bot. It usually lets up after a while, so try again later. If it doesn't, pick the browser you're signed into YouTube with from the cookie menu in the top bar.".to_string(),
         Some(id) => {
             // Named as the cookie menu names it: "firefox" reads "Firefox".
             let browser = id[..1].to_uppercase() + &id[1..];
@@ -2092,8 +2098,8 @@ mod tests {
         assert_eq!(classify_failure("ERROR: Requested format is not available"), Some("No downloadable format"));
         assert_eq!(classify_failure("ERROR: Private video. Sign in if you've been granted access"), Some("Private"));
         assert_eq!(
-            classify_failure("ERROR: [youtube] abc: Sign in to confirm you're not a bot. Use --cookies-from-browser"),
-            Some("YouTube bot check — set cookies")
+            classify_failure("ERROR: [youtube] abc: Sign in to confirm you’re not a bot. Use --cookies-from-browser"),
+            Some("YouTube bot check")
         );
         // Progress lines must not be mistaken for failures.
         assert_eq!(classify_failure("[download]  42.0% of 10.00MiB at 2.00MiB/s"), None);
@@ -2154,7 +2160,8 @@ mod tests {
 
     #[test]
     fn a_bot_check_on_lookup_says_what_to_do_in_the_app() {
-        let bot = "WARNING: x\nERROR: [youtube] abc: Sign in to confirm you're not a bot. Use --cookies-from-browser or --cookies";
+        // Word for word as yt-dlp 2026.08.19 printed it, curly apostrophe and all.
+        let bot = "WARNING: x\nERROR: [youtube] abc: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies";
         let none = lookup_failure(bot, None);
         assert!(none.contains("cookie menu") && !none.contains("--cookies"), "{none}");
         assert_eq!(lookup_failure(bot, Some("")), none);

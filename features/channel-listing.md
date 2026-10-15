@@ -54,8 +54,10 @@ Type a channel and see its videos as cards.
   If the page doesn't say, YouTube's oEmbed answer is asked (public and
   unlisted videos, by handle), and last yt-dlp, which the bot check can stop.
 - When YouTube's bot check stops a channel's list or a video link's lookup,
-  the message says to pick a browser in the cookie menu, or, with one picked,
-  to open youtube.com in it and check the sign-in. yt-dlp's own advice is a
+  the message says it usually lets up and to try again later, and to pick a
+  browser in the cookie menu if it doesn't; with one picked, to open
+  youtube.com in it and check the sign-in. Downloads wait it out by
+  themselves; see [download-queue.md](download-queue.md). yt-dlp's own advice is a
   command-line flag. On 2026-10-14 it stopped a one-video lookup without
   cookies while channel lists still loaded without them.
 
