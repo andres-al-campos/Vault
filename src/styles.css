@@ -392,7 +392,11 @@ body {
 .filters { position: relative; display: flex; gap: 2px; background: var(--chip); border: 1px solid var(--chip-line);
   border-radius: 10px; }
 .pill { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted2); font-weight: 600; font-size: var(--ctl-text); font-family: inherit;
-  height: 33px; padding: 0 12px; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  height: 33px; padding: 0 12px; border-radius: 9px; cursor: pointer; display: grid; align-items: center; }
+/* A button is as wide as its widest number on this channel (.pill-room,
+   hidden), so it holds still as counts change; what's shown is centred. */
+.pill-in { grid-area: 1 / 1; justify-self: center; display: flex; align-items: center; gap: 6px; }
+.pill-room { visibility: hidden; }
 .pill:hover { color: var(--text); }
 .pill.active { color: var(--text); }
 /* The fill is its own element, so it can slide from the last choice to the

@@ -708,8 +708,10 @@ function renderControls(now) {
     archived: filters.have === "archived",
     not: filters.have === "not",
   };
+  // A hidden copy with the widest number holds the button's width, and the
+  // shown label and number sit centred over it.
   const pill = (key, label, slot, { counts, widest }) =>
-    `<button class="pill ${lit[key] ? "active" : ""}" data-pick="${key}" data-slot="${slot}">${label} <span class="n" style="min-width: ${String(widest[key]).length}ch">${counts[key]}</span></button>`;
+    `<button class="pill ${lit[key] ? "active" : ""}" data-pick="${key}" data-slot="${slot}"><span class="pill-in">${label} <span class="n">${counts[key]}</span></span><span class="pill-in pill-room" aria-hidden="true">${label} <span class="n">${widest[key]}</span></span></button>`;
   const group = (v) => `<div class="filters">${pill("all", "All", "access", v)}${pill("public", "Public", "access", v)}${pill("members", "Members", "access", v)}<span class="pill-sep"></span>${pill("archived", "Archived", "have", v)}${pill("not", "Not archived", "have", v)}</div>`;
 
   // The filters and sort sit on one row; the download button rides the tab
