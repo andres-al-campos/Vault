@@ -23,8 +23,8 @@ Queue videos and watch them download one at a time in the sidebar.
 - A failed row shows why and gets its own Retry and ✕.
 - A finished row plays the video, as Play on its card does, from its
   thumbnail or its title, with ⌘-click opening it in the background; see
-  [player.md](player.md). Its thumbnail carries the player's play mark at
-  half strength, full on hover with the image dimmed. It works for a row from
+  [player.md](player.md). Its thumbnail carries the player's play mark,
+  and hover dims the image. It works for a row from
   a channel that isn't on screen.
 - A download stopped by YouTube's bot check doesn't fail. The check is on
   the network, not the video, so the whole line rests: the video goes back
@@ -110,8 +110,8 @@ waiting". Queueing onto an empty queue brought a hidden panel back; queueing
 a second while the first ran left it hidden.
 Play from a finished row, 2026-10-15 in the stand-in: two downloads finished,
 both titles took the pointer, and clicking one opened it in a player tab
-(`player_load` with its file). The play mark showed on finished rows only, at
-0.5, centred on the thumbnail; clicking the thumbnail opened the player too. Not driven: a row from another channel, and a
+(`player_load` with its file). The play mark showed on finished rows only,
+centred on the thumbnail; clicking the thumbnail opened the player too. Not driven: a row from another channel, and a
 click in the moment before the archive read lands.
 
 ## Calls
@@ -138,8 +138,9 @@ time.
   an empty panel took a third of the window to say nothing was queued.
   Queueing onto an empty queue opens it again, so a new download is seen.
 - 2026-10-15. A finished row can be played, and its thumbnail shows it: the
-  player's play mark at half strength. A clickable title alone gave no sign
-  that anything could be done. The mark is the player's, not the card's ▶.
+  player's play mark at full strength (half was too faint). A clickable
+  title alone gave no sign that anything could be done. The mark is the
+  player's, not the card's ▶.
 
 ## Gotchas
 

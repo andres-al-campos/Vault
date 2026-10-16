@@ -315,14 +315,13 @@ body {
 .queue.sorting { cursor: grabbing; user-select: none; -webkit-user-select: none; }
 .qi[data-status="queued"] .bar > i { opacity: .45; }
 .qi img { width: 72px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; display: block; background: var(--chip); }
-/* A finished row says it can be played: the player's play mark, half
-   strength, full on hover with the image dimmed as on a card. */
+/* A finished row says it can be played: the player's play mark, always at
+   full strength; hover dims the image as on a card. */
 .qi .qthumb[data-play] { cursor: pointer; }
 .qi .qthumb[data-play] img { transition: 0.18s; }
 .qi .qthumb[data-play]:hover img { filter: brightness(0.72); }
 .qi .qplay { position: absolute; inset: 0; display: grid; place-items: center; color: #fff;
-  opacity: 0.5; transition: opacity 0.18s; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6)); }
-.qi .qthumb[data-play]:hover .qplay { opacity: 1; }
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6)); }
 .qi .m { flex: 1; min-width: 0; }
 /* Every row is the same height whatever its title's length or its state, so
    the ✕ of the next one lands under the pointer when a row is cancelled. */
