@@ -1343,7 +1343,9 @@ async function closeTab(id) {
 // Play on a card. With ⌘ held the video opens in a tab without leaving the
 // channel, the way a browser opens a link in the background.
 async function openVideo(id, { background = false } = {}) {
-  const entry = archived.get(id);
+  // A finished download in the sidebar can be from a channel not on screen,
+  // so fall back to the whole archive.
+  const entry = archived.get(id)?.path ? archived.get(id) : archive.find((e) => e.id === id && e.path);
   if (!entry?.path) return;
   if (watching() && !background) { await tick(); await keepStill(); }
   tabs.open({ id, path: entry.path, title: gridVideos.get(id)?.title ?? entry.title ?? id }, { background });
@@ -1671,7 +1673,7 @@ function renderQueue() {
       ${j.status === "queued" ? `<span class="grip live" data-grip title="Drag to change the order">${GRIP_ICON}</span>` : '<span class="grip"></span>'}
       <img src="${thumb(id)}" alt="">
       <div class="m">
-        <div class="t">${esc(j.title)}</div>
+        ${j.status === "done" ? `<div class="t play" data-play="${id}">${esc(j.title)}</div>` : `<div class="t">${esc(j.title)}</div>`}
         <div class="bar"><i class="${j.status === "done" ? "done" : ""}" style="width:${j.pct}%"></i></div>
         <div class="stat">
           <span class="grow ${j.status === "error" ? "reason" : ""}" title="${esc(statOf(j))}">${esc(statOf(j))}</span>
@@ -1760,7 +1762,16 @@ queueEl.addEventListener("click", async (e) => {
   }
 
   const retry = e.target.closest("[data-retry]");
-  if (retry) retryJob(retry.dataset.retry);
+  if (retry) return retryJob(retry.dataset.retry);
+
+  // A finished row's title plays it. Clicked right as it finishes, the
+  // archive read that brings its path may not have landed yet.
+  const play = e.target.closest("[data-play]");
+  if (play) {
+    const id = play.dataset.play;
+    if (!archive.some((a) => a.id === id && a.path)) await loadArchive();
+    openVideo(id, { background: e.metaKey });
+  }
 });
 
 function retryJob(id) {
