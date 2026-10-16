@@ -1,9 +1,13 @@
 # Vault - Channel Archiver
 
 A small desktop app around [yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a
-YouTube channel: fetch a channel, see every video as a card, download the ones you want.
-Downloads run one at a time and are recorded in an archive file in the channel's folder,
-so running it again later fetches only what's new.
+YouTube channel: fetch a channel, see every video as a card, download the ones you want,
+and watch them in its own player. Downloads run one at a time and are recorded in an
+archive file in the channel's folder, so running it again later fetches only what's new.
+
+[![Vault archiving NASA's channel: the ten most popular videos downloading, then one playing](docs/demo.jpg)](docs/demo.mp4)
+
+*[Watch the 20-second demo](docs/demo.mp4).*
 
 Built with [Tauri v2](https://tauri.app): a Rust backend that drives yt-dlp as a
 subprocess, and a plain HTML/CSS/JS frontend laid out like a YouTube channel page.
@@ -107,13 +111,14 @@ it already excludes shorts and past livestreams, so the main list stays clean.
 `Shorts` and `Live` are fetched the first time you open them, and kept in
 memory only (not persisted).
 
-Two filters, each with one choice at a time, narrow each other:
+The filters are one row: **All**, **Public**, **Members**, then **Archived** and
+**Not archived**. Public and Members take turns, as do Archived and Not archived,
+and one of each pair can be on together, so Members + Not archived is the
+members-only videos left to download. **All** switches them off. A video whose
+file has gone missing still counts as archived; its card says "File missing" and
+offers Download again.
 
-- **All / Public / Members** — shown only when the channel has members-only videos.
-- **All / Archived / Not archived** — a video whose file has gone missing still
-  counts as archived; its card says "File missing" and offers Download again.
-
-The number on each option is what choosing it would show. **Download all N**
+The number on each option is what switching it on would show. **Download all N**
 queues everything on screen that isn't already on disk. The arrow beside it
 sets the button to queue only the first 10, 25, 50 or 100 in the order shown,
 and queueing more than 100 at once asks first.
@@ -183,6 +188,7 @@ youtube-vault/
 │   ├── src/player.rs     the in-app player: libmpv under the web view
 │   ├── tauri.conf.json
 │   └── icons/
+├── docs/                 the demo video and its still
 ├── drive/                stand-in backend for clicking through the UI in a browser
 ├── features/             what each feature does and how it's checked
 ├── laws/                 checks run by ./build.sh check
