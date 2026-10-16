@@ -137,6 +137,9 @@ time.
   when it isn't, instead of as it was left: you come to Vault to watch, and
   an empty panel took a third of the window to say nothing was queued.
   Queueing onto an empty queue opens it again, so a new download is seen.
+- 2026-10-15. A finished row can be played, and its thumbnail shows it: the
+  player's play mark at half strength. A clickable title alone gave no sign
+  that anything could be done. The mark is the player's, not the card's ▶.
 
 ## Gotchas
 
@@ -161,6 +164,3 @@ time.
   exit. The first report wins.
 - Download buttons resolve through the list the grid rendered. Looking a video
   up in one tab's list is what left Shorts and Live buttons dead.
-- 2026-10-15. A finished row can be played, and its thumbnail shows it: the
-  player's play mark at half strength. A clickable title alone gave no sign
-  that anything could be done. The mark is the player's, not the card's ▶.
