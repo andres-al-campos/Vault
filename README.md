@@ -15,6 +15,9 @@ subprocess, and a plain HTML/CSS/JS frontend laid out like a YouTube channel pag
 
 ## Requirements
 
+A built app for Apple Silicon is on the [Releases](../../releases) page. It still needs
+yt-dlp, ffmpeg and mpv installed, as below; Rust and Node are only for building.
+
 - **yt-dlp** on the machine. The app looks in `~/.local/bin`, `/opt/homebrew/bin`, and
   `/usr/local/bin`, falling back to `yt-dlp` on `PATH`:
   ```sh
@@ -40,11 +43,16 @@ subprocess, and a plain HTML/CSS/JS frontend laid out like a YouTube channel pag
 ./build.sh dev       # hot-reload dev window
 ./build.sh check     # every check: JS and Rust unit tests, the feature-map law
 ./build.sh check net # also the live tests, which fetch real channels and download two short videos
+./build.sh package   # package the .app only, without installing it
 ./build.sh clean     # drop dist/ and src-tauri/target/
 ```
 
 The default replaces whatever copy is already in `/Applications/_vibe_coded`, ad-hoc
 signs it, and launches it — so a rebuild is the copy that opens, never last build's.
+
+`./release.sh` publishes the version in `src-tauri/tauri.conf.json` as a GitHub release,
+with the packaged app zipped. It refuses a dirty or unpushed tree and a version that's
+already out.
 
 ## How it works
 
@@ -173,8 +181,9 @@ that would be `SIGSTOP`/`SIGCONT`, which is fiddlier and was left out.
 ## Layout
 
 ```
-youtube-vault/
+Vault/
 ├── build.sh              the entry point (package / dev / check / clean)
+├── release.sh            cuts a GitHub release from a fresh package
 ├── index.html            UI shell
 ├── src/
 │   ├── boot.js           entry: loads the app, and the stand-in backend on a dev server
