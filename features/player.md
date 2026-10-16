@@ -8,7 +8,7 @@ videos sit in browser tabs through a day.
 
 - Play on an archived card opens the video in a tab and shows the player.
   ⌘-click opens the tab without leaving the channel. A finished download's
-  title in the Downloads sidebar does the same.
+  thumbnail or title in the Downloads sidebar does the same.
 - "Open videos N" in the top bar goes back to the player. It shows only while
   tabs are open.
 - Switching to a tab, or coming back through "Open videos", brings the video
@@ -48,8 +48,8 @@ videos sit in browser tabs through a day.
 
 ## How to get to it
 
-Play on any archived card (the thumbnail or the button under it), the title
-of a finished download in the sidebar, or "Open videos" in the top bar.
+Play on any archived card (the thumbnail or the button under it), the thumbnail
+or title of a finished download in the sidebar, or "Open videos" in the top bar.
 
 ## Driving it
 

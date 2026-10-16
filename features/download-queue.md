@@ -21,9 +21,11 @@ Queue videos and watch them download one at a time in the sidebar.
   same order, and starts again at launch unless the queue was paused.
   Finished and failed rows aren't remembered.
 - A failed row shows why and gets its own Retry and ✕.
-- A finished row's title plays the video, as Play on its card does, with
-  ⌘-click opening it in the background; see [player.md](player.md). It works
-  for a row from a channel that isn't on screen.
+- A finished row plays the video, as Play on its card does, from its
+  thumbnail or its title, with ⌘-click opening it in the background; see
+  [player.md](player.md). Its thumbnail carries the player's play mark at
+  half strength, full on hover with the image dimmed. It works for a row from
+  a channel that isn't on screen.
 - A download stopped by YouTube's bot check doesn't fail. The check is on
   the network, not the video, so the whole line rests: the video goes back
   to its place, its row reads "Bot check · again at 14:32", the header says
@@ -108,7 +110,8 @@ waiting". Queueing onto an empty queue brought a hidden panel back; queueing
 a second while the first ran left it hidden.
 Play from a finished row, 2026-10-15 in the stand-in: two downloads finished,
 both titles took the pointer, and clicking one opened it in a player tab
-(`player_load` with its file). Not driven: a row from another channel, and a
+(`player_load` with its file). The play mark showed on finished rows only, at
+0.5, centred on the thumbnail; clicking the thumbnail opened the player too. Not driven: a row from another channel, and a
 click in the moment before the archive read lands.
 
 ## Calls
@@ -158,3 +161,6 @@ time.
   exit. The first report wins.
 - Download buttons resolve through the list the grid rendered. Looking a video
   up in one tab's list is what left Shorts and Live buttons dead.
+- 2026-10-15. A finished row can be played, and its thumbnail shows it: the
+  player's play mark at half strength. A clickable title alone gave no sign
+  that anything could be done. The mark is the player's, not the card's ▶.

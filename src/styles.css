@@ -303,7 +303,7 @@ body {
 .queue { flex: 1; overflow: auto; padding: 6px 0 20px; }
 
 .qi { padding: 12px 20px 12px 0; border-bottom: 1px solid var(--line2); display: flex; gap: 0; }
-.qi img { margin-right: 12px; }
+.qi .qthumb { position: relative; flex: none; align-self: flex-start; margin-right: 12px; }
 /* A waiting row is dragged by its grip to a new place in the line. The grip
    sits midway between the panel's edge and the thumbnail. */
 .grip { width: 20px; flex: none; display: grid; place-items: center; color: var(--muted); }
@@ -314,7 +314,15 @@ body {
 .qi.drop-after { box-shadow: inset 0 -2px 0 var(--on); }
 .queue.sorting { cursor: grabbing; user-select: none; -webkit-user-select: none; }
 .qi[data-status="queued"] .bar > i { opacity: .45; }
-.qi img { width: 72px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; flex: none; background: var(--chip); }
+.qi img { width: 72px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover; display: block; background: var(--chip); }
+/* A finished row says it can be played: the player's play mark, half
+   strength, full on hover with the image dimmed as on a card. */
+.qi .qthumb[data-play] { cursor: pointer; }
+.qi .qthumb[data-play] img { transition: 0.18s; }
+.qi .qthumb[data-play]:hover img { filter: brightness(0.72); }
+.qi .qplay { position: absolute; inset: 0; display: grid; place-items: center; color: #fff;
+  opacity: 0.5; transition: opacity 0.18s; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6)); }
+.qi .qthumb[data-play]:hover .qplay { opacity: 1; }
 .qi .m { flex: 1; min-width: 0; }
 /* Every row is the same height whatever its title's length or its state, so
    the ✕ of the next one lands under the pointer when a row is cancelled. */

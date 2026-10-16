@@ -1671,7 +1671,9 @@ function renderQueue() {
     return `
     <div class="qi" data-id="${id}" data-status="${j.status}">
       ${j.status === "queued" ? `<span class="grip live" data-grip title="Drag to change the order">${GRIP_ICON}</span>` : '<span class="grip"></span>'}
-      <img src="${thumb(id)}" alt="">
+      ${j.status === "done"
+        ? `<span class="qthumb" data-play="${id}"><img src="${thumb(id)}" alt=""><span class="qplay">${PLAY_ICON}</span></span>`
+        : `<span class="qthumb"><img src="${thumb(id)}" alt=""></span>`}
       <div class="m">
         ${j.status === "done" ? `<div class="t play" data-play="${id}">${esc(j.title)}</div>` : `<div class="t">${esc(j.title)}</div>`}
         <div class="bar"><i class="${j.status === "done" ? "done" : ""}" style="width:${j.pct}%"></i></div>
