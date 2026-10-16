@@ -84,8 +84,30 @@ if (scenario === "library") {
 const film = { path: null, position: 0, duration: 40, paused: true, at: 0 };
 function filmNow() {
   const now = Date.now();
-  if (film.path && !film.paused) film.position = Math.min(film.duration, film.position + (now - film.at) / 1000);
+  if (screen?.src) { film.position = screen.currentTime; film.paused = screen.paused; }
+  else if (film.path && !film.paused) film.position = Math.min(film.duration, film.position + (now - film.at) / 1000);
   film.at = now;
+}
+
+// A real picture, when a clip of the video is in drive/media/<id>.webm
+// (fetched by hand with yt-dlp, gitignored): it plays under the page where
+// mpv would draw, and the clock follows it. The time shown is the listing's,
+// so a short clip of a long video reads as the long one.
+const clips = import.meta.glob("./media/*.webm", { eager: true, query: "?url", import: "default" });
+let screen = null;
+let place = { display: "none" }; // where the page last put the picture
+function clipFor(path) {
+  const id = path?.match(/\[([\w-]{11})\]\.\w+$/)?.[1];
+  return id && clips[`./media/${id}.webm`] ? { id, url: clips[`./media/${id}.webm`] } : null;
+}
+function screenEl() {
+  if (screen) return screen;
+  screen = document.createElement("video");
+  screen.muted = true;
+  screen.playsInline = true;
+  Object.assign(screen.style, { position: "fixed", zIndex: "-1", objectFit: "contain", background: "#000" }, place);
+  document.documentElement.appendChild(screen);
+  return screen;
 }
 
 const running = new Map(); // id -> interval
@@ -182,7 +204,15 @@ const commands = {
   // The player: no picture here, only a clock that runs while it's playing.
   player_load({ path, start, paused }) {
     if (/unplayable/.test(path)) throw `The file isn't there: ${path}. If it's on an external drive, connect it; otherwise press Sync and download it again.`;
-    Object.assign(film, { path, position: start, paused, at: Date.now() });
+    Object.assign(film, { path, position: start, paused, at: Date.now(), duration: 40 });
+    const clip = clipFor(path);
+    if (clip) {
+      const v = screenEl();
+      film.duration = [...videos, ...shorts].find((x) => x.id === clip.id)?.duration ?? 40;
+      v.src = clip.url;
+      v.currentTime = start;
+      if (paused) v.pause(); else v.play().catch(() => {});
+    } else if (screen) screen.removeAttribute("src");
     return null;
   },
   player_set({ action, value }) {
@@ -191,6 +221,12 @@ const commands = {
     if (action === "pause") film.paused = true;
     if (action === "seek") film.position = value;
     if (action === "stop") film.path = null;
+    if (screen?.src) {
+      if (action === "play") screen.play().catch(() => {});
+      if (action === "pause") screen.pause();
+      if (action === "seek") screen.currentTime = value;
+      if (action === "stop") screen.removeAttribute("src");
+    }
     if (action === "mute") film.muted = !film.muted;
     return null;
   },
@@ -199,7 +235,11 @@ const commands = {
     const ended = film.position >= film.duration;
     return { position: film.position, duration: film.duration, paused: film.paused || ended, ended, path: film.path, muted: !!film.muted, ready: !!film.path };
   },
-  player_place: () => null,
+  player_place({ visible, x, top, w, h }) {
+    place = { display: visible ? "block" : "none", left: `${x}px`, top: `${top}px`, width: `${w}px`, height: `${h}px` };
+    if (screen) Object.assign(screen.style, place);
+    return null;
+  },
   // No picture to save here.
   player_still: () => null,
   player_fullscreen: ({ on }) => on ?? false,

@@ -11,3 +11,6 @@ src-tauri/icon-src.png
 # Mockups and plans stay local
 designs/
 plans/
+
+# Real clips the stand-in plays, fetched by hand (see drive/fake-backend.js)
+drive/media/

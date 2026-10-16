@@ -61,8 +61,15 @@ By click against the stand-in (`?scenario=library`): its player is a clock
 with no picture, every video 40 seconds long. It shows opening, switching,
 resume after a reload, replay at the end, Space, Esc and closing.
 
-By hand only: the picture itself. mpv draws it in a view under the web view,
-and neither the tests nor the stand-in have one.
+With a clip of the video in `drive/media/<id>.webm` (gitignored; fetch the
+first seconds with `yt-dlp --download-sections "*0-22"` and convert to VP9,
+which every Chromium plays), the stand-in plays it in a `<video>` under the
+page where mpv would draw, and the clock follows it. Used with
+`&fixture=nasa` and `Ke6XX8FHOHM` for the portfolio demo, 2026-10-15: the
+cover faded into the picture, it played at speed, and a click paused it.
+
+By hand only: mpv's own picture (scaling, colour, the frame saved on
+leaving). Chrome's `<video>` stands in for it above.
 
 Last driven: 2026-10-12, stand-in. Two tabs opened, one in the background;
 switching away and back reloaded the first at 1.2s; after a reload the active

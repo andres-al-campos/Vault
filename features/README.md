@@ -46,7 +46,8 @@ To click through the UI, start the `vault-drive` server from
 loads a stand-in backend, `drive/fake-backend.js`, which answers every command
 from a recorded channel listing and plays downloads on a timer. Its header
 lists the scenarios and switches (`fresh`, `library`, `corrupt`, `failtab=`,
-`fail=`, `speed=`, `fixture=nasa`), and `window.__drive.log` records every command the page
+`fail=`, `speed=`, `fixture=nasa`), and a clip in `drive/media/` gives its
+player a picture (see [player.md](player.md)), and `window.__drive.log` records every command the page
 sent. This proves the frontend only: the real yt-dlp path is the Rust tests.
 
 The packaged app's own window can't be driven; what the stand-in can't show
