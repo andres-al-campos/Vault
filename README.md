@@ -1,13 +1,11 @@
 # Vault - Channel Archiver
 
-A small desktop app around [yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a
+A desktop app around [yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a
 YouTube channel: fetch a channel, see every video as a card, download the ones you want,
 and watch them in its own player. Downloads run one at a time and are recorded in an
 archive file in the channel's folder, so running it again later fetches only what's new.
 
-[![Vault archiving NASA's channel: the ten most popular videos downloading, then one playing](docs/demo.webp)](docs/demo.mp4)
-
-*The same tour [as a video](docs/demo.mp4), to pause or scrub.*
+![Vault archiving NASA's channel: the ten most popular videos downloading, then one playing](docs/demo.webp)
 
 Built with [Tauri v2](https://tauri.app): a Rust backend that drives yt-dlp as a
 subprocess, and a plain HTML/CSS/JS frontend laid out like a YouTube channel page.
@@ -197,7 +195,7 @@ Vault/
 │   ├── src/player.rs     the in-app player: libmpv under the web view
 │   ├── tauri.conf.json
 │   └── icons/
-├── docs/                 the demo video, and an animated copy for this page
+├── docs/                 the demo, animated, for this page
 ├── drive/                stand-in backend for clicking through the UI in a browser
 ├── features/             what each feature does and how it's checked
 ├── laws/                 checks run by ./build.sh check
