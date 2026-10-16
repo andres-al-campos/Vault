@@ -5,6 +5,7 @@
 # /Applications/_vibe_coded replacing the last one, and launches it.
 #
 #   ./build.sh              package the .app and install it, the default
+#   ./build.sh package      package the .app only, signed, for release.sh to zip
 #   ./build.sh dev          dev run with a hot-reload window
 #   ./build.sh check        run every check: the JS and Rust unit tests (fast, no network)
 #   ./build.sh check net    also run the live tests that fetch real channels
@@ -87,7 +88,7 @@ kill_running() {
 # .icns Tauri bundles stays in the app for older macOS. This runs before the
 # signing below, since it changes the bundle.
 layered_icon() {
-  local out=src-tauri/target/layered-icon
+  local app=$1 out=src-tauri/target/layered-icon
   if ! xcrun --find actool >/dev/null 2>&1; then
     echo "Xcode's actool wasn't found, so the app keeps its old-format icon and macOS 26 will draw its V pink. Install Xcode 26 or later, run 'sudo xcode-select -s /Applications/Xcode.app', then re-run ./build.sh." >&2
     return 0
@@ -98,9 +99,31 @@ layered_icon() {
     --output-partial-info-plist "$out/partial.plist" >/dev/null \
     || die "actool couldn't compile src-tauri/Vault.icon. Run the actool command in build.sh's layered_icon by hand to see its errors; icon.json or Assets/v.svg is likely malformed."
   [ -f "$out/Assets.car" ] || die "actool ran but wrote no Assets.car, which needs Xcode 26 or later. Check 'xcodebuild -version', update Xcode, then re-run ./build.sh."
-  cp "$out/Assets.car" "${INSTALLED_APP}/Contents/Resources/Assets.car"
-  /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string Vault" "${INSTALLED_APP}/Contents/Info.plist" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Set :CFBundleIconName Vault" "${INSTALLED_APP}/Contents/Info.plist"
+  cp "$out/Assets.car" "$app/Contents/Resources/Assets.car"
+  /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string Vault" "$app/Contents/Info.plist" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Set :CFBundleIconName Vault" "$app/Contents/Info.plist"
+}
+
+# Build the .app, give it the layered icon, and ad-hoc sign it. Both the
+# install below and release.sh start from this bundle, so what gets released is
+# what runs here.
+package() {
+  require_ytdlp
+  require_mpv
+
+  echo "Building ${APP_NAME}.app …"
+  # --bundles app rather than the config default, so this never wanders into
+  # producing a .dmg it has nowhere to put.
+  npm run tauri build -- --bundles app
+
+  [ -d "$BUILT_APP" ] || die "The build finished but ${BUILT_APP} isn't there.
+Re-run without --bundles app and check the packaging output above."
+
+  layered_icon "$BUILT_APP"
+
+  # Ad-hoc sign so Gatekeeper lets a locally built, unsigned app launch. Not a
+  # Developer ID signature: a downloaded copy still has to be un-quarantined.
+  codesign --force --deep --sign - "$BUILT_APP" >/dev/null 2>&1 || true
 }
 
 case "${1:-}" in
@@ -135,24 +158,21 @@ case "${1:-}" in
     exit 0
     ;;
 
+  package)
+    package
+    echo "Packaged ${BUILT_APP}"
+    exit 0
+    ;;
+
   '') ;;  # the default: package and install, handled below
 
   *)
     die "Unknown argument: $1
-Usage: ./build.sh [dev|check [net]|clean]   (no argument packages and installs)"
+Usage: ./build.sh [dev|check [net]|package|clean]   (no argument packages and installs)"
     ;;
 esac
 
-require_ytdlp
-require_mpv
-
-echo "Building ${APP_NAME}.app …"
-# --bundles app rather than the config default, so this never wanders into
-# producing a .dmg it has nowhere to put.
-npm run tauri build -- --bundles app
-
-[ -d "$BUILT_APP" ] || die "The build finished but ${BUILT_APP} isn't there.
-Re-run without --bundles app and check the packaging output above."
+package
 
 mkdir -p "$INSTALL_DIR"
 echo "Installing to ${INSTALLED_APP} …"
@@ -160,12 +180,7 @@ kill_running
 rm -rf "$INSTALLED_APP"
 cp -R "$BUILT_APP" "$INSTALLED_APP"
 
-layered_icon
-
-# Ad-hoc sign so Gatekeeper lets a locally built, unsigned app launch, and drop
-# any quarantine flag the copy inherited. Local use only — not a distributable
-# signature.
-codesign --force --deep --sign - "$INSTALLED_APP" >/dev/null 2>&1 || true
+# Drop any quarantine flag the copy inherited.
 xattr -dr com.apple.quarantine "$INSTALLED_APP" 2>/dev/null || true
 
 echo "Launching ${APP_NAME} …"
