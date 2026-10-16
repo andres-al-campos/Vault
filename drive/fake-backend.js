@@ -22,19 +22,26 @@
 //   &many=<n>           the Videos list repeated up to n entries, for a long grid
 //   &retitle=1          a video's own lookup returns another title than the
 //                       channel's list, as YouTube's translated titles do
+//   &fixture=nasa       NASA's channel (120 recent videos, recorded 2026-10-15)
+//                       instead of bill wurtz, for footage that's fine to show
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
-import recorded from "./fixtures/channel.json";
+import billwurtz from "./fixtures/channel.json";
+import nasa from "./fixtures/nasa.json";
+// Served from here: Chrome blocks Google's copy of the avatar now and then.
+import nasaAvatar from "./fixtures/nasa-avatar.jpg";
+import nasaBanner from "./fixtures/nasa-banner.jpg";
 
 const q = new URLSearchParams(location.search);
+const recorded = q.get("fixture") === "nasa" ? { ...nasa, about: { ...nasa.about, avatar: nasaAvatar, banner: nasaBanner } } : billwurtz;
 const scenario = q.get("scenario") || "fresh";
 const speed = Number(q.get("speed") || 1500);
 const failOnce = new Set((q.get("fail") || "").split(",").filter(Boolean));
 let botChecks = Number(q.get("bot") || 0);
 const failTabOnce = new Set((q.get("failtab") || "").split(",").filter(Boolean));
 
-const URL_ = "https://www.youtube.com/@billwurtz";
-const DIR = "/Volumes/Archive/bill wurtz";
+const URL_ = recorded.url ?? "https://www.youtube.com/@billwurtz";
+const DIR = recorded.dir ?? "/Volumes/Archive/bill wurtz";
 // The recorded listing has no members-only videos, so the library scenario
 // marks a few. That flag is the one invented thing in the fixture.
 // The recording predates dates in the listing: space them three weeks apart.
@@ -47,7 +54,7 @@ for (let i = 0, n = videos.length; videos.length < Number(q.get("many") || 0); i
 const shorts = recorded.videos.slice(40, 48).map((v) => ({ ...v, id: v.id, duration: null }));
 
 // As the real listing returns them, flattened onto the channel.
-const about = {
+const about = recorded.about ?? {
   avatar: "https://yt3.googleusercontent.com/ytc/AIdro_lCR9X7hGA1PPZH2S3LL1S8eBwQL0N3xaC75J3fPe8Cs6I=s900-c-k-c0x00ffffff-no-rj",
   banner: "https://yt3.googleusercontent.com/7yGjwamL8Fe_G8_k-_C9nUWvCr4HN0KOb7NVuaRZFyov1W6mTFx8i9uutSB23e8jasxVbCCzyA=w1707-fcrop64=1,00005a57ffffa5a8-k-c0xffffffff-no-nd-rj",
   followers: 5540000,
