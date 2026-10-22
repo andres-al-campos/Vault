@@ -1,5 +1,7 @@
 # Player
 
+Updated 2026-10-15 21:44, at 0.1.0.
+
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
 videos sit in browser tabs through a day.
@@ -81,22 +83,22 @@ it from 0.
 Look-and-feel calls made for this feature, with the reason given at the
 time.
 
-- 2026-10-12. The player's tabs look and feel like a browser's tab strip
+- 2026-10-22 18:56, 0.1.0. The player's tabs look and feel like a browser's tab strip
   (Chrome's was the reference, without the site icon): a raised fill for the
   one on screen, hairlines between the rest, close on hover, the full title
   on a card below. Asked for by that look; the filters keep their own.
   No hairline beside the tab on screen: it looked better without. So that
   tab's edge can mark where its neighbour ends, the bar leaves little space
   above and below it.
-- 2026-10-12. The player's top and bottom bars are the same height, and
+- 2026-10-22 18:56, 0.1.0. The player's top and bottom bars are the same height, and
   short: more of the window goes to the video.
-- 2026-10-12. The video is shown as sRGB, not pushed to the screen's full
+- 2026-10-22 18:56, 0.1.0. The video is shown as sRGB, not pushed to the screen's full
   gamut: the more saturated picture looked unrealistic.
-- 2026-10-12. The seek bar is YouTube's red, as an extra touch of YouTube. The
+- 2026-10-22 18:56, 0.1.0. The seek bar is YouTube's red, as an extra touch of YouTube. The
   same red marks progress on a tab's hover card.
-- 2026-10-13. Fullscreen is the button or F. No double-click: two ways in
+- 2026-10-22 18:56, 0.1.0. Fullscreen is the button or F. No double-click: two ways in
   are enough.
-- 2026-10-13. Pointing ahead on the seek bar shows a grey bar up to the
+- 2026-10-22 18:56, 0.1.0. Pointing ahead on the seek bar shows a grey bar up to the
   pointer, as most players do, in the volume bar's grey.
 
 ## Gotchas

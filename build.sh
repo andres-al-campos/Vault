@@ -20,6 +20,8 @@ set -euo pipefail
 
 # Run from the repo root regardless of where this is called from.
 cd "$(dirname "$0")"
+# The pre-commit hook stamps the docs a commit changes (hooks/stamp-docs.mjs).
+git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath hooks || true
 
 APP_NAME=Vault
 INSTALL_DIR=/Applications/_vibe_coded
@@ -136,6 +138,7 @@ case "${1:-}" in
     ./laws/feature-map.sh
     ./laws/one-loud-button.sh
     ./laws/css.sh
+    ./laws/doc-stamps.sh
     # The frontend's pure modules run under node's own test runner. The glob is
     # quoted so node expands it; a bare directory argument is read as a module.
     node --test 'src/*.test.js'

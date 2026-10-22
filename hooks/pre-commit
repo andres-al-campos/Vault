@@ -1,0 +1,3 @@
+#!/bin/sh
+# Stamps the docs this commit changes; see stamp-docs.mjs.
+exec node "$(dirname "$0")/stamp-docs.mjs"

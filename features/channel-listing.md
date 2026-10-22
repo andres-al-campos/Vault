@@ -1,5 +1,7 @@
 # Channel listing
 
+Updated 2026-10-14 19:49, at 0.1.0.
+
 Type a channel and see its videos as cards.
 
 ## Sub-features
@@ -109,8 +111,8 @@ when the turn ended. The bot-check message, in the Rust unit tests.
 Look-and-feel calls made for this feature, with the reason given at the
 time.
 
-- 2026-10-12. Titles aren't recorded: YouTube videos get renamed.
-- 2026-10-14. Sync shows it's working: the arrow turns and the button is
+- 2026-10-22 18:56, 0.1.0. Titles aren't recorded: YouTube videos get renamed.
+- 2026-10-22 18:56, 0.1.0. Sync shows it's working: the arrow turns and the button is
   greyed out and can't be pressed until the arrow stops, so it says both
   that the work is happening and that a second click won't do more. A click
   with nothing to see read as ignored. Green, the colour of a card

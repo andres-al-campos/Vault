@@ -1,5 +1,7 @@
 # Browsing a channel
 
+Updated 2026-10-14 20:28, at 0.1.0.
+
 A channel's videos as a grid of cards under a YouTube-style header, narrowed by
 what you have and what you can get.
 
@@ -120,63 +122,63 @@ Members again left Not archived 54; All cleared it.
 Look-and-feel calls made for this feature, with the reason given at the
 time.
 
-- 2026-10-12. Members-only badges stay green, as on YouTube's own thumbnails.
-- 2026-10-12. A card keeps its footer button, so download progress shows on
+- 2026-10-22 18:56, 0.1.0. Members-only badges stay green, as on YouTube's own thumbnails.
+- 2026-10-22 18:56, 0.1.0. A card keeps its footer button, so download progress shows on
   the card itself.
-- 2026-10-12. "File missing" shows on the card only, not as a filter: a file
+- 2026-10-22 18:56, 0.1.0. "File missing" shows on the card only, not as a filter: a file
   can only be missing if it was archived.
-- 2026-10-13. Download reads "Download all N": "shown" wasn't saying much.
-- 2026-10-13. Five cards across at most: six was too many, and a sixth
+- 2026-10-22 18:56, 0.1.0. Download reads "Download all N": "shown" wasn't saying much.
+- 2026-10-22 18:56, 0.1.0. Five cards across at most: six was too many, and a sixth
   appearing and going as the Downloads panel closed and opened made the grid
   jitter. With the panel hidden the cards get bigger.
-- 2026-10-13. The chosen filter has an outline in the text colour, white in
+- 2026-10-22 18:56, 0.1.0. The chosen filter has an outline in the text colour, white in
   the dark theme, around its tint: the tint alone was too low in contrast to
   see which one was chosen.
-- 2026-10-14. Search is for the channel on screen only, for simplicity. It
+- 2026-10-22 18:56, 0.1.0. Search is for the channel on screen only, for simplicity. It
   searches what the filters leave, with one button to search under All
   instead, which goes once pressed. The filters stay in view, and the sort
   moved to the left of the row to make room for the box on the right.
-- 2026-10-14. A search doesn't change the numbers on the filters. Instead
+- 2026-10-22 18:56, 0.1.0. A search doesn't change the numbers on the filters. Instead
   the box says how many of its matches are on screen, "2 of 15", and the
   button reads "Show all 15".
-- 2026-10-14. The sort button keeps one width, its longest choice, with the
+- 2026-10-22 18:56, 0.1.0. The sort button keeps one width, its longest choice, with the
   text on the left: a width that changed with the choice moved the row.
-- 2026-10-14. The chosen filter's outline is the group's full height, on
+- 2026-10-22 18:56, 0.1.0. The chosen filter's outline is the group's full height, on
   the group's own border, so it is as tall as the sort button and search box
   beside it: a shorter box next to taller ones looked off.
-- 2026-10-14. The filters are one row with one All. Two groups each with
+- 2026-10-22 18:56, 0.1.0. The filters are one row with one All. Two groups each with
   its own All was weird. Members and an archive state can still be on
   together. The line between Members and the archive pair was the user's
   condition for it: without it, which ones take turns would be confusing.
   It is two-thirds of the option's height: shorter, it looked too small.
   Public only, hiding members-only videos, went with it; Download all already
   skips the ones it can't get. Members shows even at 0.
-- 2026-10-14. Public is an option again, beside Members: All / Public /
+- 2026-10-22 18:56, 0.1.0. Public is an option again, beside Members: All / Public /
   Members is what people expect from YouTube. (Earlier the same day it was
   dropped, as not worth a fifth option while Download all skips what it
   can't get.)
-- 2026-10-14. The filter numbers count to a new value instead of changing
+- 2026-10-22 18:56, 0.1.0. The filter numbers count to a new value instead of changing
   at once. The count's curve and its 0.18s, the fill's, are an agent's
   guesses.
-- 2026-10-14. The wordmark over the main column's messages is the header's,
+- 2026-10-22 18:56, 0.1.0. The wordmark over the main column's messages is the header's,
   red V and all, large and faded: a grey "VAULT" was a second wordmark.
   Half opacity: at 0.16 it was fainter than it needed to be.
   The V fades with the word, pinkish in the light theme; seen and kept.
   The message under it is faded to match, heading and text; a button or
   spinner in a message isn't, as a faded button looks disabled (that part an
   agent's call).
-- 2026-10-14. A finished download leaving the filtered view fades and the
+- 2026-10-22 18:56, 0.1.0. A finished download leaving the filtered view fades and the
   others slide up: vanishing was another teleport. The 0.18s fade and 0.25s
   slide are an agent's guesses. A click (a filter, a sort, a search)
   redraws at once: you want to see the result as soon as you can.
-- 2026-10-14. The filter buttons hold still when their numbers change:
+- 2026-10-22 18:56, 0.1.0. The filter buttons hold still when their numbers change:
   switching to Archived on a big channel shrank Public's and Members'
   numbers, the buttons slid, and the next click landed on the wrong one.
   The contents are centred, like a segmented control's; the word sliding
   as its number counts down is fine, since the number moves anyway.
-- 2026-10-14. The filter row's text is 13.5px, the Download button's size:
+- 2026-10-22 18:56, 0.1.0. The filter row's text is 13.5px, the Download button's size:
   at 12.5px the controls looked empty for their height.
-- 2026-10-14. "Unlisted" is a badge where the members-only one goes, not a
+- 2026-10-22 18:56, 0.1.0. "Unlisted" is a badge where the members-only one goes, not a
   word under the title, so it takes no extra space. Its grey is an agent's
   guess.
 

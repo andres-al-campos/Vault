@@ -1,5 +1,7 @@
 # Subscriptions
 
+Updated 2026-10-12 15:20, at 0.1.0.
+
 A subscribed channel downloads its new uploads without being asked.
 
 ## Sub-features

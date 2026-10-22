@@ -1,5 +1,7 @@
 # Vault features
 
+Updated 2026-10-22 18:56, at 0.1.0.
+
 What a user can do with Vault, how to reach it, and how to check it. Read this
 before adding anything: if it's already here, extend it instead of building it
 again.
@@ -23,16 +25,26 @@ inside a feature is a sub-feature of it.
 
 ## Each file has
 
-What the user gets, Sub-features, How to get to it, Driving it, Gotchas. A
-file also has Calls when a look-and-feel call was made about that feature
-alone: the decision, its date and the reason given. A call that holds across
-the app is in `AGENTS.md`, under Principles.
+A stamp under the title (`Updated 2026-10-22 19:00, at 0.1.0.`: when the
+description last changed, and Vault's version then), What the user gets,
+Sub-features, How to get to it, Driving it, Gotchas. A file also has Calls when
+a look-and-feel call was made about that feature alone: the decision and the
+reason given. The pre-commit hook in `hooks/` writes the stamp, and starts each
+Principle and Call with the time and version it was made or reworded at; a
+change only to the Calls leaves the stamp alone. A call that holds across the
+app is in `AGENTS.md`, under Principles.
 
 ## Keeping it current
 
 A change to a feature updates its file in the same commit. `laws/feature-map.sh`
 fails `./build.sh check` when a row has no file, a file has no row, or a file
 names a `./build.sh` command that doesn't exist.
+
+Before acting on a file, run `git log --since="<stamp time>"` on the code
+you're about to touch. Where it moved after the stamp, read the file against it
+and fix what's no longer true; the fix moves the stamp. `./build.sh` turns the
+hook on. `laws/doc-stamps.sh` fails when a feature file or the README has no
+stamp, or a stamp, Principle or Call lacks a time and a version Vault has had.
 
 ## Driving conventions
 
