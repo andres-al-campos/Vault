@@ -26,7 +26,8 @@ const d = new Date();
 const now = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 
 const STAMP = /^(?:Checked|Updated) .+, at \S+\.$/;
-const PREFIX = /^\d{4}-\d\d-\d\d \d\d:\d\d, \S+?\. /;
+// Also the old date-only prefix ("2026-10-13. "), so converting one isn't read as a new entry.
+const PREFIX = /^\d{4}-\d\d-\d\d(?: \d\d:\d\d, \S+?)?\. /;
 const describes = (f) => /^(features|docs)\/[^/]+\.md$/.test(f) || f === 'README.md';
 const hasEntries = (f) => f === 'AGENTS.md' || /^features\/[^/]+\.md$/.test(f);
 
