@@ -121,25 +121,25 @@ click in the moment before the archive read lands.
 Look-and-feel calls made for this feature, with the reason given at the
 time.
 
-- 2026-10-22 18:56, 0.1.0. A failed download is unfinished, not finished: Clear finished
+- 2026-10-13 14:48, 0.1.0. A failed download is unfinished, not finished: Clear finished
   leaves it, Clear queue takes it, and Resume all tries it again.
-- 2026-10-22 18:56, 0.1.0. The Downloads header is the same three buttons at all times,
+- 2026-10-13 14:48, 0.1.0. The Downloads header is the same three buttons at all times,
   greyed out when they have nothing to act on: four or five that came and
   went didn't look good.
-- 2026-10-22 18:56, 0.1.0. It's Pause all, not Stop all, since a download picks up where
+- 2026-10-13 14:48, 0.1.0. It's Pause all, not Stop all, since a download picks up where
   it left off. Waiting rows read "Queued · Paused" so nobody expects them to
   start.
-- 2026-10-22 18:56, 0.1.0. A retried or paused download keeps its row. Rows only move
+- 2026-10-13 14:48, 0.1.0. A retried or paused download keeps its row. Rows only move
   when dragged.
-- 2026-10-22 18:56, 0.1.0. A bot check waits and tries again by itself rather than
+- 2026-10-14 19:49, 0.1.0. A bot check waits and tries again by itself rather than
   asking for cookies: cookies tie the downloads to your account, which can
   get it flagged, so they're for when nothing else works (members-only
   videos). The waits and their number are an agent's guesses.
-- 2026-10-22 18:56, 0.1.0. The panel starts hidden when the queue is empty and showing
+- 2026-10-14 11:46, 0.1.0. The panel starts hidden when the queue is empty and showing
   when it isn't, instead of as it was left: you come to Vault to watch, and
   an empty panel took a third of the window to say nothing was queued.
   Queueing onto an empty queue opens it again, so a new download is seen.
-- 2026-10-22 18:56, 0.1.0. A finished row can be played, and its thumbnail shows it: the
+- 2026-10-15 21:19, 0.1.0. A finished row can be played, and its thumbnail shows it: the
   player's play mark at full strength (half was too faint). A clickable
   title alone gave no sign that anything could be done. The mark is the
   player's, not the card's ▶.
