@@ -1,7 +1,5 @@
 # Vault - Channel Archiver
 
-Updated 2026-10-16 00:23, at 0.1.0.
-
 A desktop app around [yt-dlp](https://github.com/yt-dlp/yt-dlp) for archiving a
 YouTube channel: fetch a channel, see every video as a card, download the ones you want,
 and watch them in its own player. Downloads run one at a time and are recorded in an
