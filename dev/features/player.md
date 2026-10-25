@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-10-15 21:44, at 0.1.0.
+Updated 2026-10-25 11:42, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -63,7 +63,7 @@ By click against the stand-in (`?scenario=library`): its player is a clock
 with no picture, every video 40 seconds long. It shows opening, switching,
 resume after a reload, replay at the end, Space, Esc and closing.
 
-With a clip of the video in `drive/media/<id>.webm` (gitignored; fetch the
+With a clip of the video in `tests/drive/media/<id>.webm` (gitignored; fetch the
 first seconds with `yt-dlp --download-sections "*0-22"` and convert to VP9,
 which every Chromium plays), the stand-in plays it in a `<video>` under the
 page where mpv would draw, and the clock follows it. Used with

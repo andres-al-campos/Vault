@@ -5,7 +5,7 @@ that makes that possible, so once it's set going it should ask for little
 attention. Every part of the app serves that, and it's what to compare a
 screen against when stepping back from it.
 
-Read `features/README.md` before adding anything. `./build.sh check` runs the
+Read `dev/features/README.md` before adding anything. `./build.sh check` runs the
 laws and tests; plain `./build.sh` installs and launches the app.
 
 ## Principles
@@ -13,7 +13,7 @@ laws and tests; plain `./build.sh` installs and launches the app.
 Look-and-feel calls that hold across the app, with the reason given at the
 time, each starting with the time and version it was made or reworded at. A call about one feature is in that feature's file, under Calls.
 
-- 2026-10-13 20:54, 0.1.0. Three tiers of attention, and a control's look says its tier.
+- 2026-10-25 11:42, 0.1.0. Three tiers of attention, and a control's look says its tier.
   High is the white fill: Open videos, the way back to what's being watched,
   and nothing else. Mid is a grey fill: Download all. Low is a faint tint:
   the chosen filter (with a thin outline, so it can be told from the rest),
@@ -21,7 +21,7 @@ time, each starting with the time and version it was made or reworded at. A call
   white fill was on all of them (a 2026-10-12 call, for being easy to see),
   and with everything loud nothing was the main thing. The tiers are fixed:
   they don't change with what the page is being used for.
-  `laws/one-loud-button.sh` keeps the white fill to one button.
+  `tests/one-loud-button.sh` keeps the white fill to one button.
 - 2026-10-12 15:52, 0.1.0. Hover lights the border, on cards and on bordered buttons.
   Cards don't lift or gain a shadow: the raise wasn't liked.
 - 2026-10-12 20:15, 0.1.0. No orange: orange on black is too strongly another site's look.

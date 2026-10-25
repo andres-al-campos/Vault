@@ -1,6 +1,6 @@
 # Subscriptions
 
-Updated 2026-10-12 15:20, at 0.1.0.
+Updated 2026-10-25 11:42, at 0.1.0.
 
 A subscribed channel downloads its new uploads without being asked.
 
@@ -35,7 +35,7 @@ Preconditions: none for the default run.
 without an archived video, in `src/library.test.js`; a subscription surviving
 the frontend's save, in the Rust unit tests.
 
-By hand, in the browser against the stand-in (`drive/fake-backend.js`):
+By hand, in the browser against the stand-in (`tests/drive/fake-backend.js`):
 `?scenario=library&subscribed=1` queues one video at launch, the one above the
 newest archived.
 

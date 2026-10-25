@@ -9,7 +9,7 @@ archive file in the channel's folder, so running it again later fetches only wha
 
 Built with [Tauri v2](https://tauri.app): a Rust backend that drives yt-dlp as a
 subprocess, and a plain HTML/CSS/JS frontend laid out like a YouTube channel page.
-[features/](features/README.md) says what each feature does and how it is checked.
+[dev/features/](dev/features/README.md) says what each feature does and how it is checked.
 
 ## Requirements
 
@@ -196,8 +196,8 @@ Vault/
 │   ├── tauri.conf.json
 │   └── icons/
 ├── docs/                 the demo, animated, for this page
-├── drive/                stand-in backend for clicking through the UI in a browser
-├── features/             what each feature does and how it's checked
-├── laws/                 checks run by ./build.sh check
+├── tests/drive/                stand-in backend for clicking through the UI in a browser
+├── dev/features/             what each feature does and how it's checked
+├── tests/                 checks run by ./build.sh check
 └── sketches/             the HTML mockups the first design came from
 ```

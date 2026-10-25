@@ -1,6 +1,6 @@
 # Download queue
 
-Updated 2026-10-15 21:23, at 0.1.0.
+Updated 2026-10-25 11:42, at 0.1.0.
 
 Queue videos and watch them download one at a time in the sidebar.
 

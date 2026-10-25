@@ -1,6 +1,6 @@
 # Browsing a channel
 
-Updated 2026-10-14 20:28, at 0.1.0.
+Updated 2026-10-25 11:42, at 0.1.0.
 
 A channel's videos as a grid of cards under a YouTube-style header, narrowed by
 what you have and what you can get.

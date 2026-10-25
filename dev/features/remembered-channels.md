@@ -1,6 +1,6 @@
 # Remembered channels
 
-Updated 2026-10-12 11:28, at 0.1.0.
+Updated 2026-10-25 11:42, at 0.1.0.
 
 Vault reopens on the channel you last had open, with its list and its download
 folder.

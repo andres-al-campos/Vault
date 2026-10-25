@@ -89,7 +89,7 @@ function filmNow() {
   film.at = now;
 }
 
-// A real picture, when a clip of the video is in drive/media/<id>.webm
+// A real picture, when a clip of the video is in tests/drive/media/<id>.webm
 // (fetched by hand with yt-dlp, gitignored): it plays under the page where
 // mpv would draw, and the clock follows it. The time shown is the listing's,
 // so a short clip of a long video reads as the long one.
@@ -253,6 +253,6 @@ mockWindows("main");
 mockIPC((cmd, args) => {
   log.push({ cmd, args });
   const run = commands[cmd];
-  if (!run) throw `The fake backend has no "${cmd}" command. Add it to drive/fake-backend.js.`;
+  if (!run) throw `The fake backend has no "${cmd}" command. Add it to tests/drive/fake-backend.js.`;
   return run(args || {});
 }, { shouldMockEvents: true });
