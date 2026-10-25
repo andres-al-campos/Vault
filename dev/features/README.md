@@ -1,6 +1,6 @@
 # Vault features
 
-Updated 2026-10-25 11:42, at 0.1.0.
+Updated 2026-10-25 12:08, at 0.1.0.
 
 What a user can do with Vault, how to reach it, and how to check it. Read this
 before adding anything: if it's already here, extend it instead of building it
@@ -43,7 +43,7 @@ names a `./build.sh` command that doesn't exist.
 Before acting on a file, run `git log --since="<stamp time>"` on the code
 you're about to touch. Where it moved after the stamp, read the file against it
 and fix what's no longer true; the fix moves the stamp. `./build.sh` turns the
-hook on. `tests/doc-stamps.sh` fails when a feature file or the README has no
+hook on. `tests/doc-stamps.sh` fails when a feature file or this index has no
 stamp, or a stamp, Principle or Call lacks a time and a version Vault has had.
 
 ## Driving conventions
