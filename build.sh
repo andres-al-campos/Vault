@@ -9,6 +9,7 @@
 #   ./build.sh dev          dev run with a hot-reload window
 #   ./build.sh check        run every check: the JS and Rust unit tests (fast, no network)
 #   ./build.sh check net    also run the live tests that fetch real channels
+#   ./build.sh check --drives  the same as check net: the live tests are its drives
 #   ./build.sh test [net]   the same thing under its old name
 #   ./build.sh clean        drop build output
 #
@@ -145,7 +146,7 @@ case "${1:-}" in
     # Plain `check` runs the fast unit tests. The live network tests really do
     # fetch whole channels (the members-only check pulls all 7k+ LTT videos),
     # so they are behind an explicit argument rather than in the default path.
-    if [ "${2:-}" = "net" ]; then
+    if [ "${2:-}" = "net" ] || [ "${2:-}" = "--drives" ]; then
       (cd src-tauri && cargo test -- --include-ignored --nocapture)
     else
       (cd src-tauri && cargo test)
