@@ -32,10 +32,10 @@ time, each starting with the time and version it was made or reworded at. A call
 - 2026-10-12 15:52, 0.1.0. One record per question: a channel folder's `.vault/videos.json`
   is the only thing that says a video is archived. yt-dlp is a dependency, not
   the thing being used, so its own archive file isn't kept up.
-- 2026-10-13 15:33, 0.1.0. Nothing teleports: a thing that changes place or appears moves
-  or fades there, since a jump is jarring. Menus always fade, the filter fill
-  and the tab underline slide. Slides ease out: fast to leave, slow to settle.
-  First said on 2026-10-12, of menus and filter rows appearing at once.
+- 2026-10-27 10:37, 0.1.0. **Motion spends attention.** Refines the shared one (`~/Projects/Code/AGENTS.md`),
+  where this was first said as "nothing teleports": menus always fade, and the
+  filter fill and the tab underline slide. First said on 2026-10-12, of menus
+  and filter rows appearing at once.
 - 2026-10-13 14:48, 0.1.0. The best button is no button: with nothing to download there
   is no Download button, where there used to be a disabled one.
 - 2026-10-13 14:48, 0.1.0. Nothing on the page moves when a view changes: controls keep
