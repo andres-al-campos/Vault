@@ -1040,7 +1040,7 @@ function cardButton(v) {
     // Just finished: archived, but the file's path arrives with the next
     // archive read a moment later.
     return archived.get(v.id).path
-      ? `<button class="dl on" data-id="${id}" data-act="play" title="Play here. ⌘-click opens it in a tab without leaving the channel.">▶ Play</button>`
+      ? `<button class="dl on" data-id="${id}" data-act="reveal" title="Show the file in Finder. The thumbnail plays it.">Show in Finder</button>`
       : `<button class="dl on" data-id="${id}">✓ Archived</button>`;
   }
   // Members-only downloads need cookies; with a browser set they're a normal
@@ -1066,6 +1066,7 @@ gridEl.addEventListener("click", (e) => {
   if (!target) return;
   const id = target.closest(".card").dataset.id;
   if (target.dataset.act === "play") openVideo(id, { background: e.metaKey });
+  else if (target.dataset.act === "reveal") invoke("reveal_file", { path: archived.get(id).path }).catch((err) => alert(err));
   else if (gridVideos.has(id)) startDownload(gridVideos.get(id));
 });
 

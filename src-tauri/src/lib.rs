@@ -1718,6 +1718,23 @@ fn reveal_folder(dir: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn reveal_file(path: String) -> Result<(), String> {
+    let path = PathBuf::from(&path);
+    if !path.exists() {
+        return Err(format!(
+            "{} isn't there any more. Download the video again from its card to put it back.",
+            path.display()
+        ));
+    }
+    Command::new("open")
+        .arg("-R")
+        .arg(&path)
+        .status()
+        .map_err(|e| format!("Could not show {} in Finder: {e}. Open its channel folder from the channel header instead.", path.display()))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2521,6 +2538,7 @@ pub fn run() {
             set_channel_dir,
             migrate_archives,
             reveal_folder,
+            reveal_file,
             player::player_load,
             player::player_set,
             player::player_state,

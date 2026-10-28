@@ -1,6 +1,6 @@
 # Browsing a channel
 
-Updated 2026-10-25 11:42, at 0.1.0.
+Updated 2026-10-28 01:46, at 0.1.0.
 
 A channel's videos as a grid of cards under a YouTube-style header, narrowed by
 what you have and what you can get.
@@ -38,9 +38,10 @@ what you have and what you can get.
   remembered across launches.
 - Download all N queues the matches too: it takes what's on screen.
 - Each card's one button follows its state: Download, Queued, a percentage
-  that fills the button, Play, Download again (file missing), Retry (last try
+  that fills the button, Show in Finder, Download again (file missing), Retry (last try
   failed), or Members only (disabled without cookies). An archived card's
-  thumbnail also plays it.
+  thumbnail plays it; its button shows the file in Finder, since a Play
+  button there did the thumbnail's job twice (2026-10-28).
 - Pointing at a card's title shows the whole title; pointing at its date
   ("3 weeks ago") shows it as a day: the exact one once the video is
   archived with its date recorded, otherwise "around" that day, with when
