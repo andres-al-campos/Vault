@@ -605,9 +605,9 @@ body {
   border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; display: grid; place-items: center;
   opacity: 0; pointer-events: none; }
 .bezel svg { width: 42px; height: 42px; }
-.bezel .skip { display: grid; justify-items: center; gap: 1px; }
-.bezel .skip svg { width: 30px; height: 30px; }
-.bezel .skip b { font: 700 12px ui-monospace, "SF Mono", Menlo, monospace; }
+.bezel .skip { display: flex; align-items: center; gap: 2px; }
+.bezel .skip svg { width: 18px; height: 18px; }
+.bezel .skip b { font: 700 15px ui-monospace, "SF Mono", Menlo, monospace; }
 /* Grows for the first half, easing out, then fades at that size. */
 .bezel.go { animation: bezel .5s linear; }
 @keyframes bezel {
