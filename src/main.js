@@ -1227,7 +1227,6 @@ async function keepStill() {
 async function tick() {
   let s;
   try { s = await invoke("player_state"); } catch { return; }
-  muted = !!s.muted;
   const tab = tabs.active;
   // A report about another file crossed a tab switch, and one with no length
   // came before the file opened. Either would overwrite this tab's place.
@@ -1386,13 +1385,22 @@ async function togglePlay() {
   wake();
 }
 
-async function toggleMute() {
-  try {
-    await invoke("player_set", { action: "mute" });
-    muted = !!(await invoke("player_state")).muted;
-    flash(muted ? MUTED_ICON : VOLUME_ICON);
-  } catch (e) { console.error("Could not mute:", e); }
+// Muting is the volume slider at 0, not mpv's own mute, so the slider always
+// shows what you hear. Unmuting puts back the level from before.
+function setVolume(v) {
+  const vol = $("pvol");
+  vol.value = v;
+  fill(vol);
+  localStorage.setItem("vault-volume", vol.value);
+  muted = Number(vol.value) === 0;
+  invoke("player_set", { action: "volume", value: Number(vol.value) }).catch(() => {});
   renderTransport();
+}
+function toggleMute() {
+  const now = Number($("pvol").value);
+  if (now > 0) localStorage.setItem("vault-volume-before", now);
+  setVolume(now > 0 ? 0 : Number(localStorage.getItem("vault-volume-before")) || 100);
+  flash(muted ? MUTED_ICON : VOLUME_ICON);
 }
 
 function seekTo(seconds) {
@@ -1471,13 +1479,10 @@ seekEl.addEventListener("pointerdown", () => { seeking = true; });
 seekEl.addEventListener("input", () => { fill(seekEl); seekTo(Number(seekEl.value)); $("ptime").textContent = `${fmtDur(Number(seekEl.value))} / ${fmtDur(tabs.active?.duration ?? 0)}`; });
 seekEl.addEventListener("change", () => { seeking = false; });
 $("pvol").value = localStorage.getItem("vault-volume") ?? 100;
+muted = Number($("pvol").value) === 0;
 fill($("pvol"));
 $("pmute").addEventListener("click", toggleMute);
-$("pvol").addEventListener("input", (e) => {
-  fill(e.target);
-  localStorage.setItem("vault-volume", e.target.value);
-  invoke("player_set", { action: "volume", value: Number(e.target.value) }).catch(() => {});
-});
+$("pvol").addEventListener("input", (e) => setVolume(e.target.value));
 document.addEventListener("keydown", (e) => {
   if (!watching() || e.metaKey || e.ctrlKey || e.altKey) return;
   // YouTube's keys: arrows skip 5 seconds, J and L skip 10, K is play/pause.

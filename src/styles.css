@@ -639,6 +639,9 @@ body {
 .pseek-tip { position: fixed; z-index: 60; padding: 3px 7px; border-radius: 7px; pointer-events: none;
   background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
   font: 600 11.5px ui-monospace, "SF Mono", Menlo, monospace; color: var(--text); }
-.pmute { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px;
+/* Play and the speaker are drawn smaller inside their box than the
+   fullscreen corners, so a size up makes them look the same size as it. */
+#pplay svg, .pmute svg { width: 19px; height: 19px; }
+.pmute { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 8px;
   background: transparent; color: var(--muted2); cursor: pointer; }
 .pmute:hover { color: var(--text); background: var(--hover); }

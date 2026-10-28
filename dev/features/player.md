@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-10-28 00:30, at 0.1.0.
+Updated 2026-10-28 02:18, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -26,7 +26,7 @@ videos sit in browser tabs through a day.
   last tab returns to the channel.
 - Controls: play/pause, time, a seek bar, volume and fullscreen. Clicking the picture also toggles
   play. Space or K toggles, ←/→ skip 5 seconds, J/L skip 10, M or the speaker
-  mutes, Esc goes back to the channel.
+  mutes by moving the volume bar to 0, and unmuting puts it back where it was, Esc goes back to the channel.
 - Fullscreen: the button at the right of the controls, or F. The window goes
   fullscreen and the tabs and controls lie over
   the picture. Each bar comes up only when the pointer moves within 200px of
