@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-10-28 02:18, at 0.1.0.
+Updated 2026-10-28 02:21, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -105,6 +105,11 @@ time.
   pointer, as most players do, in the volume bar's grey.
 
 ## Gotchas
+
+- The clock redraws the bar four times a second. Replacing a button's icon
+  each time made clicks on play, mute and fullscreen sometimes do nothing
+  (pressed on one icon, released on its copy). `tests/steady-buttons.sh`
+  keeps renderTransport to `setIcon`, which swaps only a changed icon.
 
 - The seek bar's grey bar: its 0.12-second fade, and that nothing shows when
   pointing behind the handle, are an agent's guesses. Seen in a mockup on

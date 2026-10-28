@@ -1129,14 +1129,19 @@ function renderTabs() {
   renderWatching();
 }
 
+// The clock redraws the bar four times a second. Swapping an icon under a
+// press loses the click (press and release land on different elements), so an
+// icon is only replaced when it changes.
+function setIcon(el, icon) { if (el.dataset.icon !== icon) { el.dataset.icon = icon; el.innerHTML = icon; } }
+
 function renderTransport() {
   const tab = tabs.active;
-  $("pfull").innerHTML = full ? SHRINK_ICON : EXPAND_ICON;
+  setIcon($("pfull"), full ? SHRINK_ICON : EXPAND_ICON);
   $("pfull").title = full ? "Leave fullscreen (F or Esc)" : "Fullscreen (F)";
-  $("pmute").innerHTML = muted ? MUTED_ICON : VOLUME_ICON;
+  setIcon($("pmute"), muted ? MUTED_ICON : VOLUME_ICON);
   $("pmute").title = muted ? "Unmute (M)" : "Mute (M)";
   const btn = $("pplay");
-  btn.innerHTML = playing.ended ? REPLAY_ICON : playing.paused ? PLAY_ICON : PAUSE_ICON;
+  setIcon(btn, playing.ended ? REPLAY_ICON : playing.paused ? PLAY_ICON : PAUSE_ICON);
   btn.title = playing.ended ? "Play again (Space)" : playing.paused ? "Play (Space)" : "Pause (Space)";
   $("ptime").textContent = `${fmtDur(tab?.position ?? 0)} / ${fmtDur(tab?.duration ?? 0)}`;
   if (!seeking) {

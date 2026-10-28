@@ -138,6 +138,7 @@ case "${1:-}" in
     require_mpv
     ./tests/feature-map.sh
     ./tests/one-loud-button.sh
+    ./tests/steady-buttons.sh
     ./tests/css.sh
     ./tests/doc-stamps.sh
     # The frontend's pure modules run under node's own test runner. The glob is
