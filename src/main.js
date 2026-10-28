@@ -1161,7 +1161,7 @@ function placeVideo() {
 new ResizeObserver(placeVideo).observe(stageEl);
 
 // The mark that blinks in the middle of the picture when playback starts or
-// stops, or the sound goes off or on, as on YouTube.
+// stops, the sound goes off or on, or a key skips, as on YouTube.
 function flash(icon) {
   const el = $("bezel");
   el.innerHTML = icon;
@@ -1498,7 +1498,11 @@ document.addEventListener("keydown", (e) => {
   else if (key === "m") toggleMute();
   // Esc steps out one level: out of fullscreen first, then back to the channel.
   else if (key === "Escape") full ? setFull(false) : leavePlayer();
-  else if (step) seekTo((tabs.active?.position ?? 0) + step);
+  else if (step) {
+    seekTo((tabs.active?.position ?? 0) + step);
+    // The bars stay down for a skip, so this is the only sign it happened.
+    flash(`<span class="skip">${step > 0 ? "+" : "−"}${Math.abs(step)}s</span>`);
+  }
   else return;
   e.preventDefault();
   if (key === " " || key === "k") wake();
