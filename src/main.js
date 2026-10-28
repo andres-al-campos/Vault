@@ -1261,29 +1261,35 @@ function showPlayer({ paused = true } = {}) {
 
 // In fullscreen the bars lie over the picture and come up only when the
 // pointer heads for them: each has a zone along its own edge, so moving across
-// the middle of the picture shows nothing. A bar goes once the pointer has
-// left its zone and been still for a moment; both stay while the video is
-// paused. Only play/pause brings them up from the keyboard: a skip or mute
-// already shows itself on the picture, and bars over it would be noise.
-const ZONE = 120;
-let near = { top: false, bar: false };
+// the middle of the picture brings nothing up. A bar that is up stays 2.5
+// seconds after the pointer was last in its zone, and both stay while the
+// video is paused or the pointer is on one. Only play/pause brings them up
+// from the keyboard: a skip or mute already shows itself on the picture.
+const ZONE = 200;
+const barTimers = { top: null, bar: null };
+function showBar(which) {
+  playerEl.classList.remove(`hide-${which}`);
+  clearTimeout(barTimers[which]);
+  barTimers[which] = setTimeout(function hide() {
+    const sel = which === "top" ? ".ptop:hover" : ".pbar:hover";
+    if (full && (playing.paused || playerEl.querySelector(sel))) {
+      barTimers[which] = setTimeout(hide, 2500);
+      return;
+    }
+    if (full) { playerEl.classList.add(`hide-${which}`); if (which === "top") hideTip(); }
+  }, 2500);
+}
 function wake(e) {
   clearTimeout(idle);
-  if (e?.clientY != null) {
-    near = { top: e.clientY < ZONE, bar: e.clientY > window.innerHeight - ZONE };
-  }
-  const show = (which) => !full || playing.paused || near[which]
-    || playerEl.querySelector(which === "top" ? ".ptop:hover" : ".pbar:hover");
-  playerEl.classList.toggle("hide-top", !show("top"));
-  playerEl.classList.toggle("hide-bar", !show("bar"));
   playerEl.classList.remove("idle");
-  if (!full) return;
-  idle = setTimeout(() => {
-    near = { top: false, bar: false };
-    if (playing.paused || playerEl.querySelector(".ptop:hover, .pbar:hover")) return wake();
-    playerEl.classList.add("idle", "hide-top", "hide-bar");
-    hideTip();
-  }, 2500);
+  if (!full) { playerEl.classList.remove("hide-top", "hide-bar"); return; }
+  if (e?.clientY != null) {
+    if (e.clientY < ZONE) showBar("top");
+    if (e.clientY > window.innerHeight - ZONE) showBar("bar");
+  } else { showBar("top"); showBar("bar"); }
+  if (playing.paused) { showBar("top"); showBar("bar"); }
+  // The pointer itself hides when still, wherever it is.
+  idle = setTimeout(() => playerEl.classList.add("idle"), 2500);
 }
 
 // Fullscreen is the window's own fullscreen plus the bars moving onto the
@@ -1296,7 +1302,6 @@ async function setFull(on, { window: switchWindow = true } = {}) {
   if (switchWindow && !windowWasFull) {
     invoke("player_fullscreen", { on }).catch((e) => console.error(e));
   }
-  near = { top: true, bar: true }; // shown on the way in, so you see where they live
   wake();
   renderTransport();
 }
@@ -1485,7 +1490,7 @@ document.addEventListener("keydown", (e) => {
   else if (step) seekTo((tabs.active?.position ?? 0) + step);
   else return;
   e.preventDefault();
-  if (key === " " || key === "k") { near = { top: true, bar: true }; wake(); }
+  if (key === " " || key === "k") wake();
   // A focused slider or button would act on the same key a second time.
   document.activeElement?.blur?.();
 });
