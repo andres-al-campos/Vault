@@ -1105,6 +1105,9 @@ let reported = false;  // the loaded file has reported in at least once
 let loads = 0;         // counts loads, so one overtaken by a newer one stops
 let muted = false;
 const coverEl = $("cover");
+// Two triangles pointing the way the skip went, as a remote's skip keys do.
+const FORWARD_ICON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6v12l9-6zM12 6v12l9-6z"/></svg>`;
+const BACK_ICON = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 6v12l-9-6zM12 6v12l-9-6z"/></svg>`;
 const VOLUME_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`;
 const MUTED_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>`;
 // A slider's track is filled up to its handle.
@@ -1501,7 +1504,7 @@ document.addEventListener("keydown", (e) => {
   else if (step) {
     seekTo((tabs.active?.position ?? 0) + step);
     // The bars stay down for a skip, so this is the only sign it happened.
-    flash(`<span class="skip">${step > 0 ? "+" : "−"}${Math.abs(step)}s</span>`);
+    flash(`<span class="skip">${step > 0 ? FORWARD_ICON : BACK_ICON}<b>${Math.abs(step)}s</b></span>`);
   }
   else return;
   e.preventDefault();
