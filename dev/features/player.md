@@ -104,6 +104,17 @@ time.
 - 2026-10-13 23:12, 0.1.0. Pointing ahead on the seek bar shows a grey bar up to the
   pointer, as most players do, in the volume bar's grey.
 
+- 2026-10-28 02:23, 0.1.0. In fullscreen each bar comes up only when the pointer heads for its
+  edge, not on any movement: the bars came up at a millimetre's movement. Only
+  play/pause brings them up from the keyboard. They fade and slide a little
+  from their edge rather than appearing at once. A still pointer in a zone
+  lets the bar go, as most players do; only the bar itself holds it.
+  Applies *Motion spends attention*.
+- 2026-10-28 02:23, 0.1.0. Mute moves the volume bar to 0 and unmute puts back the level from
+  before, so the bar shows what you hear.
+- 2026-10-28 02:23, 0.1.0. Play and the speaker are drawn to look the same size as the fullscreen
+  corners, which looked right at their size.
+
 ## Gotchas
 
 - The clock redraws the bar four times a second. Replacing a button's icon

@@ -1269,7 +1269,7 @@ function showPlayer({ paused = true } = {}) {
 // the middle of the picture brings nothing up. A bar that is up stays 2.5
 // seconds after the pointer was last in its zone, and both stay while the
 // video is paused or the pointer is on one. Only play/pause brings them up
-// from the keyboard: a skip or mute already shows itself on the picture.
+// from the keyboard: asked for, so a skip or mute doesn't cover the picture.
 const ZONE = 200;
 const barTimers = { top: null, bar: null };
 function showBar(which) {

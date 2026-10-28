@@ -182,6 +182,9 @@ time.
 - 2026-10-14 01:27, 0.1.0. "Unlisted" is a badge where the members-only one goes, not a
   word under the title, so it takes no extra space. Its grey is an agent's
   guess.
+- 2026-10-28 02:23, 0.1.0. An archived card's button is Show in Finder, not Play (the thumbnail
+  already plays) and not Delete: a stray click on a button that used to mean
+  play shouldn't lose a video.
 
 ## Gotchas
 
