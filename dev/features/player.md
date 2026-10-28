@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-10-25 11:42, at 0.1.0.
+Updated 2026-10-28 00:25, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -29,8 +29,11 @@ videos sit in browser tabs through a day.
   mutes, Esc goes back to the channel.
 - Fullscreen: the button at the right of the controls, or F. The window goes
   fullscreen and the tabs and controls lie over
-  the picture, fading out with the pointer after 2.5 seconds without movement.
-  They stay while the video is paused or the pointer is on them. F or Esc
+  the picture. Each bar comes up only when the pointer moves within 120px of
+  its edge, fading and sliding in from that edge, and goes the same way 2.5
+  seconds after the pointer leaves its zone and is still. Moving across the
+  middle of the picture shows nothing. Of the keys, only play/pause brings
+  them up. They stay while the video is paused or the pointer is on them. F or Esc
   leaves; a second Esc goes back to the channel. A window that was already
   fullscreen stays so on the way out.
 - Pointing along the seek bar shows the time a click there would land on.

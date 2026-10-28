@@ -1259,16 +1259,29 @@ function showPlayer({ paused = true } = {}) {
   poll = setInterval(tick, 250);
 }
 
-// In fullscreen the bars lie over the picture and go away, with the pointer,
-// once it has been still for a moment. They stay while the video is paused or
-// the pointer is on one of them.
-function wake() {
-  playerEl.classList.remove("idle");
+// In fullscreen the bars lie over the picture and come up only when the
+// pointer heads for them: each has a zone along its own edge, so moving across
+// the middle of the picture shows nothing. A bar goes once the pointer has
+// left its zone and been still for a moment; both stay while the video is
+// paused. Only play/pause brings them up from the keyboard: a skip or mute
+// already shows itself on the picture, and bars over it would be noise.
+const ZONE = 120;
+let near = { top: false, bar: false };
+function wake(e) {
   clearTimeout(idle);
+  if (e?.clientY != null) {
+    near = { top: e.clientY < ZONE, bar: e.clientY > window.innerHeight - ZONE };
+  }
+  const show = (which) => !full || playing.paused || near[which]
+    || playerEl.querySelector(which === "top" ? ".ptop:hover" : ".pbar:hover");
+  playerEl.classList.toggle("hide-top", !show("top"));
+  playerEl.classList.toggle("hide-bar", !show("bar"));
+  playerEl.classList.remove("idle");
   if (!full) return;
   idle = setTimeout(() => {
+    near = { top: false, bar: false };
     if (playing.paused || playerEl.querySelector(".ptop:hover, .pbar:hover")) return wake();
-    playerEl.classList.add("idle");
+    playerEl.classList.add("idle", "hide-top", "hide-bar");
     hideTip();
   }, 2500);
 }
@@ -1283,6 +1296,7 @@ async function setFull(on, { window: switchWindow = true } = {}) {
   if (switchWindow && !windowWasFull) {
     invoke("player_fullscreen", { on }).catch((e) => console.error(e));
   }
+  near = { top: true, bar: true }; // shown on the way in, so you see where they live
   wake();
   renderTransport();
 }
@@ -1471,7 +1485,7 @@ document.addEventListener("keydown", (e) => {
   else if (step) seekTo((tabs.active?.position ?? 0) + step);
   else return;
   e.preventDefault();
-  wake();
+  if (key === " " || key === "k") { near = { top: true, bar: true }; wake(); }
   // A focused slider or button would act on the same key a second time.
   document.activeElement?.blur?.();
 });

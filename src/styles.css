@@ -552,12 +552,15 @@ body {
 .pbar { border-top: 1px solid var(--line); }
 
 /* Fullscreen: the stage takes the whole window and the bars lie over the
-   picture, fading out with the pointer once it has been still. */
+   picture, each fading and sliding a little toward its own edge when it goes,
+   and easing back in when the pointer heads for it. */
 .player.full .ptop, .player.full .pbar { position: absolute; left: 0; right: 0; z-index: 2;
-  background: color-mix(in srgb, var(--panel) 86%, transparent); transition: opacity .2s; }
+  background: color-mix(in srgb, var(--panel) 86%, transparent);
+  transition: opacity .25s ease-out, transform .25s ease-out; }
 .player.full .ptop { top: 0; }
 .player.full .pbar { bottom: 0; }
-.player.full.idle .ptop, .player.full.idle .pbar { opacity: 0; pointer-events: none; }
+.player.full.hide-top .ptop { opacity: 0; transform: translateY(-12px); pointer-events: none; }
+.player.full.hide-bar .pbar { opacity: 0; transform: translateY(12px); pointer-events: none; }
 .player.full.idle { cursor: none; }
 
 .ptabs { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
