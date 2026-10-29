@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-10-28 02:28, at 0.1.0.
+Updated 2026-10-29 08:59, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -41,8 +41,8 @@ videos sit in browser tabs through a day.
   pointer in grey: the stretch a click there would skip.
 - Starting or stopping playback blinks a play or pause mark in the middle of
   the picture, muting or unmuting blinks a speaker the same way, and a skip
-  from the keys blinks how far it went with chevrons on that side
-  ("« 5s", "10s »").
+  from the keys blinks how far it went with a chevron on that side
+  ("‹ 5s", "10s ›").
 - The keyboard's play/pause key, headphone buttons and Control Center toggle
   the loaded video, through mpv's own media-key support.
 - A video that reaches its end stays on its last frame and the play button
@@ -117,8 +117,10 @@ time.
 - 2026-10-28 02:23, 0.1.0. Play and the speaker are drawn to look the same size as the fullscreen
   corners, which looked right at their size.
 
-- 2026-10-28 02:28, 0.1.0. A skip's mark is chevrons beside the seconds, not "+5s": plus
-  and minus felt like maths, not moving through the video.
+- 2026-10-29 08:59, 0.1.0. A skip's mark is one chevron beside the seconds, not "+5s": plus
+  and minus felt like maths, not moving through the video. One chevron, as
+  YouTube's player has it (read from its markup, 2026-10-29); two read as
+  fast-forward.
 
 ## Gotchas
 
