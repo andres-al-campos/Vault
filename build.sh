@@ -183,9 +183,11 @@ mkdir -p "$INSTALL_DIR"
 echo "Installing to ${INSTALLED_APP} …"
 kill_running
 rm -rf "$INSTALLED_APP"
-cp -R "$BUILT_APP" "$INSTALLED_APP"
+# Moved, not copied: a second copy shows up in Spotlight, and Launch Services can
+# bind the app to it.
+mv "$BUILT_APP" "$INSTALLED_APP"
 
-# Drop any quarantine flag the copy inherited.
+# Drop any quarantine flag the bundle carries.
 xattr -dr com.apple.quarantine "$INSTALLED_APP" 2>/dev/null || true
 
 echo "Launching ${APP_NAME} …"
