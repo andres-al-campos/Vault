@@ -100,11 +100,10 @@ test("a tab keeps the picture it was left on, through a save, and a failed captu
   assert.equal(createTabs({ tabs: [{ id: "b", path: "/d/b.mp4", still: 7 }] }).find("b").still, null);
 });
 
-test("a loaded video is idle unless it is playing on screen", async () => {
+test("a loaded video is idle unless it is playing", async () => {
   const { isIdle: idle } = await import("./player.js");
-  assert.equal(idle({ loaded: true, watching: true, paused: false, ended: false }), false, "playing on screen");
-  assert.equal(idle({ loaded: true, watching: true, paused: true, ended: false }), true, "paused");
-  assert.equal(idle({ loaded: true, watching: true, paused: false, ended: true }), true, "finished");
-  assert.equal(idle({ loaded: true, watching: false, paused: false, ended: false }), true, "behind the channel");
-  assert.equal(idle({ loaded: false, watching: true, paused: true, ended: false }), false, "nothing loaded, nothing to unload");
+  assert.equal(idle({ loaded: true, paused: false, ended: false }), false, "playing, on screen or from the play key");
+  assert.equal(idle({ loaded: true, paused: true, ended: false }), true, "paused, which going back to the channel does");
+  assert.equal(idle({ loaded: true, paused: false, ended: true }), true, "finished");
+  assert.equal(idle({ loaded: false, paused: true, ended: false }), false, "nothing loaded, nothing to unload");
 });

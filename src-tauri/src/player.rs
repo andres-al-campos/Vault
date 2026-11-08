@@ -16,6 +16,7 @@ use objc2::runtime::{AnyClass, AnyObject, ClassBuilder, Sel};
 use objc2::{class, msg_send, sel};
 use objc2_foundation::{NSPoint, NSRect, NSSize};
 use serde::Serialize;
+use tauri::{Emitter, Manager};
 
 extern "C" {
     fn mpv_create() -> *mut c_void;
@@ -25,10 +26,31 @@ extern "C" {
     fn mpv_get_property_string(h: *mut c_void, name: *const c_char) -> *mut c_char;
     fn mpv_free(p: *mut c_void);
     fn mpv_error_string(e: c_int) -> *const c_char;
+    fn mpv_wait_event(h: *mut c_void, timeout: f64) -> *const MpvEvent;
     fn mpv_render_context_create(out: *mut *mut c_void, mpv: *mut c_void, params: *const RenderParam) -> c_int;
     fn mpv_render_context_render(ctx: *mut c_void, params: *const RenderParam) -> c_int;
     fn dlsym(handle: *mut c_void, name: *const c_char) -> *mut c_void;
 }
+
+// mpv_event and mpv_event_client_message, as client.h lays them out.
+#[repr(C)]
+struct MpvEvent {
+    event_id: c_int,
+    error: c_int,
+    reply_userdata: u64,
+    data: *mut c_void,
+}
+#[repr(C)]
+struct MpvClientMessage {
+    num_args: c_int,
+    args: *const *const c_char,
+}
+const MPV_EVENT_SHUTDOWN: c_int = 1;
+const MPV_EVENT_CLIENT_MESSAGE: c_int = 16;
+
+/// What the page hears when the keyboard's play key is pressed.
+pub const PLAY_KEY_EVENT: &str = "player-play-key";
+const PLAY_KEY_MESSAGE: &str = "vault-play-key";
 
 // An opaque Core Graphics colour space, named so it can be passed to AppKit.
 #[repr(C)]
@@ -224,8 +246,8 @@ pub fn init(window: &tauri::WebviewWindow) -> Result<(), String> {
             ("keep-open", "yes"),
             // The keyboard's play/pause key, headphone buttons and Control
             // Center. mpv ships this for macOS but leaves it off as a library;
-            // it arrives as a key press, which the default bindings turn into
-            // a pause toggle. No other key reaches mpv: it has no window.
+            // it arrives as a key press, which the keybinds below send on to
+            // the page. No other key reaches mpv: it has no window.
             ("input-media-keys", "yes"),
             ("input-default-bindings", "yes"),
         ] {
@@ -240,8 +262,42 @@ pub fn init(window: &tauri::WebviewWindow) -> Result<(), String> {
             return Err(format!("mpv did not start: {}", mpv_err(rc)));
         }
         MPV.store(h, Ordering::SeqCst);
+        // The play key goes to the page rather than to mpv's own pause: the
+        // page unloads a video left idle, and with no file mpv's toggle had
+        // nothing to act on, so the key did nothing. The page treats it as
+        // its Play button, which loads the video again first.
+        for key in ["PLAYPAUSE", "PLAY", "PAUSE"] {
+            if let Err(e) = command(&["keybind", key, &format!("script-message {PLAY_KEY_MESSAGE}")]) {
+                eprintln!("{e}. The play key will toggle mpv directly, and do nothing once a video is unloaded.");
+            }
+        }
+        let app = window.app_handle().clone();
+        let h = h as usize;
+        std::thread::spawn(move || listen(h as *mut c_void, app));
     }
     Ok(())
+}
+
+// mpv's events, read on their own thread for as long as mpv runs. Only the
+// play key's message is passed on.
+fn listen(h: *mut c_void, app: tauri::AppHandle) {
+    loop {
+        let ev = unsafe { &*mpv_wait_event(h, -1.0) };
+        match ev.event_id {
+            MPV_EVENT_SHUTDOWN => return,
+            MPV_EVENT_CLIENT_MESSAGE if !ev.data.is_null() => {
+                let msg = unsafe { &*(ev.data as *const MpvClientMessage) };
+                if msg.num_args < 1 || msg.args.is_null() {
+                    continue;
+                }
+                let first = unsafe { CStr::from_ptr(*msg.args) }.to_string_lossy();
+                if first == PLAY_KEY_MESSAGE {
+                    let _ = app.emit(PLAY_KEY_EVENT, ());
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 fn command(args: &[&str]) -> Result<(), String> {

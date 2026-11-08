@@ -88,6 +88,6 @@ export function progress(tab) {
 // unloaded, and reloads behind its cover when it's wanted again.
 export const UNLOAD_AFTER = 5 * 60_000;
 
-// Whether the loaded video counts as left alone: paused, finished, or behind
-// the channel. Only playing on screen keeps it.
-export const isIdle = ({ loaded, watching, paused, ended }) => !!loaded && (!watching || paused || ended);
+// Whether the loaded video counts as left alone: paused or finished. Going
+// back to the channel pauses it; one playing there from the play key is kept.
+export const isIdle = ({ loaded, paused, ended }) => !!loaded && (paused || ended);

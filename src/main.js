@@ -1262,7 +1262,7 @@ async function tick() {
 // second, and restarting it on each would never let it run out.
 let unloadTimer = null;
 function armUnload() {
-  if (!isIdle({ loaded: loadedId, watching: watching(), paused: playing.paused, ended: playing.ended })) {
+  if (!isIdle({ loaded: loadedId, paused: playing.paused, ended: playing.ended })) {
     clearTimeout(unloadTimer);
     unloadTimer = null;
     return;
@@ -1276,7 +1276,7 @@ async function unloadIdle() {
   unloadTimer = null;
   const tab = tabs.active;
   const mine = loads;
-  if (!tab || !isIdle({ loaded: loadedId, watching: watching(), paused: playing.paused, ended: playing.ended })) return;
+  if (!tab || !isIdle({ loaded: loadedId, paused: playing.paused, ended: playing.ended })) return;
   if (watching()) {
     await keepStill();
     await showCover(tab.still ? convertFileSrc(tab.still) : thumb(tab.id), thumb(tab.id));
@@ -1374,8 +1374,10 @@ async function leavePlayer() {
   root.classList.remove("watching");
   invoke("player_set", { action: "pause" }).catch(() => {});
   invoke("player_place", { visible: false, x: 0, top: 0, w: 0, h: 0, winH: 0 }).catch(() => {});
+  // The polling that would see the pause has stopped, so it's noted here.
+  playing = { ...playing, paused: true };
   renderWatching();
-  armUnload(); // the polling that arms it has stopped
+  armUnload();
 }
 
 // Switching tabs brings the video up paused where it was left. Only Play on a
@@ -1457,6 +1459,10 @@ function seekTo(seconds) {
   clearTimeout(unloadTimer);
   unloadTimer = null;
 }
+
+// The keyboard's play key, headphone buttons and Control Center, sent on by
+// mpv (player.rs). It's the Play button, so an unloaded video loads first.
+listen("player-play-key", () => togglePlay());
 
 $("watching").addEventListener("click", () => showPlayer());
 $("pback").addEventListener("click", leavePlayer);

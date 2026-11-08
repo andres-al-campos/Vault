@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-11-07 22:41, at 0.1.0.
+Updated 2026-11-07 22:52, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -163,9 +163,11 @@ time.
   see-through, so anything in the channel that is slow to hide shows over the
   video. A `transition: all` did exactly that to the clicked thumbnail;
   transitions are switched off under the player for that reason.
-- The media key reaches mpv whether or not the player is on screen, so it can
+- The media key works whether or not the player is on screen, so it can
   start the paused video's sound while the channel is showing. Its place is
-  picked up again when the player is next opened.
+  picked up again when the player is next opened. mpv receives the key, but
+  its keybinds send it on to the page as `player-play-key`, which presses
+  Play: mpv's own toggle did nothing once a video had been unloaded.
 - The saved frames are JPEGs in the system's temporary folder
   (`vault-stills/`), one per tab, replaced on each save. A closed tab's file
   is left for the system to clear. Each is shrunk to the stage's width just
@@ -173,11 +175,10 @@ time.
   picture each time, and at the video's own size that's about 33 MB for 4K.
 - There is one player. Switching tabs unloads one file and loads the other,
   so the cover hides a real load; two videos are never live at once.
-- A video that hasn't played for 5 minutes (paused, finished, or behind the
-  channel) is unloaded: one loaded video held about 700 MB in a test on an
+- A video that hasn't played for 5 minutes (paused or finished; going back
+  to the channel pauses it) is unloaded: one loaded video held about 700 MB in a test on an
   M1 Pro, most of it software decoding, since downloads prefer AV1 and that
   chip has no AV1 hardware decoder. On screen its frame goes up as the
-  cover first, and Play or coming back loads it again. Once it's unloaded,
-  the keyboard's play key does nothing until the player is opened.
+  cover first, and Play, the play key or coming back loads it again.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.
