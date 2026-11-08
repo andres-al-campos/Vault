@@ -1182,6 +1182,17 @@ function stageError(err) {
 
 // Puts the active tab's video on, from where it was left. `paused` holds it
 // on that frame, for a tab that came forward without being asked to play.
+// The tab whose file is on its way: from the press until mpv reports the first
+// frame. player_load returns once mpv takes the file, a second or more before
+// the picture, and presses in between restarted the load or toggled a video
+// that hadn't started, so a few quick presses got nowhere.
+let starting = null;
+let startedAt = 0;
+// A file that never shows a frame mustn't leave Play dead, so after this a
+// press loads it again.
+const START_GIVE_UP = 10_000;
+const isStarting = (id) => starting === id && Date.now() - startedAt < START_GIVE_UP;
+
 async function loadActive({ paused = false } = {}) {
   const tab = tabs.active;
   if (!tab) return;
@@ -1194,6 +1205,8 @@ async function loadActive({ paused = false } = {}) {
       // with the frame this tab was left on, or its thumbnail before it has
       // one. The cover goes up only once its picture is ready, so the switch
       // goes from picture to picture and never through black.
+      starting = tab.id;
+      startedAt = Date.now();
       const left = tab.still && resumeAt(tab) === tab.position;
       await showCover(left ? convertFileSrc(tab.still) : thumb(tab.id), thumb(tab.id));
       if (mine !== loads) return;
@@ -1207,6 +1220,7 @@ async function loadActive({ paused = false } = {}) {
   } catch (e) {
     if (mine !== loads) return;
     loadedId = null;
+    starting = null;
     playing = { paused: true, ended: false };
     stageError(e);
   }
@@ -1245,6 +1259,7 @@ async function tick() {
   // not taken: a seek into a long video lands a while after the file opens,
   // and what's reported meanwhile isn't where the tab was left.
   if (!s.ready) return;
+  starting = null;
   stageEl.classList.remove("loading");
   // Seen here and not where the button is pressed, so a pause that came from
   // the keyboard's media key shows too.
@@ -1422,7 +1437,9 @@ async function openVideo(id, { background = false } = {}) {
 async function togglePlay() {
   const tab = tabs.active;
   if (!tab) return;
-  if (loadedId !== tab.id) return loadActive();
+  // Behind the channel nothing polls, so the load's end is looked for here.
+  if (isStarting(tab.id)) { await tick(); if (isStarting(tab.id)) return; }
+  if (loadedId !== tab.id) { flash(PLAY_ICON); return loadActive(); }
   try {
     if (playing.ended) await invoke("player_set", { action: "seek", value: 0 });
     await invoke("player_set", { action: playing.paused || playing.ended ? "play" : "pause" });

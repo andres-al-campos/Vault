@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-11-07 22:52, at 0.1.0.
+Updated 2026-11-07 23:07, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -180,5 +180,10 @@ time.
   M1 Pro, most of it software decoding, since downloads prefer AV1 and that
   chip has no AV1 hardware decoder. On screen its frame goes up as the
   cover first, and Play, the play key or coming back loads it again.
+- Play presses while a video is starting (from the press until mpv reports
+  its first frame, at most 10 seconds) are ignored, and the first one
+  flashes the play icon. Each press used to start the load over, so pressing
+  Space a few times on an unloaded video got nowhere until the presses
+  stopped.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.
