@@ -49,12 +49,14 @@ time, each starting with the time and version it was made or reworded at. A call
 - 2026-10-13 17:32, 0.1.0. The name is Vault. Where there is room it is written
   "Vault - Channel Archiver": the name, a short dash, and what it does, so
   nobody is misled. "YouTube" stays out of both and goes in the description.
-- 2026-10-13 16:34, 0.1.0. The app icon is a red tile with a white play triangle turned
+- 2026-11-07 20:15, 0.1.0. The app icon is a red tile with a white play triangle turned
   to point down: a nod to YouTube's button without its rounded rectangle,
   which is the part that is theirs. The plain triangle looked too much like
   YouTube, so a cut in its top edge makes it a V. It is equilateral (narrower
-  ones were tried and this looked better), barely rounded at the corners,
-  and large, with the same room above it as below its point. The red is a
+  ones were tried and this looked better), and every corner, the notch too,
+  is rounded just enough to show in the Dock: YouTube's triangle is sharp,
+  and 8 or 10 (of 1024) vanished at 59pt, so it is 16, set in `dev/icon.py`.
+  It is large, with the same room above it as below its point. The red is a
   little softer than YouTube's, which was too red in the Dock. Switched, a
   red V on white looked like a heart or a hospital sign.
 - 2026-10-13 17:36, 0.1.0. The icon's V is opaque white: it's the one thing that shouldn't
