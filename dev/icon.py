@@ -17,8 +17,8 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # Corner radius on the 1024 canvas, the same at every corner, the notch included.
-# Tuned by eye: 8 didn't show in the Dock.
-RADIUS = 10
+# Tuned by eye: at 8 and 10 the rounding didn't show in a 59pt Dock (about 1px).
+RADIUS = 16
 
 # The V's outline in the original drawing's units, placed by translate(191 234) scale(4).
 # A downward play triangle with a cut in its top edge; the numbers are from the
