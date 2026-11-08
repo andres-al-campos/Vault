@@ -82,3 +82,12 @@ export function resumeAt(tab) {
 export function progress(tab) {
   return tab?.duration > 0 ? Math.min(1, Math.max(0, tab.position / tab.duration)) : 0;
 }
+
+// A loaded video holds its decoder and frames, hundreds of MB for 4K AV1,
+// whether or not anyone is watching. After this long without playing it is
+// unloaded, and reloads behind its cover when it's wanted again.
+export const UNLOAD_AFTER = 5 * 60_000;
+
+// Whether the loaded video counts as left alone: paused, finished, or behind
+// the channel. Only playing on screen keeps it.
+export const isIdle = ({ loaded, watching, paused, ended }) => !!loaded && (!watching || paused || ended);

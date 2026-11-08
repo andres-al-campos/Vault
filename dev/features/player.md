@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-11-07 22:08, at 0.1.0.
+Updated 2026-11-07 22:41, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -173,5 +173,11 @@ time.
   picture each time, and at the video's own size that's about 33 MB for 4K.
 - There is one player. Switching tabs unloads one file and loads the other,
   so the cover hides a real load; two videos are never live at once.
+- A video that hasn't played for 5 minutes (paused, finished, or behind the
+  channel) is unloaded: one loaded video held about 700 MB in a test on an
+  M1 Pro, most of it software decoding, since downloads prefer AV1 and that
+  chip has no AV1 hardware decoder. On screen its frame goes up as the
+  cover first, and Play or coming back loads it again. Once it's unloaded,
+  the keyboard's play key does nothing until the player is opened.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.

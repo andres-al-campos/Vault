@@ -2,7 +2,7 @@ import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import { createQueue, lineAction } from "./queue.js";
-import { createTabs, resumeAt, progress } from "./player.js";
+import { createTabs, resumeAt, progress, isIdle, UNLOAD_AFTER } from "./player.js";
 import { isMembers, archiveState, view, downloadable, withUnlisted, batchSizes, batchOf, windowOf, ASK_ABOVE, newVideos, ago } from "./library.js";
 
 /* ---------------- theme ---------------- */
@@ -1253,7 +1253,40 @@ async function tick() {
   tabs.note(tab.id, s.position, s.duration);
   playing = { paused: s.paused, ended: s.ended };
   renderTransport();
+  armUnload();
   if (Date.now() - lastSave > 5000) { saveTabs(); lastSave = Date.now(); }
+}
+
+// Starts the idle clock when the loaded video is left alone, and stops it when
+// it plays again. A running clock is left running: ticks come four times a
+// second, and restarting it on each would never let it run out.
+let unloadTimer = null;
+function armUnload() {
+  if (!isIdle({ loaded: loadedId, watching: watching(), paused: playing.paused, ended: playing.ended })) {
+    clearTimeout(unloadTimer);
+    unloadTimer = null;
+    return;
+  }
+  unloadTimer ??= setTimeout(unloadIdle, UNLOAD_AFTER);
+}
+
+// Lets mpv drop the file. On screen, the frame it was on goes up as the cover
+// first, so the stage doesn't change; Play or a switch back loads it again.
+async function unloadIdle() {
+  unloadTimer = null;
+  const tab = tabs.active;
+  const mine = loads;
+  if (!tab || !isIdle({ loaded: loadedId, watching: watching(), paused: playing.paused, ended: playing.ended })) return;
+  if (watching()) {
+    await keepStill();
+    await showCover(tab.still ? convertFileSrc(tab.still) : thumb(tab.id), thumb(tab.id));
+    if (mine !== loads) return; // a load started meanwhile: it owns the stage now
+    stageEl.classList.add("loading");
+  }
+  loadedId = null;
+  reported = false;
+  await invoke("player_set", { action: "stop" }).catch(() => {});
+  renderTransport();
 }
 
 // Arrives paused unless a card's Play asked for the video.
@@ -1342,6 +1375,7 @@ async function leavePlayer() {
   invoke("player_set", { action: "pause" }).catch(() => {});
   invoke("player_place", { visible: false, x: 0, top: 0, w: 0, h: 0, winH: 0 }).catch(() => {});
   renderWatching();
+  armUnload(); // the polling that arms it has stopped
 }
 
 // Switching tabs brings the video up paused where it was left. Only Play on a
@@ -1419,6 +1453,9 @@ function seekTo(seconds) {
   const to = Math.min(Math.max(0, seconds), Math.max(0, tab.duration - 0.5));
   tabs.note(tab.id, to, tab.duration);
   invoke("player_set", { action: "seek", value: to }).catch((e) => stageError(e));
+  // Scrubbing a paused video is using it, so its idle clock starts over.
+  clearTimeout(unloadTimer);
+  unloadTimer = null;
 }
 
 $("watching").addEventListener("click", () => showPlayer());
