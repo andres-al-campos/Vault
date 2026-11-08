@@ -1229,7 +1229,8 @@ async function showCover(src, fallback) {
 async function keepStill() {
   const tab = tabs.active;
   if (!tab || loadedId !== tab.id || !reported) return;
-  try { tabs.keep(tab.id, await invoke("player_still", { id: tab.id })); }
+  const width = Math.round(stageEl.clientWidth * devicePixelRatio);
+  try { tabs.keep(tab.id, await invoke("player_still", { id: tab.id, width })); }
   catch (e) { console.warn("No still saved:", e); }
 }
 

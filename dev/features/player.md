@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-10-29 08:59, at 0.1.0.
+Updated 2026-11-07 22:08, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -168,7 +168,9 @@ time.
   picked up again when the player is next opened.
 - The saved frames are JPEGs in the system's temporary folder
   (`vault-stills/`), one per tab, replaced on each save. A closed tab's file
-  is left for the system to clear.
+  is left for the system to clear. Each is shrunk to the stage's width just
+  after it's saved: every save has a new name, so the page decodes a new
+  picture each time, and at the video's own size that's about 33 MB for 4K.
 - There is one player. Switching tabs unloads one file and loads the other,
   so the cover hides a real load; two videos are never live at once.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed

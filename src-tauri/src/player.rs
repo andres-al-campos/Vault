@@ -403,7 +403,7 @@ pub fn player_fullscreen(window: tauri::WebviewWindow, on: Option<bool>) -> Resu
 /// it over the stage while this video loads again, so switching tabs goes from
 /// picture to picture instead of through black.
 #[tauri::command(async)]
-pub fn player_still(id: String) -> Result<String, String> {
+pub fn player_still(id: String, width: Option<u32>) -> Result<String, String> {
     // The id becomes a file name.
     if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
         return Err(format!("\"{id}\" isn't a video id, so no picture was saved for it."));
@@ -427,5 +427,83 @@ pub fn player_still(id: String) -> Result<String, String> {
     let path = dir.join(format!("{prefix}{stamp}.jpg"));
     let path = path.to_string_lossy().into_owned();
     command(&["screenshot-to-file", &path, "video"])?;
+    // mpv saves the frame at the video's own size, and each still has a new
+    // name, so the page decodes a new full-size picture on every switch: about
+    // 33 MB each for 4K. Shrunk off the switch's path, since the cover is only
+    // needed when the tab comes back; until then the full-size file stands in.
+    if let Some(w) = width.filter(|w| *w > 0) {
+        let p = path.clone();
+        std::thread::spawn(move || {
+            if let Err(e) = shrink_still(std::path::Path::new(&p), w) {
+                eprintln!("{e}");
+            }
+        });
+    }
     Ok(path)
+}
+
+/// Scales a JPEG down to at most `width` pixels across, in place. The smaller
+/// copy is written beside it and renamed over it, so a reader sees one whole
+/// file or the other.
+pub(crate) fn shrink_still(path: &std::path::Path, width: u32) -> Result<(), String> {
+    let tmp = path.with_extension("small.jpg");
+    let out = std::process::Command::new("/usr/bin/sips")
+        .args(["--resampleWidth", &width.to_string(), "-s", "formatOptions", "80"])
+        .arg(path)
+        .arg("--out")
+        .arg(&tmp)
+        .output()
+        .map_err(|e| format!("Couldn't run sips to shrink {}: {e}. The full-size still is kept.", path.display()))?;
+    if !out.status.success() {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(format!(
+            "sips couldn't shrink {}: {}. The full-size still is kept.",
+            path.display(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        ));
+    }
+    std::fs::rename(&tmp, path).map_err(|e| format!("Couldn't replace {} with its smaller copy: {e}.", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shrink_still;
+
+    fn width_of(path: &std::path::Path) -> u32 {
+        let out = std::process::Command::new("/usr/bin/sips").args(["-g", "pixelWidth"]).arg(path).output().unwrap();
+        String::from_utf8_lossy(&out.stdout).split_whitespace().last().unwrap().parse().unwrap()
+    }
+
+    // A grey 1600x900 BMP, turned into a JPEG the way mpv would hand one over.
+    fn frame(dir: &std::path::Path) -> std::path::PathBuf {
+        let (w, h) = (1600u32, 900u32);
+        let row = (w * 3 + 3) & !3;
+        let size = 54 + row * h;
+        let mut b = Vec::with_capacity(size as usize);
+        b.extend(b"BM");
+        for v in [size, 0, 54, 40] { b.extend(v.to_le_bytes()); }
+        b.extend((w as i32).to_le_bytes());
+        b.extend((h as i32).to_le_bytes());
+        b.extend(1u16.to_le_bytes());
+        b.extend(24u16.to_le_bytes());
+        for v in [0u32, row * h, 2835, 2835, 0, 0] { b.extend(v.to_le_bytes()); }
+        b.resize(size as usize, 0x80);
+        let bmp = dir.join("frame.bmp");
+        std::fs::write(&bmp, b).unwrap();
+        let jpg = dir.join("frame.jpg");
+        let ok = std::process::Command::new("/usr/bin/sips").args(["-s", "format", "jpeg"]).arg(&bmp).arg("--out").arg(&jpg).output().unwrap();
+        assert!(ok.status.success(), "sips couldn't make the test frame");
+        jpg
+    }
+
+    #[test]
+    fn a_still_is_shrunk_to_the_stage_width() {
+        let dir = std::env::temp_dir().join(format!("vault-still-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let jpg = frame(&dir);
+        shrink_still(&jpg, 640).unwrap();
+        let w = width_of(&jpg);
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(w, 640, "a tab's still should be saved at the stage's width, not the video's, or every tab switch leaves a full-size picture decoded in the page (see player_still)");
+    }
 }
