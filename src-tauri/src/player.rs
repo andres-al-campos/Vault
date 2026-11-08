@@ -45,8 +45,20 @@ struct MpvClientMessage {
     num_args: c_int,
     args: *const *const c_char,
 }
+// The start of mpv_event_end_file; the fields after these aren't read.
+#[repr(C)]
+struct MpvEndFile {
+    reason: c_int,
+    error: c_int,
+}
 const MPV_EVENT_SHUTDOWN: c_int = 1;
+const MPV_EVENT_END_FILE: c_int = 7;
 const MPV_EVENT_CLIENT_MESSAGE: c_int = 16;
+const MPV_END_FILE_REASON_ERROR: c_int = 4;
+
+/// What the page hears when mpv gives up on a file it had accepted: one that
+/// can't be read, or a drive that went away mid-video. Carries mpv's reason.
+pub const FILE_FAILED_EVENT: &str = "player-file-failed";
 
 /// What the page hears when the keyboard's play key is pressed.
 pub const PLAY_KEY_EVENT: &str = "player-play-key";
@@ -278,13 +290,19 @@ pub fn init(window: &tauri::WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
-// mpv's events, read on their own thread for as long as mpv runs. Only the
-// play key's message is passed on.
+// mpv's events, read on their own thread for as long as mpv runs. The play
+// key and a file that failed are passed on; the rest the page polls for.
 fn listen(h: *mut c_void, app: tauri::AppHandle) {
     loop {
         let ev = unsafe { &*mpv_wait_event(h, -1.0) };
         match ev.event_id {
             MPV_EVENT_SHUTDOWN => return,
+            MPV_EVENT_END_FILE if !ev.data.is_null() => {
+                let end = unsafe { &*(ev.data as *const MpvEndFile) };
+                if end.reason == MPV_END_FILE_REASON_ERROR {
+                    let _ = app.emit(FILE_FAILED_EVENT, mpv_err(end.error));
+                }
+            }
             MPV_EVENT_CLIENT_MESSAGE if !ev.data.is_null() => {
                 let msg = unsafe { &*(ev.data as *const MpvClientMessage) };
                 if msg.num_args < 1 || msg.args.is_null() {

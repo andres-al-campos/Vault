@@ -1,6 +1,6 @@
 # Player
 
-Updated 2026-11-07 23:07, at 0.1.0.
+Updated 2026-11-07 23:08, at 0.1.0.
 
 Archived videos play inside Vault. Each one opens in a tab that keeps its
 place, so several can be open at once and picked up later, the way YouTube
@@ -185,5 +185,10 @@ time.
   flashes the play icon. Each press used to start the load over, so pressing
   Space a few times on an unloaded video got nowhere until the presses
   stopped.
+- Two failures show on the stage. A file that isn't there is refused before
+  mpv sees it (`player_load`). One mpv takes and then can't read, damaged or
+  on a drive that went away mid-video, comes back as mpv's end-file event
+  (`player-file-failed`, from the event thread in `player.rs`); the frame
+  stays up under the message, and Play tries the file again.
 - One mpv log line at the first frame ("INVALID_FRAMEBUFFER_OPERATION") showed
   in the spike with no visible effect.

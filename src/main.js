@@ -1477,6 +1477,20 @@ function seekTo(seconds) {
   unloadTimer = null;
 }
 
+// mpv gave up on the file after taking it: it can't be read, or its drive
+// went away mid-video. The frame stays up with the message over it, and the
+// tab counts as unloaded, so Play tries the file again.
+listen("player-file-failed", (e) => {
+  const tab = tabs.active;
+  if (!tab) return;
+  starting = null;
+  loadedId = null;
+  reported = false;
+  playing = { paused: true, ended: false };
+  stageError(`mpv couldn't read the file (${e.payload}). If it's on an external drive, check the drive is connected, then press Play to try again. If it still fails, the download may be damaged: delete the file from the channel's folder and download it again.`);
+  renderTransport();
+});
+
 // The keyboard's play key, headphone buttons and Control Center, sent on by
 // mpv (player.rs). It's the Play button, so an unloaded video loads first.
 listen("player-play-key", () => togglePlay());
