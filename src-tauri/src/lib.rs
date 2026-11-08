@@ -1065,12 +1065,11 @@ fn start_download(req: DownloadRequest, emit: impl Fn(DownloadEvent) + Send + 's
     cmd
         // Prefer AV1, then H.264, always with AAC audio, muxed into MP4.
         //
-        // yt-dlp's default lands on VP9+Opus in WebM: same visual quality at
-        // roughly a third of H.264's bitrate. It is the better encode, but
-        // macOS' WebKit plays WebM inconsistently, so the app couldn't play its
-        // own downloads. AV1 in MP4 measures the same as WebM — 29.0 MiB vs
-        // 29.4 MiB for 1080p on a test video — in a container WebKit handles.
-        // The h264 step is the fallback for videos with no AV1 ladder.
+        // AV1 is kept for its small files (29.0 MiB for a 1080p test video,
+        // about a third of H.264), though a Mac without AV1 hardware decoding,
+        // M1 and M2, plays it in software: about 700 MB while one plays. Smaller
+        // files were chosen over that (download-queue.md, Calls). The h264 step
+        // is the fallback for videos with no AV1 ladder.
         .arg("-f")
         .arg("bv*+ba/b")
         .arg("-S")
