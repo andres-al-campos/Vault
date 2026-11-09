@@ -129,10 +129,11 @@ time.
 - 2026-10-13 14:48, 0.1.0. It's Pause all, not Stop all, since a download picks up where
   it left off. Waiting rows read "Queued · Paused" so nobody expects them to
   start.
-- 2026-11-07 23:41, 0.1.0. Downloads stay AV1 though an M1 or M2 Mac decodes it in software, about
+- 2026-11-08 19:02, 0.1.0. Downloads stay AV1 though an M1 or M2 Mac decodes it in software, about
   700 MB while a video plays: "I'd rather have smaller videos." H.264, which
-  every Mac decodes in hardware, takes about three times the disk. VP9 is
-  near AV1's size; whether mpv decodes it in hardware on an M1 is unchecked.
+  every Mac decodes in hardware, takes about three times the disk. VP9, a
+  fifth to a third bigger and probably hardware-decoded, was turned down
+  too: "I want smaller files. Processing doesn't matter as much."
 - 2026-10-13 14:48, 0.1.0. A retried or paused download keeps its row. Rows only move
   when dragged.
 - 2026-10-14 19:49, 0.1.0. A bot check waits and tries again by itself rather than
