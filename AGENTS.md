@@ -6,7 +6,7 @@ attention. Every part of the app serves that, and it's what to compare a
 screen against when stepping back from it.
 
 Read `dev/features/README.md` before adding anything. `./build.sh check` runs the
-laws and tests; plain `./build.sh` installs and launches the app.
+lints and tests; plain `./build.sh` installs and launches the app.
 
 ## Principles
 

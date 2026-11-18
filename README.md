@@ -39,7 +39,7 @@ yt-dlp, ffmpeg and mpv installed, as below; Rust and Node are only for building.
 ```sh
 ./build.sh           # package Vault.app, install to /Applications/_vibe_coded, launch
 ./build.sh dev       # hot-reload dev window
-./build.sh check     # every check: JS and Rust unit tests, the feature-map law
+./build.sh check     # every check: JS and Rust unit tests, the feature-map lint
 ./build.sh check net # also the live tests, which fetch real channels and download two short videos
 ./build.sh package   # package the .app only, without installing it
 ./build.sh clean     # drop dist/ and src-tauri/target/
